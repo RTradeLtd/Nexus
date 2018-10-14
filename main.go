@@ -13,10 +13,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	d, err := daemon.New(r)
-	if err != nil {
-		log.Fatal(err)
-	}
+	d := daemon.New(r)
 
 	log.Fatal(d.Run("localhost", "9111"))
 }

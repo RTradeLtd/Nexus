@@ -11,10 +11,10 @@ import (
 
 type Daemon struct {
 	s *grpc.Server
-	r *registry.Registry
+	r *registry.Manager
 }
 
-func New(registry *registry.Registry) *Daemon {
+func New(registry *registry.Manager) *Daemon {
 	s := grpc.NewServer()
 	d := &Daemon{
 		s: s,
