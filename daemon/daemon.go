@@ -3,24 +3,24 @@ package daemon
 import (
 	"net"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
+	"github.com/RTradeLtd/ipfs-orchestrator/protobuf"
 
-	orchestrator "github.com/RTradeLtd/ipfs-orchestrator/protobuf"
 	"google.golang.org/grpc"
 )
 
 type Daemon struct {
 	s *grpc.Server
-	r *registry.Manager
+	o *orchestrator.Orchestrator
 }
 
-func New(registry *registry.Manager) *Daemon {
+func New(o *orchestrator.Orchestrator) *Daemon {
 	s := grpc.NewServer()
 	d := &Daemon{
 		s: s,
-		r: registry,
+		o: o,
 	}
-	orchestrator.RegisterServiceServer(d.s, d)
+	orchestrator_grpc.RegisterServiceServer(d.s, d)
 	return d
 }
 
