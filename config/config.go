@@ -9,8 +9,14 @@ import (
 )
 
 type IPFSOrchestratorConfig struct {
+	Ports    []string `json:"ports"`
+	IPFS     `json:"ipfs"`
 	API      `json:"api"`
 	Postgres `json:"postgres"`
+}
+
+type IPFS struct {
+	Version string `json:"version"`
 }
 
 type API struct {
@@ -61,6 +67,10 @@ func GenerateConfig(configPath string) error {
 	return ioutil.WriteFile(configPath, pretty.Bytes(), os.ModePerm)
 }
 
+func (c *IPFSOrchestratorConfig) GetPortRanges() {
+
+}
+
 func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"
@@ -73,5 +83,8 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	}
 	if c.Postgres.Port == "" {
 		c.Postgres.Port = "5432"
+	}
+	if c.Ports == nil || len(c.Ports) == 0 {
+		c.Ports = []string{"8000-9000"}
 	}
 }

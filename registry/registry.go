@@ -21,21 +21,21 @@ func New(nodes ...*ipfs.NodeInfo) *NodeRegistry {
 	m := make(map[string]*ipfs.NodeInfo)
 	if nodes != nil {
 		for _, n := range nodes {
-			m[n.ID] = n
+			m[n.DockerID()] = n
 		}
 	}
 	return &NodeRegistry{nodes: m}
 }
 
 func (r *NodeRegistry) Register(node ipfs.NodeInfo) error {
-	if node.ID == "" {
+	if node.DockerID() == "" {
 		return errors.New(ErrInvalidID)
 	}
 	r.m.Lock()
-	if _, found := r.nodes[node.ID]; found {
+	if _, found := r.nodes[node.DockerID()]; found {
 		return errors.New("node ID already exists")
 	}
-	r.nodes[node.ID] = &node
+	r.nodes[node.DockerID()] = &node
 	r.m.Unlock()
 	return nil
 }

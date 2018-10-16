@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
@@ -16,14 +17,14 @@ type Orchestrator struct {
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New(pg config.Postgres) (*Orchestrator, error) {
-	c, err := ipfs.NewClient()
+func New(ipfsOpts config.IPFS, pgOpts config.Postgres) (*Orchestrator, error) {
+	c, err := ipfs.NewClient(ipfsOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	// bootstrap registry
-	nodes, err := c.Nodes()
+	nodes, err := c.Nodes(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}

@@ -28,7 +28,7 @@ func main() {
 		internal.Fatal(err.Error())
 	}
 
-	o, err := orchestrator.New(cfg.Postgres)
+	o, err := orchestrator.New(cfg.IPFS, cfg.Postgres)
 	if err != nil {
 		internal.Fatal(err.Error())
 	}
