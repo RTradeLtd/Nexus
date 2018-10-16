@@ -3,6 +3,7 @@ package daemon
 import (
 	"net"
 
+	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 	"github.com/RTradeLtd/ipfs-orchestrator/protobuf"
 
@@ -24,8 +25,8 @@ func New(o *orchestrator.Orchestrator) *Daemon {
 	return d
 }
 
-func (d *Daemon) Run(host, port string) error {
-	listener, err := net.Listen("tcp", host+":"+port)
+func (d *Daemon) Run(cfg config.API) error {
+	listener, err := net.Listen("tcp", cfg.Host+":"+cfg.Port)
 	if err != nil {
 		return err
 	}

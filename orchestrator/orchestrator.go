@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"fmt"
 
+	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 )
@@ -15,7 +16,7 @@ type Orchestrator struct {
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New() (*Orchestrator, error) {
+func New(pg config.Postgres) (*Orchestrator, error) {
 	c, err := ipfs.NewClient()
 	if err != nil {
 		return nil, err

@@ -1,19 +1,38 @@
 package main
 
 import (
-	"log"
+	"flag"
+	"os"
 
+	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
-	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+	"github.com/RTradeLtd/ipfs-orchestrator/internal"
+	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
+)
+
+var (
+	configPath = flag.String("config", "./config.json", "path to ipfs-orchestrator config file")
 )
 
 func main() {
-	r, err := registry.New()
-	if err != nil {
-		log.Fatal(err)
+	flag.Parse()
+
+	if (len(os.Args) > 2) && os.Args[1] == "init" {
+		println(*configPath)
+		config.GenerateConfig(*configPath)
+		return
 	}
 
-	d := daemon.New(r)
+	cfg, err := config.LoadConfig(*configPath)
+	if err != nil {
+		internal.Fatal(err.Error())
+	}
 
-	log.Fatal(d.Run("localhost", "9111"))
+	o, err := orchestrator.New(cfg.Postgres)
+	if err != nil {
+		internal.Fatal(err.Error())
+	}
+	d := daemon.New(o)
+
+	internal.Fatal(d.Run(cfg.API))
 }

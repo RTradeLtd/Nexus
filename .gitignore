@@ -3,3 +3,6 @@ vendor
 
 # binaries
 ipfs-orchestrator
+
+# generated
+/config.json

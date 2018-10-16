@@ -9,8 +9,13 @@ import (
 // NodeClient provides an interface to the base Docker client for controlling
 // IPFS nodes
 type NodeClient interface {
+	// Nodes retrieves a list of active IPFS ndoes
 	Nodes() ([]*NodeInfo, error)
+
+	// CreateNode activates a new IPFS node
 	CreateNode(n NodeInfo) error
+
+	// StopNode shuts down an existing IPFS node
 	StopNode(id string) error
 }
 
