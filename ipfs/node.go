@@ -10,9 +10,9 @@ type NodeInfo struct {
 
 // NodePorts declares the exposed ports of an IPFS node
 type NodePorts struct {
-	Swarm   string
-	API     string
-	Gateway string
+	Swarm   string // default: 4001
+	API     string // default: 5001
+	Gateway string // default: 8080
 }
 
 // DockerID is the ID of the node's Docker container

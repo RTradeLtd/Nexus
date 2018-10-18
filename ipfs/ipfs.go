@@ -97,6 +97,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		return errors.New("invalid configuration provided")
 	}
 
+	// detect if this configuration requires bootstrapping
+	bootstrap := opts.BootstrapNodes != nil && len(opts.BootstrapNodes) > 0
+
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
 		getConfigDir(n.Network)+"/swarm.key",
@@ -122,7 +125,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"swarm_port":   n.Ports.Swarm,
 			"api_port":     n.Ports.API,
 			"gateway_port": n.Ports.Gateway,
-			"bootstrapped": strconv.FormatBool(opts.BootstrapNodes != nil && len(opts.BootstrapNodes) > 0),
+			"bootstrapped": strconv.FormatBool(bootstrap),
 		}
 	)
 
@@ -161,7 +164,14 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// spin up node
 	if err := c.d.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return err
+		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
+	}
+
+	// bootstrap peers if required
+	if bootstrap {
+		if err := c.bootstrapNode(ctx, n.DockerID(), opts.BootstrapNodes...); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -180,4 +190,20 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 
 	// remove ipfs data
 	return os.RemoveAll(getDataDir(n.Network))
+}
+
+func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
+	if peers == nil {
+		return errors.New("no peers provided")
+	}
+
+	bootstrap := []string{"ipfs", "bootstrap"}
+	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
+		Cmd: append(bootstrap, peers...),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
+	}
+
+	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }
