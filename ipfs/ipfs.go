@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,7 +24,7 @@ type NodeClient interface {
 	Nodes(ctx context.Context) (nodes []*NodeInfo, err error)
 
 	// CreateNode activates a new IPFS node
-	CreateNode(ctx context.Context, n *NodeInfo) (err error)
+	CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) (err error)
 
 	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
@@ -84,23 +86,43 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	return nodes, nil
 }
 
-func (c *client) CreateNode(ctx context.Context, n *NodeInfo) error {
-	if n == nil {
-		return errors.New("invalid node")
+// NodeOpts declares options for starting up nodes
+type NodeOpts struct {
+	SwarmKey       []byte
+	BootstrapNodes []string
+}
+
+func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
+	if n == nil || n.Network == "" || opts.SwarmKey == nil {
+		return errors.New("invalid configuration provided")
 	}
 
-	// TODO: set up private network config
-	// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#private-networks
+	// write swarm.key to mount point
+	if err := ioutil.WriteFile(
+		getConfigDir(n.Network)+"/swarm.key",
+		opts.SwarmKey, 0755,
+	); err != nil {
+		return err
+	}
 
 	var (
-		// TODO: do these all need to be public?
 		ports = nat.PortMap{
+			// TODO: do these all ports need to be public?
 			"4001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
 			"5001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
 			"8080": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
 			getDataDir(n.Network) + ":/data/ipfs",
+			getConfigDir(n.Network) + ":/config/.ipfs",
+		}
+		labels = map[string]string{
+			"network_name": n.Network,
+			"data_dir":     getDataDir(n.Network),
+			"swarm_port":   n.Ports.Swarm,
+			"api_port":     n.Ports.API,
+			"gateway_port": n.Ports.Gateway,
+			"bootstrapped": strconv.FormatBool(opts.BootstrapNodes != nil && len(opts.BootstrapNodes) > 0),
 		}
 	)
 
@@ -114,18 +136,18 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo) error {
 			},
 			Env: []string{
 				"LIBP2P_FORCE_PNET=1", // enforce private networks
+				"IPFS_PATH=/config/.ipfs",
 			},
+			Labels: labels,
 		},
 		&container.HostConfig{
-			AutoRemove:   true,
 			Binds:        volumes,
 			PortBindings: ports,
 
 			// TODO: limit resources
 			Resources: container.Resources{},
 		},
-		nil,
-		"ipfs-"+n.Network,
+		nil, "ipfs-"+n.Network,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
