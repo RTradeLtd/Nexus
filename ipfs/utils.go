@@ -2,12 +2,21 @@ package ipfs
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
-func getDataDir(network string) string   { return fmt.Sprintf("/data/ipfs/%s", network) }
-func getConfigDir(network string) string { return fmt.Sprintf("/config/.ipfs/%s", network) }
+const (
+	dirEnv    = "DATA_DIR"
+	configEnv = "CONFIG_DIR"
+)
 
-func parseNetworkName(imageName string) string {
-	return strings.Join(strings.Split(imageName, "-")[1:], "-")
+func getDataDir(network string) string {
+	return filepath.Join(os.Getenv(dirEnv), fmt.Sprintf("/data/ipfs/%s", network))
+}
+
+func isNodeContainer(imageName string) bool {
+	parts := strings.Split(imageName, "-")
+	return len(parts) > 0 && strings.Contains(parts[0], "ipfs")
 }

@@ -1,12 +1,13 @@
 package ipfs
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -39,17 +40,20 @@ type client struct {
 // NewClient creates a new Docker Client from ENV values and negotiates the
 // correct API version to use
 func NewClient(ipfsOpts config.IPFS) (NodeClient, error) {
-	ipfsImage := "ipfs/go-ipfs:" + ipfsOpts.Version
 	d, err := docker.NewEnvClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to dockerd: %s", err.Error())
 	}
 	d.NegotiateAPIVersion(context.Background())
 
-	_, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{})
-	if err != nil {
+	// pull required images
+	ipfsImage := "ipfs/go-ipfs:" + ipfsOpts.Version
+	if _, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{}); err != nil {
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
+
+	// initialize directories
+	os.MkdirAll(getDataDir(""), 0755)
 
 	return &client{ipfsImage, d}, nil
 }
@@ -62,24 +66,28 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	nodes := make([]*NodeInfo, 0)
 	for _, container := range ctrs {
-		// parse ports
-		nodePorts := NodePorts{}
-		for _, cp := range container.Ports {
-			switch cp.PrivatePort {
-			case 4001:
-				nodePorts.Swarm = string(cp.PublicPort)
-			case 5001:
-				nodePorts.API = string(cp.PublicPort)
-			case 8080:
-				nodePorts.Gateway = string(cp.PublicPort)
-			}
+		// check if container is a node
+		name := container.Names[0]
+		if !isNodeContainer(name) {
+			continue
 		}
+
+		// parse bootstrap state
+		var peers []string
+		json.Unmarshal([]byte(container.Labels["bootstrap_peers"]), &peers)
 
 		// create node metadata to return
 		nodes = append(nodes, &NodeInfo{
-			Network:  parseNetworkName(container.Names[0]),
-			Ports:    nodePorts,
-			dockerID: container.ID,
+			container.Labels["network_name"],
+			NodePorts{
+				Swarm:   container.Labels["swarm_port"],
+				API:     container.Labels["api_port"],
+				Gateway: container.Labels["gateway_port"],
+			},
+			container.ID,
+			name,
+			container.Labels["data_dir"],
+			peers,
 		})
 	}
 
@@ -89,7 +97,8 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 // NodeOpts declares options for starting up nodes
 type NodeOpts struct {
 	SwarmKey       []byte
-	BootstrapNodes []string
+	BootstrapPeers []string
+	AutoRemove     bool
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
@@ -97,39 +106,45 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		return errors.New("invalid configuration provided")
 	}
 
-	// detect if this configuration requires bootstrapping
-	bootstrap := opts.BootstrapNodes != nil && len(opts.BootstrapNodes) > 0
+	// set up directories
+	os.MkdirAll(getDataDir(n.Network), 0755)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
-		getConfigDir(n.Network)+"/swarm.key",
+		getDataDir(n.Network)+"/swarm.key",
 		opts.SwarmKey, 0755,
 	); err != nil {
-		return err
+		return fmt.Errorf("failed to write key: %s", err.Error())
 	}
 
+	// check peers
+	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
+	peerBytes, _ := json.Marshal(opts.BootstrapPeers)
+
 	var (
-		ports = nat.PortMap{
-			// TODO: do these all ports need to be public?
+		containerName = "ipfs-" + n.Network
+		ports         = nat.PortMap{
+			// public ports
 			"4001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
-			"5001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
-			"8080": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Gateway}},
+
+			// private ports
+			"5001": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.API}},
+			"8080": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
 			getDataDir(n.Network) + ":/data/ipfs",
-			getConfigDir(n.Network) + ":/config/.ipfs",
 		}
 		labels = map[string]string{
-			"network_name": n.Network,
-			"data_dir":     getDataDir(n.Network),
-			"swarm_port":   n.Ports.Swarm,
-			"api_port":     n.Ports.API,
-			"gateway_port": n.Ports.Gateway,
-			"bootstrapped": strconv.FormatBool(bootstrap),
+			"network_name":    n.Network,
+			"data_dir":        getDataDir(n.Network),
+			"swarm_port":      n.Ports.Swarm,
+			"api_port":        n.Ports.API,
+			"gateway_port":    n.Ports.Gateway,
+			"bootstrap_peers": string(peerBytes),
 		}
 	)
 
-	// create container
+	// create ipfs node container
 	resp, err := c.d.ContainerCreate(
 		ctx,
 		&container.Config{
@@ -139,27 +154,29 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			},
 			Env: []string{
 				"LIBP2P_FORCE_PNET=1", // enforce private networks
-				"IPFS_PATH=/config/.ipfs",
 			},
-			Labels: labels,
+			Labels:       labels,
+			Tty:          true,
+			AttachStdout: true,
+			AttachStderr: true,
 		},
 		&container.HostConfig{
+			AutoRemove:   opts.AutoRemove,
 			Binds:        volumes,
 			PortBindings: ports,
 
 			// TODO: limit resources
 			Resources: container.Resources{},
 		},
-		nil, "ipfs-"+n.Network,
+		nil, containerName,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
-	n.dockerID = resp.ID
 
 	// check for warnings
 	if len(resp.Warnings) > 0 {
-		return errors.New(strings.Join(resp.Warnings, "\n"))
+		return fmt.Errorf("errors encountered: %s", strings.Join(resp.Warnings, "\n"))
 	}
 
 	// spin up node
@@ -167,13 +184,22 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
+	// wait for node to start
+	if err := c.waitForNode(ctx, resp.ID); err != nil {
+		return err
+	}
+
 	// bootstrap peers if required
 	if bootstrap {
-		if err := c.bootstrapNode(ctx, n.DockerID(), opts.BootstrapNodes...); err != nil {
+		if err := c.bootstrapNode(ctx, resp.ID, opts.BootstrapPeers...); err != nil {
 			return err
 		}
 	}
 
+	// assign node metadata
+	n.dockerID = resp.ID
+	n.containerName = containerName
+	n.dataDir = getDataDir(n.Network)
 	return nil
 }
 
@@ -193,12 +219,23 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 }
 
 func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
-	if peers == nil {
+	if peers == nil || len(peers) == 0 {
 		return errors.New("no peers provided")
 	}
 
-	bootstrap := []string{"ipfs", "bootstrap"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
+	// remove default peers
+	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
+	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
+	if err != nil {
+		return err
+	}
+	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
+		return err
+	}
+
+	// bootstrap custom peers
+	bootstrap := []string{"ipfs", "bootstrap", "add"}
+	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
 		Cmd: append(bootstrap, peers...),
 	})
 	if err != nil {
@@ -206,4 +243,29 @@ func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...st
 	}
 
 	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
+}
+
+func (c *client) waitForNode(ctx context.Context, dockerID string) error {
+	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		Follow:     true,
+	})
+	if err != nil {
+		return err
+	}
+	defer logs.Close()
+
+	scanner := bufio.NewScanner(logs)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled wait for %s", dockerID)
+		default:
+			if strings.Contains(scanner.Text(), "Daemon is ready") {
+				return nil
+			}
+		}
+	}
+
+	return scanner.Err()
 }
