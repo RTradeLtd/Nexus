@@ -9,7 +9,6 @@ import (
 )
 
 type IPFSOrchestratorConfig struct {
-	Ports    []string `json:"ports"`
 	IPFS     `json:"ipfs"`
 	API      `json:"api"`
 	Postgres `json:"postgres"`
@@ -17,6 +16,13 @@ type IPFSOrchestratorConfig struct {
 
 type IPFS struct {
 	Version string `json:"version"`
+	Ports   `json:"ports"`
+}
+
+type Ports struct {
+	Swarm   []string `json:"swarm"`
+	API     []string `json:"api"`
+	Gateway []string `json:"gateway"`
 }
 
 type API struct {
@@ -84,7 +90,13 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.Postgres.Port == "" {
 		c.Postgres.Port = "5432"
 	}
-	if c.Ports == nil || len(c.Ports) == 0 {
-		c.Ports = []string{"8000-9000"}
+	if c.IPFS.Ports.Swarm == nil {
+		c.IPFS.Ports.Swarm = []string{"4001-5000"}
+	}
+	if c.IPFS.Ports.API == nil {
+		c.IPFS.Ports.API = []string{"5001-6000"}
+	}
+	if c.IPFS.Ports.Gateway == nil {
+		c.IPFS.Ports.Gateway = []string{"8001-9000"}
 	}
 }

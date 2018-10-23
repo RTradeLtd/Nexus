@@ -28,7 +28,7 @@ func New(ipfsOpts config.IPFS, pgOpts config.Postgres) (*Orchestrator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}
-	reg := registry.New(nodes...)
+	reg := registry.New(ipfsOpts.Ports, nodes...)
 
 	return &Orchestrator{client: c, reg: reg}, nil
 }
