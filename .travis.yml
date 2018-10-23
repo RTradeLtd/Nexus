@@ -4,8 +4,11 @@ go:
 services:
   - docker
 
+env: GO111MODULE=on
+
 install:
   - go get -u golang.org/x/lint/golint
+  - go mod download
 
 before_script:
   - go vet ./...
