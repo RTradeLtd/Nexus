@@ -9,6 +9,7 @@ env: GO111MODULE=on
 install:
   - go get -u golang.org/x/lint/golint
   - go mod download
+  - docker pull ipfs/go-ipfs:v0.4.17
 
 before_script:
   - go vet ./...
