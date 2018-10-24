@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -10,8 +11,16 @@ func parsePorts(portRanges []string) []string {
 		if strings.Contains(r, "-") {
 			// is range
 			ports := strings.Split(r, "-")
-			for _, p := range ports {
-				allPorts = append(allPorts, p)
+			lower, err := strconv.Atoi(ports[0])
+			if err != nil {
+				continue
+			}
+			upper, err := strconv.Atoi(ports[1])
+			if err != nil {
+				continue
+			}
+			for p := lower; p <= upper; p++ {
+				allPorts = append(allPorts, strconv.Itoa(p))
 			}
 		} else {
 			// is single port
