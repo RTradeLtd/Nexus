@@ -49,24 +49,9 @@ func New(ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
 
 	// parse all port ranges and register them, locking with net listeners if they
 	// are available
-	if ports.Swarm != nil {
-		pts := parsePorts(ports.Swarm)
-		for _, p := range pts {
-			swarm[p], _ = net.Listen("tcp", "0.0.0.0:"+p)
-		}
-	}
-	if ports.API != nil {
-		pts := parsePorts(ports.API)
-		for _, p := range pts {
-			api[p], _ = net.Listen("tcp", ":"+p)
-		}
-	}
-	if ports.Gateway != nil {
-		pts := parsePorts(ports.Gateway)
-		for _, p := range pts {
-			gateway[p], _ = net.Listen("tcp", ":"+p)
-		}
-	}
+	lockPorts("0.0.0.0", ports.Swarm, swarm)
+	lockPorts("127.0.0.1", ports.API, api)
+	lockPorts("127.0.0.1", ports.Gateway, gateway)
 
 	// build registry
 	return &NodeRegistry{

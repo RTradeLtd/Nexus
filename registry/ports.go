@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"net"
 	"strconv"
 	"strings"
 )
@@ -32,4 +33,15 @@ func parsePorts(portRanges []string) []string {
 		}
 	}
 	return allPorts
+}
+
+func lockPorts(host string, portRanges []string, reg map[string]net.Listener) {
+	if portRanges == nil || reg == nil {
+		return
+	}
+	pts := parsePorts(portRanges)
+	for _, p := range pts {
+		// attempt to claim port
+		reg[p], _ = net.Listen("tcp", host+":"+p)
+	}
 }
