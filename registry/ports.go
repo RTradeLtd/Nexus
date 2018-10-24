@@ -23,6 +23,10 @@ func parsePorts(portRanges []string) []string {
 				allPorts = append(allPorts, strconv.Itoa(p))
 			}
 		} else {
+			// check if int
+			if _, err := strconv.Atoi(r); err != nil {
+				continue
+			}
 			// is single port
 			allPorts = append(allPorts, r)
 		}

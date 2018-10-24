@@ -15,6 +15,9 @@ func Test_parsePorts(t *testing.T) {
 		want []string
 	}{
 		{"bad input", args{nil}, []string{}},
+		{"non-int port", args{[]string{"abcde"}}, []string{}},
+		{"non-int port range", args{[]string{"abcde-fghijk"}}, []string{}},
+		{"mixed non-int port range", args{[]string{"7000-abcde"}}, []string{}},
 		{"bad range", args{[]string{"8000-7999"}}, []string{}},
 		{"single port", args{[]string{"8000"}}, []string{"8000"}},
 		{"multi port", args{[]string{"8000", "8001"}}, []string{"8000", "8001"}},
