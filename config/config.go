@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+const DefaultIPFSVersion = "v0.4.17"
+
 type IPFSOrchestratorConfig struct {
 	IPFS     `json:"ipfs"`
 	API      `json:"api"`
@@ -78,6 +80,9 @@ func (c *IPFSOrchestratorConfig) GetPortRanges() {
 }
 
 func (c *IPFSOrchestratorConfig) setDefaults() {
+	if c.IPFS.Version == "" {
+		c.IPFS.Version = DefaultIPFSVersion
+	}
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"
 	}

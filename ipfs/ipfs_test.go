@@ -20,10 +20,8 @@ func init() {
 	os.Setenv(configEnv, tmp)
 }
 
-const defaultIPFSVersion = "v0.4.17"
-
 func testClient() (*client, error) {
-	ipfsImage := "ipfs/go-ipfs:" + defaultIPFSVersion
+	ipfsImage := "ipfs/go-ipfs:" + config.DefaultIPFSVersion
 	d, err := docker.NewEnvClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to dockerd: %s", err.Error())
@@ -39,7 +37,7 @@ func testClient() (*client, error) {
 }
 
 func TestNewClient(t *testing.T) {
-	_, err := NewClient(config.IPFS{Version: defaultIPFSVersion})
+	_, err := NewClient(config.IPFS{Version: config.DefaultIPFSVersion})
 	if err != nil {
 		t.Error(err)
 	}

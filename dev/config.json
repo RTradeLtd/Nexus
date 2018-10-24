@@ -1,6 +1,6 @@
 {
 	"ipfs": {
-		"version": "",
+		"version": "v0.4.17",
 		"ports": {
 			"swarm": [
 				"4001-5000"
