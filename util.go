@@ -1,11 +1,11 @@
-package internal
+package main
 
 import (
 	"fmt"
 	"os"
 )
 
-func Fatal(msg ...interface{}) {
+func fatal(msg ...interface{}) {
 	fmt.Println(msg...)
 	os.Exit(1)
 }

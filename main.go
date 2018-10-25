@@ -6,7 +6,6 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
-	"github.com/RTradeLtd/ipfs-orchestrator/internal"
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
 
@@ -25,14 +24,14 @@ func main() {
 
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
-		internal.Fatal(err.Error())
+		fatal(err.Error())
 	}
 
 	o, err := orchestrator.New(cfg.IPFS, cfg.Postgres)
 	if err != nil {
-		internal.Fatal(err.Error())
+		fatal(err.Error())
 	}
 	d := daemon.New(o)
 
-	internal.Fatal(d.Run(cfg.API))
+	fatal(d.Run(cfg.API))
 }
