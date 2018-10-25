@@ -112,9 +112,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			}
 
 			// clean up
-			if err := c.StopNode(ctx, tt.args.n); err != nil {
-				t.Errorf("failed to stop container: %s", err.Error())
-			}
+			c.StopNode(ctx, tt.args.n)
 		})
 	}
 }
