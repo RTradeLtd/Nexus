@@ -6,8 +6,6 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-	def := IPFSOrchestratorConfig{}
-	def.setDefaults()
 	type args struct {
 		configPath string
 	}
@@ -19,7 +17,7 @@ func TestLoadConfig(t *testing.T) {
 	}{
 		{"invalid path", args{""}, IPFSOrchestratorConfig{}, true},
 		{"invalid file", args{"./config.go"}, IPFSOrchestratorConfig{}, true},
-		{"valid dev config", args{"../dev/config.json"}, def, false},
+		{"valid dev config", args{"../dev/config.json"}, New(), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

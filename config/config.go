@@ -48,6 +48,13 @@ type Postgres struct {
 	Password string `json:"password"`
 }
 
+// New creates a new, default configuration
+func New() IPFSOrchestratorConfig {
+	var cfg IPFSOrchestratorConfig
+	cfg.setDefaults()
+	return cfg
+}
+
 // LoadConfig loads a TemporalConfig from given filepath
 func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 	var cfg IPFSOrchestratorConfig

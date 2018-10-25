@@ -51,7 +51,7 @@ func New(ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
 
 // Register registers a node and allocates appropriate ports
 func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
-	if node.DockerID() == "" {
+	if node.Network == "" {
 		return errors.New(ErrInvalidNetwork)
 	}
 
@@ -61,7 +61,20 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 	if _, found := r.nodes[node.Network]; found {
 		return errors.New(ErrNetworkExists)
 	}
-	r.nodes[node.DockerID()] = node
+
+	// assign ports to this node
+	var err error
+	if node.Ports.Swarm, err = r.swarmPorts.AssignPort(); err != nil {
+		return fmt.Errorf("failed to register node: %s", err.Error())
+	}
+	if node.Ports.API, err = r.apiPorts.AssignPort(); err != nil {
+		return fmt.Errorf("failed to register node: %s", err.Error())
+	}
+	if node.Ports.Gateway, err = r.gatewayPorts.AssignPort(); err != nil {
+		return fmt.Errorf("failed to register node: %s", err.Error())
+	}
+
+	r.nodes[node.Network] = node
 
 	return nil
 }
