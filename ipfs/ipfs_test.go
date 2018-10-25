@@ -57,6 +57,25 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 		return
 	}
 
+	// test watcher
+	eventCount := 0
+	shouldGetEvents := 4
+	watchCtx, cancelWatch := context.WithCancel(context.Background())
+	go func() {
+		events, errs := c.Watch(watchCtx)
+		for {
+			select {
+			case err := <-errs:
+				if err != nil {
+					t.Log(err.Error())
+				}
+			case event := <-events:
+				eventCount++
+				t.Logf("event received: %v\n", event)
+			}
+		}
+	}()
+
 	type args struct {
 		n    *NodeInfo
 		opts NodeOpts
@@ -98,6 +117,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			}
 
 			// check that container is up
+			shouldGetEvents++
 			time.Sleep(1 * time.Second)
 			n, err := c.Nodes(ctx)
 			if err != nil {
@@ -116,6 +136,12 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 
 			// clean up
 			c.StopNode(ctx, tt.args.n)
+			shouldGetEvents++
 		})
+	}
+
+	cancelWatch()
+	if shouldGetEvents != eventCount {
+		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
 	}
 }
