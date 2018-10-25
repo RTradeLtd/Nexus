@@ -58,7 +58,7 @@ func TestRegistry_AssignPort(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reg := &Registry{ports: tt.fields.ports}
+			reg := &Registry{host: "127.0.0.1", ports: tt.fields.ports}
 			got, err := reg.AssignPort()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)
@@ -69,6 +69,38 @@ func TestRegistry_AssignPort(t *testing.T) {
 			}
 			if !tt.wantErr && reg.ports[got] != nil {
 				t.Errorf("Assigned port %s was not made unavailable", got)
+			}
+		})
+	}
+}
+
+func TestRegistry_DeassignPort(t *testing.T) {
+	// lock a port for testing
+	p1, _ := net.Listen("tcp", "127.0.0.1:9999")
+	defer p1.Close()
+
+	type fields struct {
+		ports map[string]net.Listener
+	}
+	type args struct {
+		port string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"unknown port", fields{map[string]net.Listener{}}, args{"9999"}, true},
+		{"already available port", fields{map[string]net.Listener{"9999": p1}}, args{"9999"}, true},
+		{"unable to claim port", fields{map[string]net.Listener{"9999": nil}}, args{"9999"}, true},
+		{"successfully deassign", fields{map[string]net.Listener{"9998": nil}}, args{"9998"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reg := &Registry{host: "127.0.0.1", ports: tt.fields.ports}
+			if err := reg.DeassignPort(tt.args.port); (err != nil) != tt.wantErr {
+				t.Errorf("Registry.DeassignPort() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
