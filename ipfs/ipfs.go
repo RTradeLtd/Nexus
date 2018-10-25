@@ -107,12 +107,12 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// set up directories
-	os.MkdirAll(getDataDir(n.Network), 0755)
+	os.MkdirAll(getDataDir(n.Network), 0700)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
 		getDataDir(n.Network)+"/swarm.key",
-		opts.SwarmKey, 0755,
+		opts.SwarmKey, 0700,
 	); err != nil {
 		return fmt.Errorf("failed to write key: %s", err.Error())
 	}
