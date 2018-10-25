@@ -118,3 +118,36 @@ func TestNodeRegistry_Deregister(t *testing.T) {
 		})
 	}
 }
+
+func TestNodeRegistry_List(t *testing.T) {
+	r := newTestRegistry()
+	nodes := r.List()
+	if len(nodes) != len(r.nodes) {
+		t.Errorf("expected %d nodes, got %d", len(nodes), len(r.nodes))
+	}
+}
+
+func TestNodeRegistry_Get(t *testing.T) {
+	r := newTestRegistry()
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"invalid input", args{""}, true},
+		{"unknown node", args{"maccas"}, true},
+		{"valid node", args{"bobheadxi"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := r.Get(tt.args.network)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeRegistry.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}

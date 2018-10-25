@@ -125,12 +125,15 @@ func (r *NodeRegistry) Get(network string) (ipfs.NodeInfo, error) {
 	if network == "" {
 		return node, errors.New(ErrInvalidNetwork)
 	}
+
 	r.nm.RLock()
 	n, found := r.nodes[network]
 	if !found {
+		r.nm.RUnlock()
 		return node, fmt.Errorf("node for network '%s' not found", network)
 	}
 	node = *n
 	r.nm.RUnlock()
+
 	return node, nil
 }
