@@ -5,6 +5,7 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 )
 
 var defaultNode = ipfs.NodeInfo{
@@ -15,7 +16,8 @@ var defaultNode = ipfs.NodeInfo{
 func newTestRegistry() *NodeRegistry {
 	// create a registry with a mock node for testing
 	n := defaultNode
-	return New(config.New().Ports, &n)
+	l, _ := log.NewTestLogger()
+	return New(l, config.New().Ports, &n)
 }
 
 func TestNew(t *testing.T) {
@@ -24,18 +26,19 @@ func TestNew(t *testing.T) {
 
 func TestNodeRegistry_Register(t *testing.T) {
 	r := newTestRegistry()
+	l, _ := log.NewTestLogger()
 
 	cfg := config.New().Ports
 	cfg.Swarm = []string{}
-	rNoSwarm := New(cfg)
+	rNoSwarm := New(l, cfg)
 
 	cfg = config.New().Ports
 	cfg.API = []string{}
-	rNoAPI := New(cfg)
+	rNoAPI := New(l, cfg)
 
 	cfg = config.New().Ports
 	cfg.Gateway = []string{}
-	rNoGateway := New(cfg)
+	rNoGateway := New(l, cfg)
 
 	type args struct {
 		node *ipfs.NodeInfo

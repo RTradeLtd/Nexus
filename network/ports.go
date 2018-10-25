@@ -5,21 +5,26 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 // Registry manages host network usage
 type Registry struct {
+	l *zap.SugaredLogger
+
 	host  string
 	ports []string
 }
 
 // NewRegistry creates a new registry with given host address and available
 // port ranges. Elements of portRanges can be "<PORT>" or "<LOWER>-<UPPER>"
-func NewRegistry(host string, portRanges []string) *Registry {
+func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *Registry {
+	logger = logger.Named("network")
 	if portRanges == nil {
-		return &Registry{host: host, ports: make([]string, 0)}
+		return &Registry{l: logger, host: host, ports: make([]string, 0)}
 	}
-	return &Registry{host: host, ports: parsePorts(portRanges)}
+	return &Registry{l: logger, host: host, ports: parsePorts(portRanges)}
 }
 
 // AssignPort assigns an available port and returns it

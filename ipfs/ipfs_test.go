@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 )
@@ -32,11 +33,13 @@ func testClient() (*client, error) {
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
 
-	return &client{ipfsImage, d}, nil
+	l, _ := log.NewTestLogger()
+	return &client{l, d, ipfsImage}, nil
 }
 
 func TestNewClient(t *testing.T) {
-	_, err := NewClient(config.IPFS{Version: config.DefaultIPFSVersion})
+	l, _ := log.NewTestLogger()
+	_, err := NewClient(l, config.IPFS{Version: config.DefaultIPFSVersion})
 	if err != nil {
 		t.Error(err)
 	}

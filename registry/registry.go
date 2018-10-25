@@ -8,6 +8,7 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/network"
+	"go.uber.org/zap"
 )
 
 const (
@@ -20,18 +21,20 @@ const (
 
 // NodeRegistry manages data on active nodes
 type NodeRegistry struct {
+	l *zap.SugaredLogger
+
 	// node registry - locked by NodeRegistry::nm
 	nodes map[string]*ipfs.NodeInfo
 	nm    sync.RWMutex
 
-	// port registry - locked by NodeRegistry::pm
+	// port registry
 	swarmPorts   *network.Registry
 	apiPorts     *network.Registry
 	gatewayPorts *network.Registry
 }
 
 // New sets up a new registry with provided nodes
-func New(ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
+func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
 	// parse nodes
 	m := make(map[string]*ipfs.NodeInfo)
 	if nodes != nil {
@@ -42,10 +45,12 @@ func New(ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
 
 	// build registry
 	return &NodeRegistry{
-		nodes:        m,
-		swarmPorts:   network.NewRegistry("0.0.0.0", ports.Swarm),
-		apiPorts:     network.NewRegistry("127.0.0.1", ports.API),
-		gatewayPorts: network.NewRegistry("127.0.0.1", ports.Gateway),
+		l:     logger.Named("registry"),
+		nodes: m,
+
+		swarmPorts:   network.NewRegistry(logger, "0.0.0.0", ports.Swarm),
+		apiPorts:     network.NewRegistry(logger, "127.0.0.1", ports.API),
+		gatewayPorts: network.NewRegistry(logger, "127.0.0.1", ports.Gateway),
 	}
 }
 

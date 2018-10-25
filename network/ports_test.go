@@ -4,10 +4,13 @@ import (
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 )
 
 func TestNewRegistry(t *testing.T) {
-	NewRegistry("127.0.0.1", []string{"1234"})
+	l, _ := log.NewTestLogger()
+	NewRegistry(l, "127.0.0.1", []string{"1234"})
 }
 
 func TestRegistry_AssignPort(t *testing.T) {
@@ -30,7 +33,8 @@ func TestRegistry_AssignPort(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reg := &Registry{host: "127.0.0.1", ports: tt.fields.ports}
+			l, _ := log.NewTestLogger()
+			reg := &Registry{l: l, host: "127.0.0.1", ports: tt.fields.ports}
 			got, err := reg.AssignPort()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)

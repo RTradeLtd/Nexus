@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"go.uber.org/zap"
 )
 
 // NodeClient provides an interface to the base Docker client for controlling
@@ -32,14 +33,15 @@ type NodeClient interface {
 }
 
 type client struct {
-	ipfsImage string
-
+	l *zap.SugaredLogger
 	d *docker.Client
+
+	ipfsImage string
 }
 
 // NewClient creates a new Docker Client from ENV values and negotiates the
 // correct API version to use
-func NewClient(ipfsOpts config.IPFS) (NodeClient, error) {
+func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, error) {
 	d, err := docker.NewEnvClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to dockerd: %s", err.Error())
@@ -55,7 +57,7 @@ func NewClient(ipfsOpts config.IPFS) (NodeClient, error) {
 	// initialize directories
 	os.MkdirAll(getDataDir(""), 0755)
 
-	return &client{ipfsImage, d}, nil
+	return &client{logger.Named("ipfs"), d, ipfsImage}, nil
 }
 
 func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
