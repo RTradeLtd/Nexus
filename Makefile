@@ -7,6 +7,10 @@ all: deps check build
 build:
 	go build
 
+.PHONY: install
+install: deps
+	go install
+
 # Install dependencies
 .PHONY: deps
 deps:
