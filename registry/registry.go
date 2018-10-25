@@ -64,15 +64,17 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 
 	// assign ports to this node
 	var err error
-	if node.Ports.Swarm, err = r.swarmPorts.AssignPort(); err != nil {
+	var swarm, api, gateway string
+	if swarm, err = r.swarmPorts.AssignPort(); err != nil {
 		return fmt.Errorf("failed to register node: %s", err.Error())
 	}
-	if node.Ports.API, err = r.apiPorts.AssignPort(); err != nil {
+	if api, err = r.apiPorts.AssignPort(); err != nil {
 		return fmt.Errorf("failed to register node: %s", err.Error())
 	}
-	if node.Ports.Gateway, err = r.gatewayPorts.AssignPort(); err != nil {
+	if gateway, err = r.gatewayPorts.AssignPort(); err != nil {
 		return fmt.Errorf("failed to register node: %s", err.Error())
 	}
+	node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 
 	r.nodes[node.Network] = node
 
@@ -88,15 +90,9 @@ func (r *NodeRegistry) Deregister(network string) error {
 	r.nm.Lock()
 	defer r.nm.Unlock()
 
-	n, found := r.nodes[network]
-	if !found {
+	if _, found := r.nodes[network]; !found {
 		return fmt.Errorf("node for network '%s' not found", network)
 	}
-
-	// make ports available again
-	r.swarmPorts.DeassignPort(n.Ports.Swarm)
-	r.apiPorts.DeassignPort(n.Ports.API)
-	r.gatewayPorts.DeassignPort(n.Ports.Gateway)
 
 	delete(r.nodes, network)
 	return nil
@@ -136,11 +132,4 @@ func (r *NodeRegistry) Get(network string) (ipfs.NodeInfo, error) {
 	r.nm.RUnlock()
 
 	return node, nil
-}
-
-// Close releases held assets
-func (r *NodeRegistry) Close() {
-	r.swarmPorts.Close()
-	r.apiPorts.Close()
-	r.gatewayPorts.Close()
 }

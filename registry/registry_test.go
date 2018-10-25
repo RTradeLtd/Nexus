@@ -1,8 +1,6 @@
 package registry
 
 import (
-	"fmt"
-	"net"
 	"testing"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
@@ -21,29 +19,23 @@ func newTestRegistry() *NodeRegistry {
 }
 
 func TestNew(t *testing.T) {
-	r := newTestRegistry()
-	r.Close()
+	newTestRegistry()
 }
 
 func TestNodeRegistry_Register(t *testing.T) {
 	r := newTestRegistry()
-	defer r.Close()
 
 	cfg := config.New().Ports
-	cfg.API = []string{}
-	fmt.Printf("%v\n", cfg)
+	cfg.Swarm = []string{}
 	rNoSwarm := New(cfg)
-	defer rNoSwarm.Close()
 
 	cfg = config.New().Ports
 	cfg.API = []string{}
 	rNoAPI := New(cfg)
-	defer rNoAPI.Close()
 
 	cfg = config.New().Ports
-	cfg.API = []string{}
+	cfg.Gateway = []string{}
 	rNoGateway := New(cfg)
-	defer rNoGateway.Close()
 
 	type args struct {
 		node *ipfs.NodeInfo
@@ -73,20 +65,6 @@ func TestNodeRegistry_Register(t *testing.T) {
 			} else if !tt.wantErr && tt.args.node.Ports.Swarm == "" {
 				t.Error("port should be assigned")
 			}
-
-			if tt.args.node.Ports.Swarm != "" {
-				// check if ports were released or still locked
-				if _, err := net.Listen("tcp", "0.0.0.0:"+tt.args.node.Ports.Swarm); (err != nil) != tt.wantErr {
-					t.Errorf("expected port %s locked=%v", tt.args.node.Ports.Swarm, tt.wantErr)
-				}
-				if _, err := net.Listen("tcp", "127.0.0.1:"+tt.args.node.Ports.API); (err != nil) != tt.wantErr {
-					t.Errorf("expected port %s locked=%v", tt.args.node.Ports.API, tt.wantErr)
-				}
-				if _, err := net.Listen("tcp", "127.0.0.1:"+tt.args.node.Ports.Gateway); (err != nil) != tt.wantErr {
-					t.Errorf("expected port %s locked=%v", tt.args.node.Ports.API, tt.wantErr)
-				}
-			}
-
 		})
 	}
 }
@@ -107,21 +85,8 @@ func TestNodeRegistry_Deregister(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := newTestRegistry()
-			defer r.Close()
 			if err := r.Deregister(tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegistry.Deregister() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !tt.wantErr {
-				// check ports to default node are locked
-				if _, err := net.Listen("tcp", "0.0.0.0:"+defaultNode.Ports.Swarm); err == nil {
-					t.Errorf("port %s shoud be blocked", defaultNode.Ports.Swarm)
-				}
-				if _, err := net.Listen("tcp", "127.0.0.1:"+defaultNode.Ports.API); err == nil {
-					t.Errorf("port %s shoud be blocked", defaultNode.Ports.API)
-				}
-				if _, err := net.Listen("tcp", "127.0.0.1:"+defaultNode.Ports.Gateway); err == nil {
-					t.Errorf("port %s shoud be blocked", defaultNode.Ports.Gateway)
-				}
 			}
 		})
 	}
@@ -129,7 +94,6 @@ func TestNodeRegistry_Deregister(t *testing.T) {
 
 func TestNodeRegistry_List(t *testing.T) {
 	r := newTestRegistry()
-	defer r.Close()
 	nodes := r.List()
 	if len(nodes) != len(r.nodes) {
 		t.Errorf("expected %d nodes, got %d", len(nodes), len(r.nodes))
@@ -138,7 +102,6 @@ func TestNodeRegistry_List(t *testing.T) {
 
 func TestNodeRegistry_Get(t *testing.T) {
 	r := newTestRegistry()
-	defer r.Close()
 	type args struct {
 		network string
 	}
