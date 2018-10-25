@@ -21,6 +21,7 @@ func TestRegistry_lockPorts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reg := NewRegistry(tt.args.host, tt.args.portRanges)
+			defer reg.Close()
 			for p, lock := range reg.ports {
 				if lock == nil {
 					t.Logf("%s not locked", p)

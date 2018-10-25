@@ -75,6 +75,16 @@ func (reg *Registry) DeassignPort(port string) error {
 	return nil
 }
 
+// Close releases all locked ports
+func (reg *Registry) Close() {
+	for port, lock := range reg.ports {
+		if lock != nil {
+			lock.Close()
+			delete(reg.ports, port)
+		}
+	}
+}
+
 func parsePorts(portRanges []string) []string {
 	allPorts := make([]string, 0)
 	for _, r := range portRanges {
