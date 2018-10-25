@@ -1,5 +1,10 @@
 package ipfs
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // NodeInfo defines metadata about an IPFS node
 type NodeInfo struct {
 	Network string
@@ -17,6 +22,31 @@ type NodePorts struct {
 	Swarm   string // default: 4001
 	API     string // default: 5001
 	Gateway string // default: 8080
+}
+
+func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
+	// check if container is a node
+	if !isNodeContainer(name) {
+		return NodeInfo{dockerID: id, containerName: name}, fmt.Errorf("unknown name format %s", name)
+	}
+
+	// parse bootstrap state
+	var peers []string
+	json.Unmarshal([]byte(attributes["bootstrap_peers"]), &peers)
+
+	// create node metadata to return
+	return NodeInfo{
+		Network: attributes["network_name"],
+		Ports: NodePorts{
+			Swarm:   attributes["swarm_port"],
+			API:     attributes["api_port"],
+			Gateway: attributes["gateway_port"],
+		},
+		dockerID:       id,
+		containerName:  name,
+		dataDir:        attributes["data_dir"],
+		bootstrapPeers: peers,
+	}, nil
 }
 
 // DockerID is the ID of the node's Docker container

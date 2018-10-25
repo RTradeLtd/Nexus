@@ -68,29 +68,11 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	nodes := make([]*NodeInfo, 0)
 	for _, container := range ctrs {
-		// check if container is a node
-		name := container.Names[0]
-		if !isNodeContainer(name) {
+		n, err := newNode(container.ID, container.Names[0], container.Labels)
+		if err != nil {
 			continue
 		}
-
-		// parse bootstrap state
-		var peers []string
-		json.Unmarshal([]byte(container.Labels["bootstrap_peers"]), &peers)
-
-		// create node metadata to return
-		nodes = append(nodes, &NodeInfo{
-			container.Labels["network_name"],
-			NodePorts{
-				Swarm:   container.Labels["swarm_port"],
-				API:     container.Labels["api_port"],
-				Gateway: container.Labels["gateway_port"],
-			},
-			container.ID,
-			name,
-			container.Labels["data_dir"],
-			peers,
-		})
+		nodes = append(nodes, &n)
 	}
 
 	return nodes, nil
