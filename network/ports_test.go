@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_portRegistry_lockPorts(t *testing.T) {
+func TestRegistry_lockPorts(t *testing.T) {
 	type args struct {
 		host       string
 		portRanges []string
@@ -34,6 +34,41 @@ func Test_portRegistry_lockPorts(t *testing.T) {
 					t.Errorf("%s was not successfully claimed", p)
 				}
 				lock.Close()
+			}
+		})
+	}
+}
+
+func TestRegistry_AssignPort(t *testing.T) {
+	// lock a port for testing
+	p1, _ := net.Listen("tcp", "127.0.0.1:9999")
+	defer p1.Close()
+
+	type fields struct {
+		ports map[string]net.Listener
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    string
+		wantErr bool
+	}{
+		{"no available port", fields{map[string]net.Listener{"9999": nil}}, "", true},
+		{"available port", fields{map[string]net.Listener{"9999": p1}}, "9999", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reg := &Registry{ports: tt.fields.ports}
+			got, err := reg.AssignPort()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Registry.AssignPort() = %v, want %v", got, tt.want)
+			}
+			if !tt.wantErr && reg.ports[got] != nil {
+				t.Errorf("Assigned port %s was not made unavailable", got)
 			}
 		})
 	}

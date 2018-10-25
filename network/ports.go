@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -26,6 +27,21 @@ func NewRegistry(host string, portRanges []string) *Registry {
 		reg.ports[p], _ = net.Listen("tcp", host+":"+p)
 	}
 	return reg
+}
+
+// AssignPort assigns an available port and returns it
+func (reg *Registry) AssignPort() (string, error) {
+	reg.m.Lock()
+	for p, lock := range reg.ports {
+		if lock != nil {
+			lock.Close()
+			reg.ports[p] = nil
+			reg.m.Unlock()
+			return p, nil
+		}
+	}
+	reg.m.Unlock()
+	return "", errors.New("no available port found")
 }
 
 func parsePorts(portRanges []string) []string {
