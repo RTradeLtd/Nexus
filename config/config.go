@@ -8,31 +8,38 @@ import (
 	"os"
 )
 
+// DefaultIPFSVersion declares the current default version of go-ipfs to use
 const DefaultIPFSVersion = "v0.4.17"
 
+// IPFSOrchestratorConfig configures the orchestration daemon
 type IPFSOrchestratorConfig struct {
 	IPFS     `json:"ipfs"`
 	API      `json:"api"`
 	Postgres `json:"postgres"`
 }
 
+// IPFS configures settings relevant to IPFS nodes
 type IPFS struct {
 	Version string `json:"version"`
 	Ports   `json:"ports"`
 }
 
+// Ports declares port-range configuration for IPFS nodes. Elements of each
+// array can be of the form "<PORT>" or "<LOWER>-<UPPER>"
 type Ports struct {
 	Swarm   []string `json:"swarm"`
 	API     []string `json:"api"`
 	Gateway []string `json:"gateway"`
 }
 
+// API declares configuration for the orchestrator daemon's gRPC API
 type API struct {
 	Host    string `json:"host"`
 	Port    string `json:"port"`
 	KeyPath string `json:"keypath"`
 }
 
+// Postgres declares configuration for the orchestrator's database
 type Postgres struct {
 	Database string `json:"name"`
 	Host     string `json:"host"`
@@ -73,10 +80,6 @@ func GenerateConfig(configPath string) error {
 		return err
 	}
 	return ioutil.WriteFile(configPath, pretty.Bytes(), os.ModePerm)
-}
-
-func (c *IPFSOrchestratorConfig) GetPortRanges() {
-
 }
 
 func (c *IPFSOrchestratorConfig) setDefaults() {
