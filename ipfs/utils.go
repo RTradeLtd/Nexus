@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	dirEnv    = "DATA_DIR"
-	configEnv = "CONFIG_DIR"
+	dirEnv = "DATA_DIR"
 )
 
 func getDataDir(network string) string {

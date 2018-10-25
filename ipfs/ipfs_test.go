@@ -17,7 +17,6 @@ func init() {
 	pwd, _ := os.Getwd()
 	tmp := filepath.Join(pwd, "tmp")
 	os.Setenv(dirEnv, tmp)
-	os.Setenv(configEnv, tmp)
 }
 
 func testClient() (*client, error) {
