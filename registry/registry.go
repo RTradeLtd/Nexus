@@ -3,11 +3,11 @@ package registry
 import (
 	"errors"
 	"fmt"
-	"net"
 	"sync"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/network"
 )
 
 const (
@@ -25,40 +25,27 @@ type NodeRegistry struct {
 	nm    sync.RWMutex
 
 	// port registry - locked by NodeRegistry::pm
-	swarmPorts   map[string]net.Listener
-	apiPorts     map[string]net.Listener
-	gatewayPorts map[string]net.Listener
-	pm           sync.RWMutex
+	swarmPorts   *network.Registry
+	apiPorts     *network.Registry
+	gatewayPorts *network.Registry
 }
 
 // New sets up a new registry with provided nodes
 func New(ports config.Ports, nodes ...*ipfs.NodeInfo) *NodeRegistry {
-	var (
-		m       = make(map[string]*ipfs.NodeInfo)
-		swarm   = make(map[string]net.Listener)
-		api     = make(map[string]net.Listener)
-		gateway = make(map[string]net.Listener)
-	)
-
 	// parse nodes
+	m := make(map[string]*ipfs.NodeInfo)
 	if nodes != nil {
 		for _, n := range nodes {
 			m[n.Network] = n
 		}
 	}
 
-	// parse all port ranges and register them, locking with net listeners if they
-	// are available
-	lockPorts("0.0.0.0", ports.Swarm, swarm)
-	lockPorts("127.0.0.1", ports.API, api)
-	lockPorts("127.0.0.1", ports.Gateway, gateway)
-
 	// build registry
 	return &NodeRegistry{
 		nodes:        m,
-		swarmPorts:   swarm,
-		apiPorts:     api,
-		gatewayPorts: gateway,
+		swarmPorts:   network.NewRegistry("0.0.0.0", ports.Swarm),
+		apiPorts:     network.NewRegistry("127.0.0.1", ports.API),
+		gatewayPorts: network.NewRegistry("127.0.0.1", ports.Gateway),
 	}
 }
 

@@ -1,10 +1,32 @@
-package registry
+package network
 
 import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+// Registry manages host network usage
+type Registry struct {
+	ports map[string]net.Listener
+	m     sync.Mutex
+}
+
+// NewRegistry creates a new registry with given host address and available
+// port ranges. Elements of portRanges can be "<PORT>" or "<LOWER>-<UPPER>"
+func NewRegistry(host string, portRanges []string) *Registry {
+	reg := &Registry{ports: make(map[string]net.Listener)}
+	if portRanges == nil {
+		return reg
+	}
+	pts := parsePorts(portRanges)
+	for _, p := range pts {
+		// attempt to claim port
+		reg.ports[p], _ = net.Listen("tcp", host+":"+p)
+	}
+	return reg
+}
 
 func parsePorts(portRanges []string) []string {
 	allPorts := make([]string, 0)
@@ -33,15 +55,4 @@ func parsePorts(portRanges []string) []string {
 		}
 	}
 	return allPorts
-}
-
-func lockPorts(host string, portRanges []string, reg map[string]net.Listener) {
-	if portRanges == nil || reg == nil {
-		return
-	}
-	pts := parsePorts(portRanges)
-	for _, p := range pts {
-		// attempt to claim port
-		reg[p], _ = net.Listen("tcp", host+":"+p)
-	}
 }
