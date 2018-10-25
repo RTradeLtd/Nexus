@@ -8,12 +8,15 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
 
+var defaultNode = ipfs.NodeInfo{
+	Network: "bobheadxi",
+	Ports:   ipfs.NodePorts{Swarm: "4001", API: "5001", Gateway: "8080"},
+}
+
 func newTestRegistry() *NodeRegistry {
 	// create a registry with a mock node for testing
-	return New(config.New().Ports, &ipfs.NodeInfo{
-		Network: "bobheadxi",
-		Ports:   ipfs.NodePorts{Swarm: "4001", API: "5001", Gateway: "8080"},
-	})
+	n := defaultNode
+	return New(config.New().Ports, &n)
 }
 
 func TestNew(t *testing.T) {
@@ -66,7 +69,7 @@ func TestNodeRegistry_Register(t *testing.T) {
 
 			if tt.args.node.Ports.Swarm != "" {
 				// check if ports were released or still locked
-				if _, err := net.Listen("tcp", "127.0.0.1:"+tt.args.node.Ports.Swarm); (err != nil) != tt.wantErr {
+				if _, err := net.Listen("tcp", "0.0.0.0:"+tt.args.node.Ports.Swarm); (err != nil) != tt.wantErr {
 					t.Errorf("expected port %s locked=%v", tt.args.node.Ports.Swarm, tt.wantErr)
 				}
 				if _, err := net.Listen("tcp", "127.0.0.1:"+tt.args.node.Ports.API); (err != nil) != tt.wantErr {
@@ -77,6 +80,41 @@ func TestNodeRegistry_Register(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestNodeRegistry_Deregister(t *testing.T) {
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"invalid input", args{""}, true},
+		{"unknown network", args{"timhortons"}, true},
+		{"successful deregistration", args{"bobheadxi"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := newTestRegistry()
+			if err := r.Deregister(tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("NodeRegistry.Deregister() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				// check ports to default node are locked
+				if _, err := net.Listen("tcp", "0.0.0.0:"+defaultNode.Ports.Swarm); err == nil {
+					t.Errorf("port %s shoud be blocked", defaultNode.Ports.Swarm)
+				}
+				if _, err := net.Listen("tcp", "127.0.0.1:"+defaultNode.Ports.API); err == nil {
+					t.Errorf("port %s shoud be blocked", defaultNode.Ports.API)
+				}
+				if _, err := net.Listen("tcp", "127.0.0.1:"+defaultNode.Ports.Gateway); err == nil {
+					t.Errorf("port %s shoud be blocked", defaultNode.Ports.Gateway)
+				}
+			}
 		})
 	}
 }

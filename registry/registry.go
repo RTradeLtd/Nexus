@@ -84,12 +84,21 @@ func (r *NodeRegistry) Deregister(network string) error {
 	if network == "" {
 		return errors.New(ErrInvalidNetwork)
 	}
+
 	r.nm.Lock()
-	if _, found := r.nodes[network]; !found {
+	defer r.nm.Unlock()
+
+	n, found := r.nodes[network]
+	if !found {
 		return fmt.Errorf("node for network '%s' not found", network)
 	}
+
+	// make ports available again
+	r.swarmPorts.DeassignPort(n.Ports.Swarm)
+	r.apiPorts.DeassignPort(n.Ports.API)
+	r.gatewayPorts.DeassignPort(n.Ports.Gateway)
+
 	delete(r.nodes, network)
-	r.nm.Unlock()
 	return nil
 }
 
