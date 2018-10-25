@@ -6,23 +6,8 @@ import (
 	"testing"
 )
 
-func TestRegistry_lockPorts(t *testing.T) {
-	type args struct {
-		host       string
-		portRanges []string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"should lock single port", args{"127.0.0.1", []string{"8090"}}},
-		{"should lock ports in range", args{"127.0.0.1", []string{"8090-8100"}}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			NewRegistry(tt.args.host, tt.args.portRanges)
-		})
-	}
+func TestNewRegistry(t *testing.T) {
+	NewRegistry("127.0.0.1", []string{"1234"})
 }
 
 func TestRegistry_AssignPort(t *testing.T) {
