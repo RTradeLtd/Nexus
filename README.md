@@ -4,10 +4,10 @@ The IPFS private network node orchestration and registry service for
 [Temporal](https://github.com/RTradeLtd/Temporal), an easy-to-use interface into
 distributed and decentralized storage technologies.
 
-[![GoDoc](https://godoc.org/github.com/RTradeLtd/cmd?status.svg)](https://godoc.org/github.com/RTradeLtd/cmd)
-[![Build Status](https://travis-ci.com/RTradeLtd/cmd.svg?branch=master)](https://travis-ci.com/RTradeLtd/cmd)
-[![codecov](https://codecov.io/gh/RTradeLtd/cmd/branch/master/graph/badge.svg)](https://codecov.io/gh/RTradeLtd/cmd)
-[![Go Report Card](https://goreportcard.com/badge/github.com/RTradeLtd/cmd)](https://goreportcard.com/report/github.com/RTradeLtd/cmd)
+[![GoDoc](https://godoc.org/github.com/RTradeLtd/ipfs-orchestrator?status.svg)](https://godoc.org/github.com/RTradeLtd/ipfs-orchestrator)
+[![Build Status](https://travis-ci.com/RTradeLtd/ipfs-orchestrator.svg?branch=master)](https://travis-ci.com/RTradeLtd/ipfs-orchestrator)
+[![codecov](https://codecov.io/gh/RTradeLtd/ipfs-orchestrator/branch/master/graph/badge.svg)](https://codecov.io/gh/RTradeLtd/ipfs-orchestrator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/RTradeLtd/ipfs-orchestrator)](https://goreportcard.com/report/github.com/RTradeLtd/ipfs-orchestrator)
 
 ## Installation and Usage
 
