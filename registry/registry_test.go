@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"net"
 	"testing"
 
@@ -30,6 +31,7 @@ func TestNodeRegistry_Register(t *testing.T) {
 
 	cfg := config.New().Ports
 	cfg.API = []string{}
+	fmt.Printf("%v\n", cfg)
 	rNoSwarm := New(cfg)
 	defer rNoSwarm.Close()
 
@@ -54,14 +56,14 @@ func TestNodeRegistry_Register(t *testing.T) {
 	}{
 		{"invalid input", r, args{&ipfs.NodeInfo{}}, true},
 		{"existing network", r, args{&ipfs.NodeInfo{Network: "bobheadxi"}}, true},
-		{"no swarm port", rNoSwarm, args{&ipfs.NodeInfo{Network: "bobheadxi"}}, true},
-		{"no api port", rNoAPI, args{&ipfs.NodeInfo{Network: "bobheadxi"}}, true},
-		{"no gateway port", rNoGateway, args{&ipfs.NodeInfo{Network: "bobheadxi"}}, true},
+		{"no swarm port", rNoSwarm, args{&ipfs.NodeInfo{Network: "timhortons"}}, true},
+		{"no api port", rNoAPI, args{&ipfs.NodeInfo{Network: "kfc"}}, true},
+		{"no gateway port", rNoGateway, args{&ipfs.NodeInfo{Network: "mcdonalds"}}, true},
 		{"successful registration", r, args{&ipfs.NodeInfo{Network: "postables"}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := r.Register(tt.args.node); (err != nil) != tt.wantErr {
+			if err := tt.reg.Register(tt.args.node); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegistry.Register() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
