@@ -137,3 +137,10 @@ func (r *NodeRegistry) Get(network string) (ipfs.NodeInfo, error) {
 
 	return node, nil
 }
+
+// Close releases held assets
+func (r *NodeRegistry) Close() {
+	r.swarmPorts.Close()
+	r.apiPorts.Close()
+	r.gatewayPorts.Close()
+}
