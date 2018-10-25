@@ -54,12 +54,15 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 	if node.DockerID() == "" {
 		return errors.New(ErrInvalidNetwork)
 	}
+
 	r.nm.Lock()
+	defer r.nm.Unlock()
+
 	if _, found := r.nodes[node.Network]; found {
 		return errors.New(ErrNetworkExists)
 	}
 	r.nodes[node.DockerID()] = node
-	r.nm.Unlock()
+
 	return nil
 }
 

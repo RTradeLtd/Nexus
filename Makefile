@@ -1,7 +1,11 @@
 GO=env GO111MODULE=on go
 IPFSCONTAINERS=`docker ps -a -q --filter="name=ipfs-*"`
 
-all: deps check
+all: deps check build
+
+.PHONY: build
+build:
+	go build
 
 # Install dependencies
 .PHONY: deps

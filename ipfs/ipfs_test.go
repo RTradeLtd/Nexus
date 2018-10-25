@@ -113,8 +113,9 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			}
 
 			// clean up
-			timeout := time.Duration(10 * time.Second)
-			c.d.ContainerStop(ctx, tt.args.n.DockerID(), &timeout)
+			if err := c.StopNode(ctx, tt.args.n); err != nil {
+				t.Errorf("failed to stop container: %s", err.Error())
+			}
 		})
 	}
 }
