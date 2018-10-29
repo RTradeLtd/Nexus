@@ -23,20 +23,16 @@ import (
 
 // Daemon exposes orchestrator functionality via a gRPC API
 type Daemon struct {
-	s *grpc.Server
 	o *orchestrator.Orchestrator
 	l *zap.SugaredLogger
 }
 
 // New initializes a new Daemon
 func New(logger *zap.SugaredLogger, o *orchestrator.Orchestrator) *Daemon {
-	s := grpc.NewServer()
 	d := &Daemon{
-		s: s,
 		o: o,
 		l: logger.Named("daemon"),
 	}
-	ipfs_orchestrator.RegisterServiceServer(d.s, d)
 	return d
 }
 
@@ -87,13 +83,17 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 	d.l.Info("starting orchestrator jobs")
 	go d.o.Run(ctx)
 
+	// initialize server
+	server := grpc.NewServer()
+	ipfs_orchestrator.RegisterServiceServer(server, d)
+
 	// interrupt server gracefully if context is cancelled
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				d.l.Info("shutting down server")
-				d.s.GracefulStop()
+				server.GracefulStop()
 			}
 		}
 	}()
@@ -102,5 +102,5 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 	d.l.Infow("spinning up server",
 		"host", cfg.Host,
 		"port", cfg.Port)
-	return d.s.Serve(listener)
+	return server.Serve(listener)
 }
