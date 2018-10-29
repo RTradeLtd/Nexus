@@ -34,9 +34,16 @@ type Ports struct {
 
 // API declares configuration for the orchestrator daemon's gRPC API
 type API struct {
-	Host    string `json:"host"`
-	Port    string `json:"port"`
-	KeyPath string `json:"keypath"`
+	Host string `json:"host"`
+	Port string `json:"port"`
+	Key  string `json:"key"`
+	TLS  `json:"ssl"`
+}
+
+// TLS declares HTTPS configuration for the daemon's gRPC API
+type TLS struct {
+	CertPath string `json:"certpath"`
+	KeyPath  string `json:"keypath"`
 }
 
 // Postgres declares configuration for the orchestrator's database
