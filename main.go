@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
@@ -35,24 +38,40 @@ func main() {
 		}
 	}
 
+	// load configuration
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
 		fatal(err.Error())
 	}
 
+	// initialize logger
 	l, err := log.NewLogger(*devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
 	defer l.Sync()
 
+	// initialize orchestrator
 	o, err := orchestrator.New(l, cfg.IPFS, cfg.Postgres)
 	if err != nil {
 		fatal(err.Error())
 	}
+
+	// initialize daemon
 	d := daemon.New(o)
 
-	fatal(d.Run(cfg.API))
+	// handle graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signals
+		cancel()
+		os.Exit(1)
+	}()
+
+	// serve endpoints
+	fatal(d.Run(ctx, cfg.API))
 }
 
 func fatal(msg ...interface{}) {
