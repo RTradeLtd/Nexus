@@ -78,7 +78,11 @@ func main() {
 	}()
 
 	// serve endpoints
-	fatal(d.Run(ctx, cfg.API))
+	if err := d.Run(ctx, cfg.API); err != nil {
+		println(err.Error())
+	}
+	println("service shut down")
+	cancel()
 }
 
 func fatal(msg ...interface{}) {
