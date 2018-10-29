@@ -30,6 +30,9 @@ type NodeClient interface {
 
 	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
+
+	// Watch initalizes a goroutine that tracks IPFS node events
+	Watch(ctx context.Context) (<-chan event, <-chan error)
 }
 
 type client struct {
