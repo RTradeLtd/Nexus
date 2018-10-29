@@ -59,7 +59,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 
 	// test watcher
 	eventCount := 0
-	shouldGetEvents := 4
+	shouldGetEvents := 0
 	watchCtx, cancelWatch := context.WithCancel(context.Background())
 	go func() {
 		events, errs := c.Watch(watchCtx)
@@ -116,7 +116,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 				return
 			}
 
-			// check that container is up
+			// check that container is up, watcher should receive an event
 			shouldGetEvents++
 			time.Sleep(1 * time.Second)
 			n, err := c.Nodes(ctx)
@@ -134,7 +134,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 				t.Errorf("could not find container %s", tt.args.n.DockerID())
 			}
 
-			// clean up
+			// clean up, watcher should receive an event
 			c.StopNode(ctx, tt.args.n)
 			shouldGetEvents++
 		})
