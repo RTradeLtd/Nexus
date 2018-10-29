@@ -71,15 +71,20 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 
 	// set up TLS if configuration provides for it
 	if cfg.TLS.CertPath != "" {
-		d.l.Info("setting up TLS")
+		d.l.Infow("setting up TLS",
+			"cert", cfg.TLS.CertPath,
+			"key", cfg.TLS.KeyPath)
 		creds, err := credentials.NewServerTLSFromFile(cfg.TLS.CertPath, cfg.TLS.KeyPath)
 		if err != nil {
 			return fmt.Errorf("could not load TLS keys: %s", err)
 		}
 		serverOpts = append(serverOpts, grpc.Creds(creds))
+	} else {
+		d.l.Warn("no TLS configuration found")
 	}
 
 	// start orchestrator background jobs
+	d.l.Info("starting orchestrator jobs")
 	go d.o.Run(ctx)
 
 	// interrupt server gracefully if context is cancelled
@@ -87,11 +92,15 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 		for {
 			select {
 			case <-ctx.Done():
+				d.l.Info("shutting down server")
 				d.s.GracefulStop()
 			}
 		}
 	}()
 
 	// spin up server
+	d.l.Infow("spinning up server",
+		"host", cfg.Host,
+		"port", cfg.Port)
 	return d.s.Serve(listener)
 }
