@@ -10,6 +10,7 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
+	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
@@ -51,8 +52,14 @@ func main() {
 	}
 	defer l.Sync()
 
+	// initialize node client
+	c, err := ipfs.NewClient(l, cfg.IPFS)
+	if err != nil {
+		fatal(err.Error())
+	}
+
 	// initialize orchestrator
-	o, err := orchestrator.New(l, cfg.IPFS, cfg.Postgres)
+	o, err := orchestrator.New(l, c, cfg.IPFS.Ports, cfg.Database, *devMode)
 	if err != nil {
 		fatal(err.Error())
 	}

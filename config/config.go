@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	tcfg "github.com/RTradeLtd/config"
 )
 
 // DefaultIPFSVersion declares the current default version of go-ipfs to use
@@ -13,9 +15,9 @@ const DefaultIPFSVersion = "v0.4.17"
 
 // IPFSOrchestratorConfig configures the orchestration daemon
 type IPFSOrchestratorConfig struct {
-	IPFS     `json:"ipfs"`
-	API      `json:"api"`
-	Postgres `json:"postgres"`
+	IPFS          `json:"ipfs"`
+	API           `json:"api"`
+	tcfg.Database `json:"postgres"`
 }
 
 // IPFS configures settings relevant to IPFS nodes
@@ -44,15 +46,6 @@ type API struct {
 type TLS struct {
 	CertPath string `json:"cert"`
 	KeyPath  string `json:"key"`
-}
-
-// Postgres declares configuration for the orchestrator's database
-type Postgres struct {
-	Database string `json:"name"`
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
 }
 
 // New creates a new, default configuration
@@ -106,11 +99,11 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.API.Port == "" {
 		c.API.Port = "9111"
 	}
-	if c.Postgres.Host == "" {
-		c.Postgres.Host = "127.0.0.1"
+	if c.Database.URL == "" {
+		c.Database.URL = "127.0.0.1"
 	}
-	if c.Postgres.Port == "" {
-		c.Postgres.Port = "5432"
+	if c.Database.Port == "" {
+		c.Database.Port = "5432"
 	}
 	if c.IPFS.Ports.Swarm == nil {
 		c.IPFS.Ports.Swarm = []string{"4001-5000"}

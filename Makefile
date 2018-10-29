@@ -1,5 +1,7 @@
 GO=env GO111MODULE=on go
 IPFSCONTAINERS=`docker ps -a -q --filter="name=ipfs-*"`
+TESTCOMPOSE=https://raw.githubusercontent.com/RTradeLtd/Temporal/V2/test/docker-compose.yml
+COMPOSECOMMAND=env ADDR_NODE1=1 ADDR_NODE2=2 docker-compose -f test/docker-compose.yml
 
 all: deps check build
 
@@ -27,6 +29,12 @@ check:
 test:
 	go test -race -cover ./...
 
+.PHONY: testenv
+testenv:
+	mkdir -p test
+	curl $(TESTCOMPOSE) --output test/docker-compose.yml
+	$(COMPOSECOMMAND) up -d postgres
+
 # Generate protobuf code from definitions
 .PHONY: proto
 proto:
@@ -39,3 +47,11 @@ clean:
 	docker rm $(IPFSCONTAINERS) || true
 	rm -f ./ipfs-orchestrator
 	find . -name tmp -type d -exec rm -f -r {} +
+
+.PHONY: mock
+mock:
+	$(GOPATH)/bin/mockgen \
+		-package=ipfsmock \
+		-source=ipfs/ipfs.go \
+		-destination=ipfs/mock/ipfs.mock.go \
+		NodeClient
