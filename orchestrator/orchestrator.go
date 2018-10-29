@@ -35,3 +35,9 @@ func New(logger *zap.SugaredLogger, ipfsOpts config.IPFS, pgOpts config.Postgres
 
 	return &Orchestrator{l: logger, client: c, reg: reg}, nil
 }
+
+// Run initalizes the orchestrator's background tasks
+func (o *Orchestrator) Run(ctx context.Context) error {
+	go o.client.Watch(ctx)
+	return nil
+}
