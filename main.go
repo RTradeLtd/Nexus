@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -52,7 +53,7 @@ func main() {
 	}
 	d := daemon.New(o)
 
-	fatal(d.Run(cfg.API))
+	fatal(d.Run(context.Background(), cfg.API))
 }
 
 func fatal(msg ...interface{}) {
