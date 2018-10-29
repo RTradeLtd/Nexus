@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package orchestrator_grpc;
+package ipfs_orchestrator;
 
 service Service {
   rpc Ping(Empty) returns (Empty) {}

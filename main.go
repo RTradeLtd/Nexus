@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// initialize daemon
-	d := daemon.New(o)
+	d := daemon.New(l, o)
 
 	// handle graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
