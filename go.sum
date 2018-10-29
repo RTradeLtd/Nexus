@@ -1,6 +1,10 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/Microsoft/go-winio v0.4.11 h1:zoIOcVf0xPN1tnMVbTtEdI+P8OofVk3NObnwOQ6nK2Q=
 github.com/Microsoft/go-winio v0.4.11/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
+github.com/RTradeLtd/grpc v1.0.3 h1:pGrDnIvVG7hLDRdJ8hGN9YOrgNkjcpTIXCO+9WxYNrI=
+github.com/RTradeLtd/grpc v1.0.3/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
+github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac h1:ssEiSdLhv7IN/sEa1ZiRU9oH7Vt8NiBPq7dSSi7F6+g=
+github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/docker/distribution v2.6.2+incompatible h1:4FI6af79dfCS/CYb+RRtkSHw3q1L/bnDjG1PcPZtQhM=
 github.com/docker/distribution v2.6.2+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=

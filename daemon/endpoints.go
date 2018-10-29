@@ -3,10 +3,10 @@ package daemon
 import (
 	"context"
 
-	orchestrator "github.com/RTradeLtd/ipfs-orchestrator/protobuf"
+	ipfs_orchestrator "github.com/RTradeLtd/ipfs-orchestrator/protobuf"
 )
 
 // Ping is useful for checking client-server connection
-func (d *Daemon) Ping(c context.Context, req *orchestrator.Empty) (*orchestrator.Empty, error) {
-	return &orchestrator.Empty{}, nil
+func (d *Daemon) Ping(c context.Context, req *ipfs_orchestrator.Empty) (*ipfs_orchestrator.Empty, error) {
+	return &ipfs_orchestrator.Empty{}, nil
 }

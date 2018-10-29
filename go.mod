@@ -2,6 +2,7 @@ module github.com/RTradeLtd/ipfs-orchestrator
 
 require (
 	github.com/Microsoft/go-winio v0.4.11 // indirect
+	github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac
 	github.com/docker/distribution v2.7.0-rc.0.0.20181002220433-1cb4180b1a5b+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20181013152810-ee6fc90b2c80
 	github.com/docker/go-connections v0.4.0

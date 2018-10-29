@@ -6,9 +6,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/RTradeLtd/grpc/middleware"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
-	"github.com/RTradeLtd/ipfs-orchestrator/protobuf"
+	ipfs_orchestrator "github.com/RTradeLtd/ipfs-orchestrator/protobuf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -24,7 +25,6 @@ import (
 type Daemon struct {
 	s *grpc.Server
 	o *orchestrator.Orchestrator
-
 	l *zap.SugaredLogger
 }
 
@@ -36,7 +36,7 @@ func New(logger *zap.SugaredLogger, o *orchestrator.Orchestrator) *Daemon {
 		o: o,
 		l: logger.Named("daemon"),
 	}
-	orchestrator_grpc.RegisterServiceServer(d.s, d)
+	ipfs_orchestrator.RegisterServiceServer(d.s, d)
 	return d
 }
 
@@ -46,6 +46,9 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 	if err != nil {
 		return err
 	}
+
+	// set up authentication interceptor
+	unaryInterceptor, streamInterceptor := middleware.NewServerInterceptors(cfg.Key)
 
 	// set logger to record all incoming requests
 	grpcLogger := d.l.Desugar().Named("grpc")
@@ -57,9 +60,11 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 	}
 	serverOpts := []grpc.ServerOption{
 		grpc_middleware.WithUnaryServerChain(
+			unaryInterceptor,
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_zap.UnaryServerInterceptor(grpcLogger, zapOpts...)),
 		grpc_middleware.WithStreamServerChain(
+			streamInterceptor,
 			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_zap.StreamServerInterceptor(grpcLogger, zapOpts...)),
 	}
