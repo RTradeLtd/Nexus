@@ -42,8 +42,8 @@ type API struct {
 
 // TLS declares HTTPS configuration for the daemon's gRPC API
 type TLS struct {
-	CertPath string `json:"certpath"`
-	KeyPath  string `json:"keypath"`
+	CertPath string `json:"cert"`
+	KeyPath  string `json:"key"`
 }
 
 // Postgres declares configuration for the orchestrator's database
