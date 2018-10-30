@@ -7,9 +7,12 @@ import (
 	"time"
 
 	tcfg "github.com/RTradeLtd/config"
+	"github.com/RTradeLtd/database"
+	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	ipfsmock "github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 	"github.com/golang/mock/gomock"
 	"go.uber.org/zap"
 )
@@ -60,7 +63,7 @@ func TestNew(t *testing.T) {
 					Times(1)
 			}
 
-			_, err := New(l, mock, config.Ports{}, tt.args.pgOpts, true)
+			_, err := New(l, "", mock, config.Ports{}, tt.args.pgOpts, true)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -78,7 +81,7 @@ func TestOrchestrator_Run(t *testing.T) {
 		Nodes(gomock.Any()).
 		Times(1)
 
-	o, err := New(l, mock, config.Ports{}, dbDefaults, true)
+	o, err := New(l, "", mock, config.Ports{}, dbDefaults, true)
 	if err != nil {
 		t.Error(err)
 		return
@@ -92,4 +95,74 @@ func TestOrchestrator_Run(t *testing.T) {
 	o.Run(ctx)
 	time.Sleep(1 * time.Millisecond)
 	cancel()
+}
+
+func TestOrchestrator_NetworkUp(t *testing.T) {
+	// pre-test database setup
+	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+		Database: dbDefaults,
+	}, database.DatabaseOptions{
+		RunMigrations:  true,
+		SSLModeDisable: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to connect to dev database: %s", err.Error())
+	}
+	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
+	testNetwork := &models.HostedIPFSPrivateNetwork{
+		Name: "test-network-1",
+	}
+	if check := nm.DB.Create(testNetwork); check.Error != nil {
+		t.Log(check.Error.Error())
+	}
+	defer nm.DB.Delete(testNetwork)
+
+	type fields struct {
+		regPorts config.Ports
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{config.Ports{}}, args{""}, false, true},
+		{"nonexistent network", fields{config.Ports{}}, args{"asdf"}, false, true},
+		{"unable to register network", fields{config.Ports{}}, args{"test-network-1"}, false, true},
+		{"instantiate node with error", fields{config.New().Ports}, args{"test-network-1"}, true, true},
+		{"success", fields{config.New().Ports}, args{"test-network-1"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			mock, ctrl := newTestIPFSClient(l, t)
+			defer ctrl.Finish()
+			o := &Orchestrator{
+				l:      l,
+				nm:     nm,
+				client: mock,
+				reg:    registry.New(l, tt.fields.regPorts),
+				host:   "127.0.0.1",
+			}
+
+			if tt.createErr {
+				mock.EXPECT().
+					CreateNode(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(errors.New("oh no")).
+					Times(1)
+			} else if !tt.wantErr {
+				mock.EXPECT().
+					CreateNode(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(1)
+			}
+
+			if err := o.NetworkUp(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkUp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
