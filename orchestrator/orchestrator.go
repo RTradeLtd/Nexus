@@ -12,6 +12,7 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 	"go.uber.org/zap"
 )
@@ -76,6 +77,13 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 		return errors.New("invalid network name provided")
 	}
 
+	start := time.Now()
+	id := generateID()
+	l := log.NewProcessLogger(o.l, "network_up",
+		"id", id,
+		"network", network)
+	l.Info("network up process started")
+
 	// check if request is valid
 	n, err := o.nm.GetNetworkByName(network)
 	if err != nil {
@@ -95,9 +103,14 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 
 	// instantiate node
+	l.Info("creating node")
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
 		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
+	l.Infow("node created",
+		"node.docker_id", newNode.DockerID(),
+		"node.data_dir", newNode.DataDirectory(),
+		"node.ports", newNode.Ports)
 
 	// update network in database
 	n.APIURL = o.host + newNode.Ports.API
@@ -106,6 +119,9 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err := o.nm.UpdateNetwork(n); err != nil {
 		return fmt.Errorf("failed to update network '%s': %s", network, err)
 	}
+
+	l.Infow("network up process completed",
+		"network_up.duration", time.Since(start))
 
 	return nil
 }
