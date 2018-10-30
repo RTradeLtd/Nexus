@@ -62,7 +62,7 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			if err := o.nm.DB.Close(); err != nil {
-				o.l.Warnf("error occured closing database connection",
+				o.l.Warnw("error occured closing database connection",
 					"error", err)
 			}
 		}
