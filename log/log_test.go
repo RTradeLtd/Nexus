@@ -37,3 +37,12 @@ func TestNewTestLogger(t *testing.T) {
 		t.Error("bad logger")
 	}
 }
+
+func TestNewProcessLogger(t *testing.T) {
+	l, out := NewTestLogger()
+	logger := NewProcessLogger(l, "network_up", "id", "1234")
+	logger.Info("hi")
+	if out.All()[0].ContextMap()["network_up.id"].(string) != "1234" {
+		t.Error("bad logger")
+	}
+}
