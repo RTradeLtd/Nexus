@@ -24,7 +24,7 @@
 	},
 	"postgres": {
 		"name": "",
-		"host": "127.0.0.1",
+		"url": "127.0.0.1",
 		"port": "5432",
 		"username": "",
 		"password": ""
