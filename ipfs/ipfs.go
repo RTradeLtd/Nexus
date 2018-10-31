@@ -150,7 +150,10 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			AttachStderr: true,
 		},
 		&container.HostConfig{
-			AutoRemove:   opts.AutoRemove,
+			AutoRemove: opts.AutoRemove,
+			RestartPolicy: container.RestartPolicy{
+				Name: "unless-stopped",
+			},
 			Binds:        volumes,
 			PortBindings: ports,
 
