@@ -86,15 +86,15 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid config", args{
-			&NodeInfo{"test1", NodePorts{"4001", "5001", "8080"}, "", "", "", nil},
+			&NodeInfo{"test1", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
 			NodeOpts{},
 		}, true},
 		{"new node", args{
-			&NodeInfo{"test2", NodePorts{"4001", "5001", "8080"}, "", "", "", nil},
+			&NodeInfo{"test2", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
 			NodeOpts{[]byte(key), nil, true},
 		}, false},
 		{"with bootstrap", args{
-			&NodeInfo{"test3", NodePorts{"4001", "5001", "8080"}, "", "", "", nil},
+			&NodeInfo{"test3", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
 			NodeOpts{[]byte(key),
 				[]string{
 					"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",

@@ -136,6 +136,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"api_port":        n.Ports.API,
 			"gateway_port":    n.Ports.Gateway,
 			"bootstrap_peers": string(peerBytes),
+			"last_job_id":     n.JobID,
 		}
 	)
 
