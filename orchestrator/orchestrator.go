@@ -91,7 +91,6 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 	l.Info("network retrieved from database",
 		"network.db_id", n.ID)
-	networkID := string(n.ID) + "-" + network
 
 	// set options based on database entry
 	opts, err := getOptionsFromDatabaseEntry(n)
@@ -100,7 +99,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 
 	// register node for network
-	newNode := &ipfs.NodeInfo{NetworkID: networkID, JobID: jobID}
+	newNode := &ipfs.NodeInfo{NetworkID: network, JobID: jobID}
 	if err := o.reg.Register(newNode); err != nil {
 		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
