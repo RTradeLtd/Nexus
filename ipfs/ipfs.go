@@ -276,9 +276,9 @@ func (c *client) waitForNode(ctx context.Context, dockerID string) error {
 
 // Event is a node-related container event
 type Event struct {
-	Time   int64
-	Status string
-	Node   NodeInfo
+	Time   int64    `json:"time"`
+	Status string   `json:"status"`
+	Node   NodeInfo `json:"node"`
 }
 
 // Watch listens for specific container events
