@@ -110,10 +110,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Infow("node created",
-		"node.network_id", newNode.NetworkID,
-		"node.docker_id", newNode.DockerID(),
-		"node.data_dir", newNode.DataDirectory(),
-		"node.ports", newNode.Ports)
+		"node", newNode)
 
 	// update network in database
 	n.APIURL = o.host + ":" + newNode.Ports.API

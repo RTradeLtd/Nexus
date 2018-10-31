@@ -6,15 +6,6 @@ import (
 	"testing"
 )
 
-func TestNode(t *testing.T) {
-	// super simple tests to get coverage on node private data getters
-	n := NodeInfo{}
-	n.DockerID()
-	n.ContainerName()
-	n.DataDirectory()
-	n.BootstrapPeers()
-}
-
 func Test_newNode(t *testing.T) {
 	bl := []string{"1234"}
 	b, _ := json.Marshal(&bl)
@@ -31,15 +22,15 @@ func Test_newNode(t *testing.T) {
 	}{
 		{"not an ipfs node",
 			args{"1", "not-an-ipfs-node1", map[string]string{}},
-			NodeInfo{dockerID: "1", containerName: "not-an-ipfs-node1"},
+			NodeInfo{DockerID: "1", ContainerName: "not-an-ipfs-node1"},
 			true},
 		{"default",
 			args{"1", "ipfs-node1", map[string]string{}},
-			NodeInfo{dockerID: "1", containerName: "ipfs-node1"},
+			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1"},
 			false},
 		{"parse bootstrap",
 			args{"1", "ipfs-node1", map[string]string{"bootstrap_peers": string(b)}},
-			NodeInfo{dockerID: "1", containerName: "ipfs-node1", bootstrapPeers: bl},
+			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1", BootstrapPeers: bl},
 			false},
 	}
 	for _, tt := range tests {

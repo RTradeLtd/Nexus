@@ -186,9 +186,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// assign node metadata
-	n.dockerID = resp.ID
-	n.containerName = containerName
-	n.dataDir = getDataDir(n.NetworkID)
+	n.DockerID = resp.ID
+	n.ContainerName = containerName
+	n.DataDir = getDataDir(n.NetworkID)
 	return nil
 }
 
@@ -199,7 +199,7 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 
 	// stop container
 	timeout := time.Duration(10 * time.Second)
-	if err := c.d.ContainerStop(ctx, n.DockerID(), &timeout); err != nil {
+	if err := c.d.ContainerStop(ctx, n.DockerID, &timeout); err != nil {
 		return err
 	}
 

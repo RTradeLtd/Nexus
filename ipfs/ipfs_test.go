@@ -33,7 +33,7 @@ func testClient() (*client, error) {
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
 
-	l, _ := log.NewTestLogger()
+	l, _ := log.NewLogger(true)
 	return &client{l, d, ipfsImage}, nil
 }
 
@@ -126,12 +126,12 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			}
 			found := false
 			for _, node := range n {
-				if node.DockerID() == tt.args.n.DockerID() {
+				if node.DockerID == tt.args.n.DockerID {
 					found = true
 				}
 			}
 			if !found {
-				t.Errorf("could not find container %s", tt.args.n.DockerID())
+				t.Errorf("could not find container %s", tt.args.n.DockerID)
 			}
 
 			// clean up, watcher should receive an event
@@ -144,4 +144,5 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
 	}
+	t.Fail()
 }

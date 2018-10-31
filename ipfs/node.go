@@ -11,11 +11,17 @@ type NodeInfo struct {
 	Ports     NodePorts
 	JobID     string
 
-	// private metadata set by node client - access via getters
-	dockerID       string
-	containerName  string
-	dataDir        string
-	bootstrapPeers []string
+	// Metadata set by node client
+
+	// DockerID is the ID of the node's Docker container
+	DockerID string
+	// ContainerName is the name of the node's Docker container
+	ContainerName string
+	// DataDir is the path to the directory holding all data relevant to this
+	// IPFS node
+	DataDir string
+	// BootstrapPeers lists the peers this node was bootstrapped onto upon init
+	BootstrapPeers []string
 }
 
 // NodePorts declares the exposed ports of an IPFS node
@@ -28,7 +34,7 @@ type NodePorts struct {
 func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
 	// check if container is a node
 	if !isNodeContainer(name) {
-		return NodeInfo{dockerID: id, containerName: name}, fmt.Errorf("unknown name format %s", name)
+		return NodeInfo{DockerID: id, ContainerName: name}, fmt.Errorf("unknown name format %s", name)
 	}
 
 	// parse bootstrap state
@@ -44,22 +50,9 @@ func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
 			Gateway: attributes["gateway_port"],
 		},
 		JobID:          attributes["job_id"],
-		dockerID:       id,
-		containerName:  name,
-		dataDir:        attributes["data_dir"],
-		bootstrapPeers: peers,
+		DockerID:       id,
+		ContainerName:  name,
+		DataDir:        attributes["data_dir"],
+		BootstrapPeers: peers,
 	}, nil
 }
-
-// DockerID is the ID of the node's Docker container
-func (n *NodeInfo) DockerID() string { return n.dockerID }
-
-// ContainerName is the name of the node's Docker container
-func (n *NodeInfo) ContainerName() string { return n.containerName }
-
-// DataDirectory is the path to the directory holding all data relevant to this
-// IPFS node
-func (n *NodeInfo) DataDirectory() string { return n.dataDir }
-
-// BootstrapPeers lists the peers this node was bootstrapped onto upon init
-func (n *NodeInfo) BootstrapPeers() []string { return n.bootstrapPeers }
