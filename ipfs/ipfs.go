@@ -131,7 +131,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"bootstrap_peers": string(peerBytes),
 			"job_id":          n.JobID,
 		}
+		restartPolicy container.RestartPolicy
 	)
+
+	// set restart policy
+	if !opts.AutoRemove {
+		restartPolicy = container.RestartPolicy{
+			Name: "unless-stopped",
+		}
+	}
 
 	// create ipfs node container
 	resp, err := c.d.ContainerCreate(
@@ -150,12 +158,10 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			AttachStderr: true,
 		},
 		&container.HostConfig{
-			AutoRemove: opts.AutoRemove,
-			RestartPolicy: container.RestartPolicy{
-				Name: "unless-stopped",
-			},
-			Binds:        volumes,
-			PortBindings: ports,
+			AutoRemove:    opts.AutoRemove,
+			RestartPolicy: restartPolicy,
+			Binds:         volumes,
+			PortBindings:  ports,
 
 			// TODO: limit resources
 			Resources: container.Resources{},
@@ -205,6 +211,12 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 	if err := c.d.ContainerStop(ctx, n.DockerID, &timeout); err != nil {
 		return err
 	}
+
+	// remove container
+	c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
+		RemoveLinks:   true,
+		RemoveVolumes: true,
+	})
 
 	// remove ipfs data
 	return os.RemoveAll(getDataDir(n.NetworkID))

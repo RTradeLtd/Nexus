@@ -91,7 +91,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 		}, true},
 		{"new node", args{
 			&NodeInfo{"test2", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
-			NodeOpts{[]byte(key), nil, true},
+			NodeOpts{[]byte(key), nil, false},
 		}, false},
 		{"with bootstrap", args{
 			&NodeInfo{"test3", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
@@ -144,5 +144,4 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
 	}
-	t.Fail()
 }
