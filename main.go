@@ -47,6 +47,7 @@ func main() {
 	}
 
 	// initialize logger
+	println("initializing logger")
 	l, err := log.NewLogger(*devMode)
 	if err != nil {
 		fatal(err.Error())
@@ -54,18 +55,21 @@ func main() {
 	defer l.Sync()
 
 	// initialize node client
+	println("initializing node client")
 	c, err := ipfs.NewClient(l, cfg.IPFS)
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	// initialize orchestrator
+	println("initializing orchestrator")
 	o, err := orchestrator.New(l, *host, c, cfg.IPFS.Ports, cfg.Database, *devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	// initialize daemon
+	println("initializing daemon")
 	d := daemon.New(l, o)
 
 	// handle graceful shutdown
@@ -79,10 +83,11 @@ func main() {
 	}()
 
 	// serve endpoints
+	println("spinning up server")
 	if err := d.Run(ctx, cfg.API); err != nil {
 		println(err.Error())
 	}
-	println("service shut down")
+	println("server shut down")
 	cancel()
 }
 
