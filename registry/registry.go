@@ -39,7 +39,7 @@ func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo)
 	m := make(map[string]*ipfs.NodeInfo)
 	if nodes != nil {
 		for _, n := range nodes {
-			m[n.Network] = n
+			m[n.NetworkID] = n
 		}
 	}
 
@@ -56,14 +56,14 @@ func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo)
 
 // Register registers a node and allocates appropriate ports
 func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
-	if node.Network == "" {
+	if node.NetworkID == "" {
 		return errors.New(ErrInvalidNetwork)
 	}
 
 	r.nm.Lock()
 	defer r.nm.Unlock()
 
-	if _, found := r.nodes[node.Network]; found {
+	if _, found := r.nodes[node.NetworkID]; found {
 		return errors.New(ErrNetworkExists)
 	}
 
@@ -81,7 +81,7 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 	}
 	node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 
-	r.nodes[node.Network] = node
+	r.nodes[node.NetworkID] = node
 
 	return nil
 }

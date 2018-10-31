@@ -100,7 +100,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 
 	// register node for network
-	newNode := &ipfs.NodeInfo{Network: networkID, JobID: jobID}
+	newNode := &ipfs.NodeInfo{NetworkID: networkID, JobID: jobID}
 	if err := o.reg.Register(newNode); err != nil {
 		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
@@ -111,6 +111,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Infow("node created",
+		"node.network_id", newNode.NetworkID,
 		"node.docker_id", newNode.DockerID(),
 		"node.data_dir", newNode.DataDirectory(),
 		"node.ports", newNode.Ports)

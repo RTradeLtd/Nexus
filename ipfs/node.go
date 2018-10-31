@@ -7,9 +7,9 @@ import (
 
 // NodeInfo defines metadata about an IPFS node
 type NodeInfo struct {
-	Network string
-	Ports   NodePorts
-	JobID   string
+	NetworkID string
+	Ports     NodePorts
+	JobID     string
 
 	// private metadata set by node client - access via getters
 	dockerID       string
@@ -37,13 +37,13 @@ func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
 
 	// create node metadata to return
 	return NodeInfo{
-		Network: attributes["network_name"],
+		NetworkID: attributes["network_id"],
 		Ports: NodePorts{
 			Swarm:   attributes["swarm_port"],
 			API:     attributes["api_port"],
 			Gateway: attributes["gateway_port"],
 		},
-		JobID:          attributes["last_job_id"],
+		JobID:          attributes["job_id"],
 		dockerID:       id,
 		containerName:  name,
 		dataDir:        attributes["data_dir"],
