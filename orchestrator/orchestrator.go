@@ -125,3 +125,58 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 
 	return nil
 }
+
+// NetworkDown brings a network offline
+func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
+	if network == "" {
+		return errors.New("invalid network name provided")
+	}
+
+	start := time.Now()
+	jobID := generateID()
+	l := log.NewProcessLogger(o.l, "network_down",
+		"job_id", jobID,
+		"network", network)
+	l.Info("network up process started")
+
+	// retrieve node from registry
+	node, err := o.reg.Get(network)
+	if err != nil {
+		l.Info("could not find node in registry")
+		return fmt.Errorf("failed to get node for network %s from registry: %s", network, err.Error())
+	}
+
+	// shut down node
+	l.Info("network found, stopping node")
+	if err := o.client.StopNode(ctx, &node); err != nil {
+		l.Errorw("error occured while stopping node",
+			"error", err,
+			"node", node)
+	}
+	l.Infow("node stopped",
+		"node", node)
+
+	// deregister node
+	if err := o.reg.Deregister(network); err != nil {
+		l.Warnw("error occured while deregistering node",
+			"node.network_id", node.NetworkID,
+			"error", err)
+	}
+
+	// update network in database to indicate it is no longer active
+	var t time.Time
+	if err := o.nm.UpdateNetworkByName(network, map[string]interface{}{
+		"activated": t,
+		"api_url":   "",
+	}); err != nil {
+		l.Errorw("failed to update database entry for network",
+			"err", err,
+			"node.network_id", node.NetworkID)
+		return fmt.Errorf("failed to update network '%s': %s", network, err)
+	}
+
+	l.Infow("network down process completed",
+		"network_down.duration", time.Since(start))
+
+	return nil
+}

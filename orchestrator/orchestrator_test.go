@@ -10,6 +10,7 @@ import (
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	ipfsmock "github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
@@ -162,6 +163,80 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 
 			if err := o.NetworkUp(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkUp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkDown(t *testing.T) {
+	// pre-test database setup
+	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+		Database: dbDefaults,
+	}, database.DatabaseOptions{
+		RunMigrations:  true,
+		SSLModeDisable: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to connect to dev database: %s", err.Error())
+	}
+	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
+	testNetwork := &models.HostedIPFSPrivateNetwork{
+		Name: "test-network-1",
+	}
+	if check := nm.DB.Create(testNetwork); check.Error != nil {
+		t.Log(check.Error.Error())
+	}
+	defer nm.DB.Delete(testNetwork)
+
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"unregistered network", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"nonexistent network", fields{ipfs.NodeInfo{NetworkID: "asdf"}},
+			args{"asdf"}, false, true},
+		{"stop node with error", fields{ipfs.NodeInfo{NetworkID: "test-network-1"}},
+			args{"test-network-1"}, true, false},
+		{"stop node without error", fields{ipfs.NodeInfo{NetworkID: "test-network-1"}},
+			args{"test-network-1"}, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			mock, ctrl := newTestIPFSClient(l, t)
+			defer ctrl.Finish()
+			o := &Orchestrator{
+				l:      l,
+				nm:     nm,
+				client: mock,
+				reg:    registry.New(l, config.New().Ports, &tt.fields.node),
+				host:   "127.0.0.1",
+			}
+
+			if tt.createErr {
+				mock.EXPECT().
+					StopNode(gomock.Any(), gomock.Any()).
+					Return(errors.New("oh no")).
+					Times(1)
+			} else {
+				mock.EXPECT().
+					StopNode(gomock.Any(), gomock.Any()).
+					AnyTimes()
+			}
+
+			if err := o.NetworkDown(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkDown() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

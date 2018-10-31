@@ -5,7 +5,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/RTradeLtd/config v1.0.5
-	github.com/RTradeLtd/database v1.0.5-0.20181030211629-c6e084d4490e
+	github.com/RTradeLtd/database v1.0.5-0.20181031024619-e2d267d33803
 	github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac // indirect
