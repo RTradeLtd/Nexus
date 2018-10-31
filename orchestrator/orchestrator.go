@@ -78,9 +78,9 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 
 	start := time.Now()
-	id := generateID()
+	jobID := generateID()
 	l := log.NewProcessLogger(o.l, "network_up",
-		"id", id,
+		"job_id", jobID,
 		"network", network)
 	l.Info("network up process started")
 
@@ -89,6 +89,9 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err != nil {
 		return fmt.Errorf("no network with name '%s' found", network)
 	}
+	l.Info("network retrieved from database",
+		"network.db_id", n.ID)
+	networkID := string(n.ID) + "-" + network
 
 	// set options based on database entry
 	opts, err := getOptionsFromDatabaseEntry(n)
@@ -97,13 +100,13 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	}
 
 	// register node for network
-	newNode := &ipfs.NodeInfo{Network: network}
+	newNode := &ipfs.NodeInfo{Network: networkID, JobID: jobID}
 	if err := o.reg.Register(newNode); err != nil {
 		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
 
 	// instantiate node
-	l.Info("creating node")
+	l.Info("network registered, creating node")
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
 		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
@@ -113,7 +116,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 		"node.ports", newNode.Ports)
 
 	// update network in database
-	n.APIURL = o.host + newNode.Ports.API
+	n.APIURL = o.host + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if err := o.nm.UpdateNetwork(n); err != nil {
