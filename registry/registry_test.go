@@ -9,8 +9,8 @@ import (
 )
 
 var defaultNode = ipfs.NodeInfo{
-	Network: "bobheadxi",
-	Ports:   ipfs.NodePorts{Swarm: "4001", API: "5001", Gateway: "8080"},
+	NetworkID: "bobheadxi",
+	Ports:     ipfs.NodePorts{Swarm: "4001", API: "5001", Gateway: "8080"},
 }
 
 func newTestRegistry() *NodeRegistry {
@@ -50,11 +50,11 @@ func TestNodeRegistry_Register(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid input", r, args{&ipfs.NodeInfo{}}, true},
-		{"existing network", r, args{&ipfs.NodeInfo{Network: "bobheadxi"}}, true},
-		{"no swarm port", rNoSwarm, args{&ipfs.NodeInfo{Network: "timhortons"}}, true},
-		{"no api port", rNoAPI, args{&ipfs.NodeInfo{Network: "kfc"}}, true},
-		{"no gateway port", rNoGateway, args{&ipfs.NodeInfo{Network: "mcdonalds"}}, true},
-		{"successful registration", r, args{&ipfs.NodeInfo{Network: "postables"}}, false},
+		{"existing network", r, args{&ipfs.NodeInfo{NetworkID: "bobheadxi"}}, true},
+		{"no swarm port", rNoSwarm, args{&ipfs.NodeInfo{NetworkID: "timhortons"}}, true},
+		{"no api port", rNoAPI, args{&ipfs.NodeInfo{NetworkID: "kfc"}}, true},
+		{"no gateway port", rNoGateway, args{&ipfs.NodeInfo{NetworkID: "mcdonalds"}}, true},
+		{"successful registration", r, args{&ipfs.NodeInfo{NetworkID: "postables"}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

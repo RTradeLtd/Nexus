@@ -36,13 +36,6 @@ type NodeClient interface {
 	Watch(ctx context.Context) (<-chan Event, <-chan error)
 }
 
-// Event is a node-related container event
-type Event struct {
-	Time   int64
-	Status string
-	Node   NodeInfo
-}
-
 type client struct {
 	l *zap.SugaredLogger
 	d *docker.Client
@@ -97,16 +90,16 @@ type NodeOpts struct {
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
-	if n == nil || n.Network == "" || opts.SwarmKey == nil {
+	if n == nil || n.NetworkID == "" || opts.SwarmKey == nil {
 		return errors.New("invalid configuration provided")
 	}
 
 	// set up directories
-	os.MkdirAll(getDataDir(n.Network), 0700)
+	os.MkdirAll(getDataDir(n.NetworkID), 0700)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
-		getDataDir(n.Network)+"/swarm.key",
+		getDataDir(n.NetworkID)+"/swarm.key",
 		opts.SwarmKey, 0700,
 	); err != nil {
 		return fmt.Errorf("failed to write key: %s", err.Error())
@@ -117,7 +110,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	peerBytes, _ := json.Marshal(opts.BootstrapPeers)
 
 	var (
-		containerName = "ipfs-" + n.Network
+		containerName = "ipfs-" + n.NetworkID
 		ports         = nat.PortMap{
 			// public ports
 			"4001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
@@ -127,17 +120,26 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"8080": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
-			getDataDir(n.Network) + ":/data/ipfs",
+			getDataDir(n.NetworkID) + ":/data/ipfs",
 		}
 		labels = map[string]string{
-			"network_name":    n.Network,
-			"data_dir":        getDataDir(n.Network),
+			"network_id":      n.NetworkID,
+			"data_dir":        getDataDir(n.NetworkID),
 			"swarm_port":      n.Ports.Swarm,
 			"api_port":        n.Ports.API,
 			"gateway_port":    n.Ports.Gateway,
 			"bootstrap_peers": string(peerBytes),
+			"job_id":          n.JobID,
 		}
+		restartPolicy container.RestartPolicy
 	)
+
+	// set restart policy
+	if !opts.AutoRemove {
+		restartPolicy = container.RestartPolicy{
+			Name: "unless-stopped",
+		}
+	}
 
 	// create ipfs node container
 	resp, err := c.d.ContainerCreate(
@@ -156,9 +158,10 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			AttachStderr: true,
 		},
 		&container.HostConfig{
-			AutoRemove:   opts.AutoRemove,
-			Binds:        volumes,
-			PortBindings: ports,
+			AutoRemove:    opts.AutoRemove,
+			RestartPolicy: restartPolicy,
+			Binds:         volumes,
+			PortBindings:  ports,
 
 			// TODO: limit resources
 			Resources: container.Resources{},
@@ -192,9 +195,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// assign node metadata
-	n.dockerID = resp.ID
-	n.containerName = containerName
-	n.dataDir = getDataDir(n.Network)
+	n.DockerID = resp.ID
+	n.ContainerName = containerName
+	n.DataDir = getDataDir(n.NetworkID)
 	return nil
 }
 
@@ -205,12 +208,18 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 
 	// stop container
 	timeout := time.Duration(10 * time.Second)
-	if err := c.d.ContainerStop(ctx, n.DockerID(), &timeout); err != nil {
+	if err := c.d.ContainerStop(ctx, n.DockerID, &timeout); err != nil {
 		return err
 	}
 
+	// remove container
+	c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
+		RemoveLinks:   true,
+		RemoveVolumes: true,
+	})
+
 	// remove ipfs data
-	return os.RemoveAll(getDataDir(n.Network))
+	return os.RemoveAll(getDataDir(n.NetworkID))
 }
 
 func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
@@ -263,6 +272,13 @@ func (c *client) waitForNode(ctx context.Context, dockerID string) error {
 	}
 
 	return scanner.Err()
+}
+
+// Event is a node-related container event
+type Event struct {
+	Time   int64    `json:"time"`
+	Status string   `json:"status"`
+	Node   NodeInfo `json:"node"`
 }
 
 // Watch listens for specific container events

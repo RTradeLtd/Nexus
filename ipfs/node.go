@@ -7,27 +7,33 @@ import (
 
 // NodeInfo defines metadata about an IPFS node
 type NodeInfo struct {
-	Network string
-	Ports   NodePorts
+	NetworkID string    `json:"network_id"`
+	Ports     NodePorts `json:"ports"`
+	JobID     string    `json:"job_id"`
 
-	// private metadata set by node client - access via getters
-	dockerID       string
-	containerName  string
-	dataDir        string
-	bootstrapPeers []string
+	// Metadata set by node client:
+	// DockerID is the ID of the node's Docker container
+	DockerID string `json:"docker_id"`
+	// ContainerName is the name of the node's Docker container
+	ContainerName string `json:"container_id"`
+	// DataDir is the path to the directory holding all data relevant to this
+	// IPFS node
+	DataDir string `json:"data_dir"`
+	// BootstrapPeers lists the peers this node was bootstrapped onto upon init
+	BootstrapPeers []string `json:"bootstrap_peers"`
 }
 
 // NodePorts declares the exposed ports of an IPFS node
 type NodePorts struct {
-	Swarm   string // default: 4001
-	API     string // default: 5001
-	Gateway string // default: 8080
+	Swarm   string `json:"swarm"`   // default: 4001
+	API     string `json:"api"`     // default: 5001
+	Gateway string `json:"gateway"` // default: 8080
 }
 
 func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
 	// check if container is a node
 	if !isNodeContainer(name) {
-		return NodeInfo{dockerID: id, containerName: name}, fmt.Errorf("unknown name format %s", name)
+		return NodeInfo{DockerID: id, ContainerName: name}, fmt.Errorf("unknown name format %s", name)
 	}
 
 	// parse bootstrap state
@@ -36,28 +42,16 @@ func newNode(id, name string, attributes map[string]string) (NodeInfo, error) {
 
 	// create node metadata to return
 	return NodeInfo{
-		Network: attributes["network_name"],
+		NetworkID: attributes["network_id"],
 		Ports: NodePorts{
 			Swarm:   attributes["swarm_port"],
 			API:     attributes["api_port"],
 			Gateway: attributes["gateway_port"],
 		},
-		dockerID:       id,
-		containerName:  name,
-		dataDir:        attributes["data_dir"],
-		bootstrapPeers: peers,
+		JobID:          attributes["job_id"],
+		DockerID:       id,
+		ContainerName:  name,
+		DataDir:        attributes["data_dir"],
+		BootstrapPeers: peers,
 	}, nil
 }
-
-// DockerID is the ID of the node's Docker container
-func (n *NodeInfo) DockerID() string { return n.dockerID }
-
-// ContainerName is the name of the node's Docker container
-func (n *NodeInfo) ContainerName() string { return n.containerName }
-
-// DataDirectory is the path to the directory holding all data relevant to this
-// IPFS node
-func (n *NodeInfo) DataDirectory() string { return n.dataDir }
-
-// BootstrapPeers lists the peers this node was bootstrapped onto upon init
-func (n *NodeInfo) BootstrapPeers() []string { return n.bootstrapPeers }
