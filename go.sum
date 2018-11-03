@@ -14,6 +14,8 @@ github.com/RTradeLtd/database v1.0.5-0.20181103023406-afbe05201ea0 h1:waY/9iwqrF
 github.com/RTradeLtd/database v1.0.5-0.20181103023406-afbe05201ea0/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/database v1.0.5-0.20181103030104-9b56d7bfed75 h1:/Lhe7gCxGQdwwC2jr/0YG6wPdc4poNLo6mPBXTOUvsM=
 github.com/RTradeLtd/database v1.0.5-0.20181103030104-9b56d7bfed75/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
+github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce h1:cl77GiYjGgf5IHISp2JeBEpduvfHsGh5XNNheMvpg4A=
+github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac h1:ssEiSdLhv7IN/sEa1ZiRU9oH7Vt8NiBPq7dSSi7F6+g=
 github.com/RTradeLtd/grpc v1.0.4-0.20181029052247-8bcb3d35f3ac/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
