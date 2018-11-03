@@ -30,14 +30,6 @@ func TestNewLogger(t *testing.T) {
 	}
 }
 
-func TestNewTestLogger(t *testing.T) {
-	logger, out := NewTestLogger()
-	logger.Info("hi")
-	if out.All()[0].Message != "hi" {
-		t.Error("bad logger")
-	}
-}
-
 func TestNewProcessLogger(t *testing.T) {
 	l, out := NewTestLogger()
 	logger := NewProcessLogger(l, "network_up", "id", "1234")

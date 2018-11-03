@@ -3,7 +3,6 @@ package log
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 // NewLogger creates a default "sugared" logger based on dev toggle
@@ -32,12 +31,6 @@ func NewLogger(dev bool) (sugar *zap.SugaredLogger, err error) {
 	}
 
 	return logger.Sugar(), nil
-}
-
-// NewTestLogger bootstraps a test logger that allows interrogation of output
-func NewTestLogger() (sugar *zap.SugaredLogger, out *observer.ObservedLogs) {
-	observer, out := observer.New(zap.InfoLevel)
-	return zap.New(observer).Sugar(), out
 }
 
 // NewProcessLogger creates a new logger that sets prefixes on fields for
