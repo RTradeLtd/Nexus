@@ -87,36 +87,47 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	// check if request is valid
 	n, err := o.nm.GetNetworkByName(network)
 	if err != nil {
+		l.Infow("failed to fetch network 's'",
+			"error", err)
 		return fmt.Errorf("no network with name '%s' found", network)
 	}
-	l.Info("network retrieved from database",
-		"network.db_id", n.ID)
+	l = l.With("network.db_id", n.ID)
+	l.Info("network retrieved from database")
 
 	// set options based on database entry
 	opts, err := getOptionsFromDatabaseEntry(n)
 	if err != nil {
+		l.Warnw("invalid database entry",
+			"error", err)
 		return fmt.Errorf("failed to configure network: %s", err.Error())
 	}
 
 	// register node for network
 	newNode := &ipfs.NodeInfo{NetworkID: network, JobID: jobID}
 	if err := o.reg.Register(newNode); err != nil {
+		l.Errorw("no available ports",
+			"error", err)
 		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
 
 	// instantiate node
+	l = l.With("node", newNode)
 	l.Info("network registered, creating node")
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
+		l.Errorw("unable to create node",
+			"error", err)
 		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
-	l.Infow("node created",
-		"node", newNode)
+	l.Info("node created")
 
 	// update network in database
 	n.APIURL = o.host + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
+		l.Errorw("failed to update database",
+			"error", err,
+			"entry", n)
 		return fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
@@ -147,19 +158,17 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	}
 
 	// shut down node
+	l = l.With("node", node)
 	l.Info("network found, stopping node")
 	if err := o.client.StopNode(ctx, &node); err != nil {
 		l.Errorw("error occured while stopping node",
-			"error", err,
-			"node", node)
+			"error", err)
 	}
-	l.Infow("node stopped",
-		"node", node)
+	l.Info("node stopped")
 
 	// deregister node
 	if err := o.reg.Deregister(network); err != nil {
-		l.Warnw("error occured while deregistering node",
-			"node.network_id", node.NetworkID,
+		l.Errorw("error occured while deregistering node",
 			"error", err)
 	}
 
@@ -170,8 +179,7 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 		"api_url":   "",
 	}); err != nil {
 		l.Errorw("failed to update database entry for network",
-			"err", err,
-			"node.network_id", node.NetworkID)
+			"err", err)
 		return fmt.Errorf("failed to update network '%s': %s", network, err)
 	}
 
