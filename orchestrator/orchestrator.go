@@ -116,8 +116,8 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	n.APIURL = o.host + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
-	if err := o.nm.UpdateNetwork(n); err != nil {
-		return fmt.Errorf("failed to update network '%s': %s", network, err)
+	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
+		return fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
 	l.Infow("network up process completed",
