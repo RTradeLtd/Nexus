@@ -19,6 +19,30 @@ import (
 // Version denotes the version of ipfs-orchestrator in use
 var Version string
 
+func init() {
+	if Version == "" {
+		Version = "version unknown"
+	}
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `ipfs-orchestrator is the IPFS private network node orchestration and registry service for Temporal.
+
+USAGE:
+
+  ipfs-orchestrator [options] [command] [arguments...]
+
+COMMANDS:
+
+  init        initialize configuration
+  daemon      spin up the ipfs-orchestrator daemon and processes
+  version     display program version
+
+OPTIONS:
+
+`)
+		flag.PrintDefaults()
+	}
+}
+
 func main() {
 	var (
 		address    = flag.String("address", "127.0.0.1", "network address of host")
