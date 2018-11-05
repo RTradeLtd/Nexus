@@ -13,9 +13,17 @@ distributed and decentralized storage technologies.
 
 ```bash
 $> go get -u github.com/RTradeLtd/ipfs-orchestrator
-$> ipfs-orchestrator init
-$> ipfs-orchestrator daemon
 ```
+
+Releases are also be available from the
+[Releases](https://github.com/RTradeLtd/ipfs-orchestrator/releases) page.
+
+```bash
+$> ipfs-orchestrator init
+$> ipfs-orchestrator daemon --address $MY_HOST
+```
+
+Further documentation is available via `ipfs-orchestrator --help`.
 
 ## Development
 
@@ -31,7 +39,7 @@ $> go get github.com/RTradeLtd/ipfs-orchestrator
 Dependencies can be installed using the provided Makefile:
 
 ```bash
-$> make   # installs dependencies and build binary
+$> make   # installs dependencies and builds a binary
 ```
 
 ### Testing

@@ -119,11 +119,11 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:      l,
-				nm:     nm,
-				client: client,
-				reg:    registry.New(l, tt.fields.regPorts),
-				host:   "127.0.0.1",
+				l:       l,
+				nm:      nm,
+				client:  client,
+				reg:     registry.New(l, tt.fields.regPorts),
+				address: "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -185,11 +185,11 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:      l,
-				nm:     nm,
-				client: client,
-				reg:    registry.New(l, config.New().Ports, &tt.fields.node),
-				host:   "127.0.0.1",
+				l:       l,
+				nm:      nm,
+				client:  client,
+				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
+				address: "127.0.0.1",
 			}
 
 			if tt.createErr {

@@ -23,13 +23,13 @@ type Orchestrator struct {
 	l  *zap.SugaredLogger
 	nm *models.IPFSNetworkManager
 
-	client ipfs.NodeClient
-	reg    *registry.NodeRegistry
-	host   string
+	client  ipfs.NodeClient
+	reg     *registry.NodeRegistry
+	address string
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New(logger *zap.SugaredLogger, host string, c ipfs.NodeClient,
+func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	ports config.Ports, pg tcfg.Database, dev bool) (*Orchestrator, error) {
 	// bootstrap registry
 	nodes, err := c.Nodes(context.Background())
@@ -49,10 +49,11 @@ func New(logger *zap.SugaredLogger, host string, c ipfs.NodeClient,
 	}
 
 	return &Orchestrator{
-		l:      logger,
-		nm:     models.NewHostedIPFSNetworkManager(dbm.DB),
-		client: c,
-		reg:    reg,
+		l:       logger,
+		nm:      models.NewHostedIPFSNetworkManager(dbm.DB),
+		client:  c,
+		reg:     reg,
+		address: address,
 	}, nil
 }
 
@@ -127,7 +128,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	l.Info("node created")
 
 	// update network in database
-	n.APIURL = o.host + ":" + newNode.Ports.API
+	n.APIURL = o.address + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {

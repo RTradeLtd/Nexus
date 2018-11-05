@@ -21,7 +21,7 @@ var Version string
 
 func main() {
 	var (
-		host       = flag.String("host", "127.0.0.1", "address of host")
+		address    = flag.String("address", "127.0.0.1", "network address of host")
 		configPath = flag.String("config", "./config.json", "path to ipfs-orchestrator config file")
 		devMode    = flag.Bool("dev", os.Getenv("MODE") == "development", "toggle dev mode, alternatively MODE=development")
 	)
@@ -41,7 +41,7 @@ func main() {
 			println("orchestrator configuration generated at " + *configPath)
 			return
 		case "daemon":
-			runDaemon(*host, *configPath, *devMode)
+			runDaemon(*address, *configPath, *devMode)
 			return
 		default:
 			fatal("unknown command", strings.Join(args[0:], " "))
@@ -52,7 +52,7 @@ func main() {
 	}
 }
 
-func runDaemon(host, configPath string, devMode bool) {
+func runDaemon(address, configPath string, devMode bool) {
 	// load configuration
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -77,7 +77,7 @@ func runDaemon(host, configPath string, devMode bool) {
 
 	// initialize orchestrator
 	println("initializing orchestrator")
-	o, err := orchestrator.New(l, host, c, cfg.IPFS.Ports, cfg.Database, devMode)
+	o, err := orchestrator.New(l, address, c, cfg.IPFS.Ports, cfg.Database, devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
