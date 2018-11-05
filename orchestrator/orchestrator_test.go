@@ -6,16 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
+
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	ipfsmock "github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
-	"github.com/golang/mock/gomock"
-	"go.uber.org/zap"
 )
 
 var dbDefaults = tcfg.Database{
@@ -24,11 +23,6 @@ var dbDefaults = tcfg.Database{
 	Port:     "5433",
 	Username: "postgres",
 	Password: "password123",
-}
-
-func newTestIPFSClient(l *zap.SugaredLogger, t *testing.T) (*ipfsmock.MockNodeClient, *gomock.Controller) {
-	ctrl := gomock.NewController(t)
-	return ipfsmock.NewMockNodeClient(ctrl), ctrl
 }
 
 func TestNew(t *testing.T) {
@@ -48,23 +42,15 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := log.NewTestLogger()
-			mock, ctrl := newTestIPFSClient(l, t)
-			defer ctrl.Finish()
+			client := &mock.FakeNodeClient{}
 
 			if tt.wantClientErr {
-				mock.EXPECT().
-					Nodes(gomock.Any()).
-					DoAndReturn(func(...interface{}) (interface{}, error) {
-						return nil, errors.New("oh no")
-					}).
-					Times(1)
+				client.NodesReturns(nil, errors.New("oh no"))
 			} else {
-				mock.EXPECT().
-					Nodes(gomock.Any()).
-					Times(1)
+				client.NodesReturns([]*ipfs.NodeInfo{}, nil)
 			}
 
-			_, err := New(l, "", mock, config.Ports{}, tt.args.pgOpts, true)
+			_, err := New(l, "", client, config.Ports{}, tt.args.pgOpts, true)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -75,22 +61,13 @@ func TestNew(t *testing.T) {
 
 func TestOrchestrator_Run(t *testing.T) {
 	l, _ := log.NewTestLogger()
-	mock, ctrl := newTestIPFSClient(l, t)
-	defer ctrl.Finish()
+	client := &mock.FakeNodeClient{}
 
-	mock.EXPECT().
-		Nodes(gomock.Any()).
-		Times(1)
-
-	o, err := New(l, "", mock, config.Ports{}, dbDefaults, true)
+	o, err := New(l, "", client, config.Ports{}, dbDefaults, true)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
-	mock.EXPECT().
-		Watch(gomock.Any()).
-		Times(1)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	o.Run(ctx)
@@ -140,25 +117,17 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := log.NewTestLogger()
-			mock, ctrl := newTestIPFSClient(l, t)
-			defer ctrl.Finish()
+			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
 				l:      l,
 				nm:     nm,
-				client: mock,
+				client: client,
 				reg:    registry.New(l, tt.fields.regPorts),
 				host:   "127.0.0.1",
 			}
 
 			if tt.createErr {
-				mock.EXPECT().
-					CreateNode(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(errors.New("oh no")).
-					Times(1)
-			} else if !tt.wantErr {
-				mock.EXPECT().
-					CreateNode(gomock.Any(), gomock.Any(), gomock.Any()).
-					Times(1)
+				client.CreateNodeReturns(errors.New("oh no"))
 			}
 
 			if err := o.NetworkUp(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
@@ -214,25 +183,17 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := log.NewTestLogger()
-			mock, ctrl := newTestIPFSClient(l, t)
-			defer ctrl.Finish()
+			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
 				l:      l,
 				nm:     nm,
-				client: mock,
+				client: client,
 				reg:    registry.New(l, config.New().Ports, &tt.fields.node),
 				host:   "127.0.0.1",
 			}
 
 			if tt.createErr {
-				mock.EXPECT().
-					StopNode(gomock.Any(), gomock.Any()).
-					Return(errors.New("oh no")).
-					Times(1)
-			} else {
-				mock.EXPECT().
-					StopNode(gomock.Any(), gomock.Any()).
-					AnyTimes()
+				client.StopNodeReturns(errors.New("oh no"))
 			}
 
 			if err := o.NetworkDown(context.Background(), tt.args.network); (err != nil) != tt.wantErr {

@@ -17,6 +17,7 @@ install: deps
 .PHONY: deps
 deps:
 	$(GO) mod vendor
+	go get -u github.com/maxbrunsfeld/counterfeiter
 
 # Run simple checks
 .PHONY: check
@@ -50,8 +51,5 @@ clean:
 
 .PHONY: mock
 mock:
-	$(GOPATH)/bin/mockgen \
-		-package=ipfsmock \
-		-source=ipfs/ipfs.go \
-		-destination=ipfs/mock/ipfs.mock.go \
-		NodeClient
+	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
+		./ipfs/ipfs.go NodeClient
