@@ -32,7 +32,7 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func Test_client_CreateNode_GetNode(t *testing.T) {
+func Test_client_NodeOperations(t *testing.T) {
 	c, err := testClient()
 	if err != nil {
 		t.Error(err)
@@ -102,6 +102,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
+			defer c.StopNode(ctx, tt.args.n)
 
 			// check that container is up, watcher should receive an event
 			shouldGetEvents++
@@ -111,19 +112,28 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 				t.Error(err.Error())
 				return
 			}
-			found := false
 			for _, node := range n {
 				if node.DockerID == tt.args.n.DockerID {
-					found = true
+					goto FOUND
 				}
 			}
-			if !found {
-				t.Errorf("could not find container %s", tt.args.n.DockerID)
-			}
+			t.Errorf("could not find container %s", tt.args.n.DockerID)
+			return
 
-			// clean up, watcher should receive an event
-			c.StopNode(ctx, tt.args.n)
+		FOUND:
+			// should receive a cleanup event
 			shouldGetEvents++
+
+			// get node stats
+			s, err := c.NodeStats(ctx, tt.args.n)
+			if err != nil {
+				t.Error(err.Error())
+				return
+			}
+			t.Logf("received stats: %v", s)
+
+			// stop node
+			c.StopNode(ctx, tt.args.n)
 		})
 	}
 

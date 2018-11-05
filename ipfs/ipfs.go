@@ -33,6 +33,9 @@ type NodeClient interface {
 	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
 
+	// NodeStats retrieves statistics about the provided node
+	NodeStats(ctx context.Context, n *NodeInfo) (stats NodeStats, err error)
+
 	// Watch initalizes a goroutine that tracks IPFS node events
 	Watch(ctx context.Context) (<-chan Event, <-chan error)
 }
@@ -217,70 +220,70 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 
 	// stop container
 	timeout := time.Duration(10 * time.Second)
-	if err := c.d.ContainerStop(ctx, n.DockerID, &timeout); err != nil {
-		return err
-	}
+	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
 
 	// remove container
-	c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
-		RemoveLinks:   true,
+	err2 := c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 	})
 
-	// remove ipfs data
-	return os.RemoveAll(c.getDataDir(n.NetworkID))
+	// remove data
+	err3 := os.RemoveAll(c.getDataDir(n.NetworkID))
+
+	// check and return errors
+	if err1 == nil || err2 == nil || err3 == nil {
+		return nil
+	}
+	return fmt.Errorf(
+		"errors encountered: { ContainerStop: '%v', ContainerRemove: '%v', os.RemoveAll: '%v'}",
+		err1, err2, err3,
+	)
 }
 
-func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
-	if peers == nil || len(peers) == 0 {
-		return errors.New("no peers provided")
-	}
-
-	// remove default peers
-	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
-	if err != nil {
-		return err
-	}
-	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
-		return err
-	}
-
-	// bootstrap custom peers
-	bootstrap := []string{"ipfs", "bootstrap", "add"}
-	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
-		Cmd: append(bootstrap, peers...),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
-	}
-
-	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
+// NodeStats provides details about a node container
+type NodeStats struct {
+	Uptime    time.Duration
+	DiskUsage int64
+	Stats     interface{}
 }
 
-func (c *client) waitForNode(ctx context.Context, dockerID string) error {
-	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
-		ShowStdout: true,
-		Follow:     true,
-	})
+func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
+	// retrieve details from stats API
+	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
 	if err != nil {
-		return err
+		return NodeStats{}, err
 	}
-	defer logs.Close()
-
-	scanner := bufio.NewScanner(logs)
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("cancelled wait for %s", dockerID)
-		default:
-			if strings.Contains(scanner.Text(), "Daemon is ready") {
-				return nil
-			}
-		}
+	defer s.Body.Close()
+	b, err := ioutil.ReadAll(s.Body)
+	if err != nil {
+		return NodeStats{}, err
+	}
+	var stats rawContainerStats
+	if err = json.Unmarshal(b, &stats); err != nil {
+		return NodeStats{}, err
 	}
 
-	return scanner.Err()
+	// retrieve details from container inspection
+	info, err := c.d.ContainerInspect(ctx, n.DockerID)
+	if err != nil {
+		return NodeStats{}, err
+	}
+	created, err := time.Parse(time.RFC3339, info.Created)
+	if err != nil {
+		return NodeStats{}, err
+	}
+
+	// check disk usage
+	usage, err := dirSize(n.DataDir)
+	if err != nil {
+		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
+	}
+
+	return NodeStats{
+		Uptime:    time.Since(created),
+		Stats:     stats,
+		DiskUsage: usage,
+	}, nil
 }
 
 // Event is a node-related container event
@@ -338,4 +341,56 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 func (c *client) getDataDir(network string) string {
 	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
 	return p
+}
+
+func (c *client) waitForNode(ctx context.Context, dockerID string) error {
+	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		Follow:     true,
+	})
+	if err != nil {
+		return err
+	}
+	defer logs.Close()
+
+	scanner := bufio.NewScanner(logs)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled wait for %s", dockerID)
+		default:
+			if strings.Contains(scanner.Text(), "Daemon is ready") {
+				return nil
+			}
+		}
+	}
+
+	return scanner.Err()
+}
+
+func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
+	if peers == nil || len(peers) == 0 {
+		return errors.New("no peers provided")
+	}
+
+	// remove default peers
+	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
+	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
+	if err != nil {
+		return err
+	}
+	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
+		return err
+	}
+
+	// bootstrap custom peers
+	bootstrap := []string{"ipfs", "bootstrap", "add"}
+	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
+		Cmd: append(bootstrap, peers...),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
+	}
+
+	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }
