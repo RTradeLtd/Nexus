@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
@@ -31,24 +32,31 @@ func main() {
 	if len(args) >= 1 {
 		switch args[0] {
 		case "init":
-			println("generating configuration at " + *configPath)
 			config.GenerateConfig(*configPath)
+			println("orchestrator configuration generated at " + *configPath)
+			return
+		case "daemon":
+			runDaemon(*host, *configPath, *devMode)
 			return
 		default:
-			fatal("unknown command", args[0:])
+			fatal("unknown command", strings.Join(args[0:], " "))
 			return
 		}
+	} else {
+		fatal("no arguments provided")
 	}
+}
 
+func runDaemon(host, configPath string, devMode bool) {
 	// load configuration
-	cfg, err := config.LoadConfig(*configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	// initialize logger
 	println("initializing logger")
-	l, err := log.NewLogger(*devMode)
+	l, err := log.NewLogger(devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -63,7 +71,7 @@ func main() {
 
 	// initialize orchestrator
 	println("initializing orchestrator")
-	o, err := orchestrator.New(l, *host, c, cfg.IPFS.Ports, cfg.Database, *devMode)
+	o, err := orchestrator.New(l, host, c, cfg.IPFS.Ports, cfg.Database, devMode)
 	if err != nil {
 		fatal(err.Error())
 	}

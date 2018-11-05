@@ -11,7 +11,11 @@ distributed and decentralized storage technologies.
 
 ## Installation and Usage
 
-Coming soon!
+```bash
+$> go get -u github.com/RTradeLtd/ipfs-orchestrator
+$> ipfs-orchestrator init
+$> ipfs-orchestrator daemon
+```
 
 ## Development
 
