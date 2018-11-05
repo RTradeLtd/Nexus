@@ -26,7 +26,10 @@ func testClient() (*client, error) {
 
 func TestNewClient(t *testing.T) {
 	l, _ := log.NewTestLogger()
-	_, err := NewClient(l, config.IPFS{Version: config.DefaultIPFSVersion})
+	_, err := NewClient(l, config.IPFS{
+		Version:  config.DefaultIPFSVersion,
+		ModePerm: "0700",
+	})
 	if err != nil {
 		t.Error(err)
 	}
