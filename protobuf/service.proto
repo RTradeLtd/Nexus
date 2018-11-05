@@ -3,7 +3,18 @@ syntax = "proto3";
 package ipfs_orchestrator;
 
 service Service {
-  rpc Ping(Empty) returns (Empty) {}
+  rpc Ping(Empty) returns (Empty) {};
+  rpc StartNetwork(NetworkRequest) returns (StartNetworkResponse) {};
+  rpc StopNetwork(NetworkRequest) returns (Empty) {};
 }
 
 message Empty{}
+
+message NetworkRequest{
+  string network = 1;
+}
+
+message StartNetworkResponse{
+  string api = 1;
+  string swarmKey = 2;
+}

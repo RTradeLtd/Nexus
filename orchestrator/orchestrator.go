@@ -71,10 +71,16 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 	return nil
 }
 
+// NetworkDetails provides information about an instantiated network
+type NetworkDetails struct {
+	API      string
+	SwarmKey string
+}
+
 // NetworkUp intializes a node for given network
-func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
+func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDetails, error) {
 	if network == "" {
-		return errors.New("invalid network name provided")
+		return NetworkDetails{}, errors.New("invalid network name provided")
 	}
 
 	start := time.Now()
@@ -89,7 +95,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err != nil {
 		l.Infow("failed to fetch network 's'",
 			"error", err)
-		return fmt.Errorf("no network with name '%s' found", network)
+		return NetworkDetails{}, fmt.Errorf("no network with name '%s' found", network)
 	}
 	l = l.With("network.db_id", n.ID)
 	l.Info("network retrieved from database")
@@ -99,7 +105,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err != nil {
 		l.Warnw("invalid database entry",
 			"error", err)
-		return fmt.Errorf("failed to configure network: %s", err.Error())
+		return NetworkDetails{}, fmt.Errorf("failed to configure network: %s", err.Error())
 	}
 
 	// register node for network
@@ -107,7 +113,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err := o.reg.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)
-		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
+		return NetworkDetails{}, fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
 
 	// instantiate node
@@ -116,7 +122,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
 		l.Errorw("unable to create node",
 			"error", err)
-		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
+		return NetworkDetails{}, fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Info("node created")
 
@@ -128,13 +134,16 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 		l.Errorw("failed to update database",
 			"error", err,
 			"entry", n)
-		return fmt.Errorf("failed to update network '%s': %s", network, check.Error)
+		return NetworkDetails{}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
 	l.Infow("network up process completed",
 		"network_up.duration", time.Since(start))
 
-	return nil
+	return NetworkDetails{
+		API:      n.APIURL,
+		SwarmKey: n.SwarmKey,
+	}, nil
 }
 
 // NetworkDown brings a network offline

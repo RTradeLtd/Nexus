@@ -130,7 +130,7 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 				client.CreateNodeReturns(errors.New("oh no"))
 			}
 
-			if err := o.NetworkUp(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+			if _, err := o.NetworkUp(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkUp() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
