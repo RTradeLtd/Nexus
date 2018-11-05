@@ -26,8 +26,8 @@ USAGE:
 COMMANDS:
 
   init        initialize configuration
-	daemon      spin up the ipfs-orchestrator daemon and processes
-  ctl         [EXPERIMENTAL] low-level daemon client
+  daemon      spin up the ipfs-orchestrator daemon and processes
+  ctl         [EXPERIMENTAL] interact with daemon via a low-level client
   version     display program version
 
 OPTIONS:
