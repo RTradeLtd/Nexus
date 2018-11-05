@@ -85,7 +85,7 @@ func GenerateConfig(configPath string) error {
 	}
 
 	var pretty bytes.Buffer
-	if err = json.Indent(&pretty, b, "", "\t"); err != nil {
+	if err = json.Indent(&pretty, b, "", "  "); err != nil {
 		return err
 	}
 	return ioutil.WriteFile(configPath, append(pretty.Bytes(), '\n'), os.ModePerm)
