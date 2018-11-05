@@ -25,5 +25,19 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
-notifications: 
-  email: false 
+before_deploy:
+  - make release
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: OkfTO/W+l2Gdr1Y9a/tbOl9ymVJuUTe/JHFVPJ3rPlvvEb/Hc2EMCQ1J28GCKCUQJu1rygBgvOEMlVLnN7rSQKcSfJ3uLGcFg7SbxbwW0d6ZegCCfoqzKDzmpGXvcsPILyj0o56aOuBZkSNvjgLMTM+bbIUA0KxFg4XEPIdvYvPSDpDNMww+uv/MTtk+qOuyiAJhNgdkoMZoB1HjXKP02wWZEux10Cs2+V18XZ5jIH6oRnVXH2Km8YJ1xT4c0NtxHSXo7kYGwTtq+280F3xppXWLRuWDsc4lal8wgD1FTh/jmIauAcoLbhkGYH07Tlqgn54JkNplMkA6nzzGQmba/jlyldblyRXKN7Tpi76Xn2c/TEucdkEXkPthpJgiCKjCup7ywPuA4mLv70QJ9z0JoOil+LBoht2u+f4oP/pds+hHnUDqUQrVb/RKMSPUKefOxGTtjZaqdmZft21CbwCzkvDvBpibN7ZXs1FLVSqdbIevAe86JkfVj0jl9TxhFq34h/VLq2C9qVWVEXbQU2T2C97XBwBe3PqIn97W6kN/K8mA+mAOKvkGxkDGla1EwEInxEJ2h+qJNECHorGebDj3FjoW2nqNfXJEIQ8IVSgDS3FUTRZ52pPEsiI6gGVEHxBZKC5/ZkFUD4PumyjCzBfKOwgG54dJ6iZy6AxPU3r81L4=
+  file_glob: true
+  file: release/ipfs-orchestrator-*
+  on:
+    tags: true
+    repo: RTradeLtd/ipfs-orchestrator
+
+notifications:
+  email: false

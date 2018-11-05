@@ -3,16 +3,17 @@ GONOMOD=env GO111MODULE=off go
 IPFSCONTAINERS=`docker ps -a -q --filter="name=ipfs-*"`
 TESTCOMPOSE=https://raw.githubusercontent.com/RTradeLtd/Temporal/V2/test/docker-compose.yml
 COMPOSECOMMAND=env ADDR_NODE1=1 ADDR_NODE2=2 docker-compose -f tmp/docker-compose.yml
+VERSION=`git describe --always --tags`
 
 all: deps check build
 
 .PHONY: build
 build:
-	go build
+	go build -ldflags "-X main.Version=$(VERSION)"
 
 .PHONY: install
 install: deps
-	go install
+	go install -ldflags "-X main.Version=$(VERSION)"
 
 # Install dependencies
 .PHONY: deps
@@ -55,3 +56,7 @@ clean:
 mock:
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
+
+.PHONY: release
+release:
+	bash .scripts/release.sh

@@ -6,6 +6,7 @@ ipfs-orchestrator
 
 # generated
 /config.json
+/release
 
 # test
 tmp
