@@ -6,6 +6,7 @@ service Service {
   rpc Ping(Empty) returns (Empty) {};
   rpc StartNetwork(NetworkRequest) returns (StartNetworkResponse) {};
   rpc StopNetwork(NetworkRequest) returns (Empty) {};
+  rpc NetworkStats(NetworkRequest) returns (NetworkStatusReponse) {};
 }
 
 message Empty{}
@@ -16,5 +17,13 @@ message NetworkRequest{
 
 message StartNetworkResponse{
   string api = 1;
-  string swarmKey = 2;
+  string swarm_key = 2;
+}
+
+message NetworkStatusReponse{
+  string network = 1;
+  string api = 2;
+  int64 uptime = 3;
+  int64 disk_usage = 4;
+  bytes stats = 5;
 }

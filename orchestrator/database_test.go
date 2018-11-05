@@ -4,9 +4,18 @@ import (
 	"reflect"
 	"testing"
 
+	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
+
+var dbDefaults = tcfg.Database{
+	Name:     "temporal",
+	URL:      "127.0.0.1",
+	Port:     "5433",
+	Username: "postgres",
+	Password: "password123",
+}
 
 func Test_getOptionsFromDatabaseEntry(t *testing.T) {
 	type args struct {

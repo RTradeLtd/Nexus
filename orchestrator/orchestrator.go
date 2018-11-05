@@ -198,3 +198,33 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 
 	return nil
 }
+
+// NetworkStatus denotes details about requested network
+type NetworkStatus struct {
+	Network   string
+	API       string
+	Uptime    time.Duration
+	DiskUsage int64
+	Stats     interface{}
+}
+
+// NetworkStatus retrieves the status of the node for the given status
+func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (NetworkStatus, error) {
+	n, err := o.reg.Get(network)
+	if err != nil {
+		return NetworkStatus{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
+	}
+
+	stats, err := o.client.NodeStats(ctx, &n)
+	if err != nil {
+		return NetworkStatus{}, err
+	}
+
+	return NetworkStatus{
+		Network:   network,
+		API:       o.address + ":" + n.Ports.API,
+		Uptime:    stats.Uptime,
+		DiskUsage: stats.DiskUsage,
+		Stats:     stats.Stats,
+	}, nil
+}
