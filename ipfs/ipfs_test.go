@@ -9,7 +9,6 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 )
 
@@ -20,11 +19,6 @@ func testClient() (*client, error) {
 		return nil, fmt.Errorf("failed to connect to dockerd: %s", err.Error())
 	}
 	d.NegotiateAPIVersion(context.Background())
-
-	_, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
-	}
 
 	l, _ := log.NewLogger(true)
 	return &client{l, d, ipfsImage, "./tmp"}, nil
@@ -147,6 +141,9 @@ func Test_client_getDataDir(t *testing.T) {
 	}
 	d := c.getDataDir("path")
 	if !strings.Contains(d, "path") {
-		t.Error("path not found")
+		t.Errorf("expected 'path' in path, got %s", d)
+	}
+	if !strings.HasPrefix(d, "/") {
+		t.Errorf("expected absolute path, got %s", d)
 	}
 }

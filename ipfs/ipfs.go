@@ -336,5 +336,6 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 }
 
 func (c *client) getDataDir(network string) string {
-	return filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network))
+	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
+	return p
 }
