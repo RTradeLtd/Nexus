@@ -15,6 +15,10 @@ build:
 install: deps
 	go install -ldflags "-X main.Version=$(VERSION)"
 
+.PHONY: config
+config:
+	./ipfs-orchestrator -config ./config.example.json init
+
 # Install dependencies
 .PHONY: deps
 deps:
