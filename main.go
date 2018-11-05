@@ -65,7 +65,7 @@ func main() {
 			runCTL(*configPath, *devMode, args[1:])
 			return
 		default:
-			fatal("unknown command", strings.Join(args[0:], " "))
+			fatal(fmt.Sprintf("unknown command '%s' - run 'ipfs-orchestrator --help' for documentation", strings.Join(args[0:], " ")))
 			return
 		}
 	} else {
