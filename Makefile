@@ -1,4 +1,5 @@
 GO=env GO111MODULE=on go
+GONOMOD=env GO111MODULE=off go
 IPFSCONTAINERS=`docker ps -a -q --filter="name=ipfs-*"`
 TESTCOMPOSE=https://raw.githubusercontent.com/RTradeLtd/Temporal/V2/test/docker-compose.yml
 COMPOSECOMMAND=env ADDR_NODE1=1 ADDR_NODE2=2 docker-compose -f test/docker-compose.yml
@@ -17,7 +18,8 @@ install: deps
 .PHONY: deps
 deps:
 	$(GO) mod vendor
-	go get -u github.com/maxbrunsfeld/counterfeiter
+	$(GO) get github.com/maxbrunsfeld/counterfeiter
+	$(GO) mod tidy
 
 # Run simple checks
 .PHONY: check
