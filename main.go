@@ -1,19 +1,12 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
 
 // Version denotes the version of ipfs-orchestrator in use
@@ -33,7 +26,8 @@ USAGE:
 COMMANDS:
 
   init        initialize configuration
-  daemon      spin up the ipfs-orchestrator daemon and processes
+	daemon      spin up the ipfs-orchestrator daemon and processes
+  ctl         [EXPERIMENTAL] low-level daemon client
   version     display program version
 
 OPTIONS:
@@ -65,7 +59,10 @@ func main() {
 			println("orchestrator configuration generated at " + *configPath)
 			return
 		case "daemon":
-			runDaemon(*address, *configPath, *devMode)
+			runDaemon(*address, *configPath, *devMode, args[1:])
+			return
+		case "ctl":
+			runCTL(*configPath, *devMode, args[1:])
 			return
 		default:
 			fatal("unknown command", strings.Join(args[0:], " "))
@@ -74,59 +71,6 @@ func main() {
 	} else {
 		fatal("no arguments provided")
 	}
-}
-
-func runDaemon(address, configPath string, devMode bool) {
-	// load configuration
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize logger
-	println("initializing logger")
-	l, err := log.NewLogger(devMode)
-	if err != nil {
-		fatal(err.Error())
-	}
-	defer l.Sync()
-	l = l.With("version", Version)
-
-	// initialize node client
-	println("initializing node client")
-	c, err := ipfs.NewClient(l, cfg.IPFS)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize orchestrator
-	println("initializing orchestrator")
-	o, err := orchestrator.New(l, address, c, cfg.IPFS.Ports, cfg.Database, devMode)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize daemon
-	println("initializing daemon")
-	d := daemon.New(l, o)
-
-	// handle graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-signals
-		cancel()
-		os.Exit(1)
-	}()
-
-	// serve endpoints
-	println("spinning up server")
-	if err := d.Run(ctx, cfg.API); err != nil {
-		println(err.Error())
-	}
-	println("server shut down")
-	cancel()
 }
 
 func fatal(msg ...interface{}) {
