@@ -40,7 +40,7 @@ type API struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
 	Key  string `json:"key"`
-	TLS  `json:"ssl"`
+	TLS  `json:"tls"`
 }
 
 // TLS declares HTTPS configuration for the daemon's gRPC API
