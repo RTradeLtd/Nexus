@@ -73,7 +73,7 @@ func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 	return cfg, nil
 }
 
-// GenerateConfig writes a empty TemporalConfig template to given filepath
+// GenerateConfig writes an empty orchestrator config template to given filepath
 func GenerateConfig(configPath string) error {
 	template := &IPFSOrchestratorConfig{}
 	template.setDefaults()
