@@ -16,6 +16,9 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
 
+// Version denotes the version of ipfs-orchestrator in use
+var Version string
+
 func main() {
 	var (
 		host       = flag.String("host", "127.0.0.1", "address of host")
@@ -31,6 +34,8 @@ func main() {
 
 	if len(args) >= 1 {
 		switch args[0] {
+		case "version":
+			println("ipfs-orchestrator " + Version)
 		case "init":
 			config.GenerateConfig(*configPath)
 			println("orchestrator configuration generated at " + *configPath)
@@ -61,6 +66,7 @@ func runDaemon(host, configPath string, devMode bool) {
 		fatal(err.Error())
 	}
 	defer l.Sync()
+	l = l.With("version", Version)
 
 	// initialize node client
 	println("initializing node client")
