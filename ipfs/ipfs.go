@@ -46,6 +46,7 @@ type client struct {
 
 	ipfsImage string
 	dataDir   string
+	fileMode  os.FileMode
 }
 
 // NewClient creates a new Docker Client from ENV values and negotiates the
@@ -107,12 +108,12 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// set up directories
-	os.MkdirAll(c.getDataDir(n.NetworkID), 0700)
+	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
 		c.getDataDir(n.NetworkID)+"/swarm.key",
-		opts.SwarmKey, 0700,
+		opts.SwarmKey, c.fileMode,
 	); err != nil {
 		return fmt.Errorf("failed to write key: %s", err.Error())
 	}
