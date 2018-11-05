@@ -1,16 +1,8 @@
 package ipfs
 
 import (
-	"strings"
 	"testing"
 )
-
-func Test_getDataDir(t *testing.T) {
-	d := getDataDir("path")
-	if !strings.Contains(d, "path") {
-		t.Error("path not found")
-	}
-}
 
 func Test_isNodeContainer(t *testing.T) {
 	type args struct {

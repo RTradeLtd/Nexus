@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ type client struct {
 	d *docker.Client
 
 	ipfsImage string
+	dataDir   string
 }
 
 // NewClient creates a new Docker Client from ENV values and negotiates the
@@ -58,10 +60,17 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
 
-	// initialize directories
-	os.MkdirAll(getDataDir(""), 0755)
+	c := &client{
+		l:         logger.Named("ipfs"),
+		d:         d,
+		ipfsImage: ipfsImage,
+		dataDir:   ipfsOpts.DataDirectory,
+	}
 
-	return &client{logger.Named("ipfs"), d, ipfsImage}, nil
+	// initialize directories
+	os.MkdirAll(c.getDataDir(""), 0755)
+
+	return c, nil
 }
 
 func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
@@ -95,11 +104,11 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// set up directories
-	os.MkdirAll(getDataDir(n.NetworkID), 0700)
+	os.MkdirAll(c.getDataDir(n.NetworkID), 0700)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
-		getDataDir(n.NetworkID)+"/swarm.key",
+		c.getDataDir(n.NetworkID)+"/swarm.key",
 		opts.SwarmKey, 0700,
 	); err != nil {
 		return fmt.Errorf("failed to write key: %s", err.Error())
@@ -120,11 +129,11 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"8080": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
-			getDataDir(n.NetworkID) + ":/data/ipfs",
+			c.getDataDir(n.NetworkID) + ":/data/ipfs",
 		}
 		labels = map[string]string{
 			"network_id":      n.NetworkID,
-			"data_dir":        getDataDir(n.NetworkID),
+			"data_dir":        c.getDataDir(n.NetworkID),
 			"swarm_port":      n.Ports.Swarm,
 			"api_port":        n.Ports.API,
 			"gateway_port":    n.Ports.Gateway,
@@ -197,7 +206,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	// assign node metadata
 	n.DockerID = resp.ID
 	n.ContainerName = containerName
-	n.DataDir = getDataDir(n.NetworkID)
+	n.DataDir = c.getDataDir(n.NetworkID)
 	return nil
 }
 
@@ -219,7 +228,7 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 	})
 
 	// remove ipfs data
-	return os.RemoveAll(getDataDir(n.NetworkID))
+	return os.RemoveAll(c.getDataDir(n.NetworkID))
 }
 
 func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
@@ -324,4 +333,8 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	}()
 
 	return events, errs
+}
+
+func (c *client) getDataDir(network string) string {
+	return filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network))
 }

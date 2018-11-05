@@ -22,8 +22,9 @@ type IPFSOrchestratorConfig struct {
 
 // IPFS configures settings relevant to IPFS nodes
 type IPFS struct {
-	Version string `json:"version"`
-	Ports   `json:"ports"`
+	Version       string `json:"version"`
+	DataDirectory string `json:"data_dir"`
+	Ports         `json:"ports"`
 }
 
 // Ports declares port-range configuration for IPFS nodes. Elements of each
@@ -92,6 +93,9 @@ func GenerateConfig(configPath string) error {
 func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.IPFS.Version == "" {
 		c.IPFS.Version = DefaultIPFSVersion
+	}
+	if c.IPFS.DataDirectory == "" {
+		c.IPFS.DataDirectory = "/"
 	}
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"

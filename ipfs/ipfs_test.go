@@ -3,8 +3,7 @@ package ipfs
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,12 +12,6 @@ import (
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 )
-
-func init() {
-	pwd, _ := os.Getwd()
-	tmp := filepath.Join(pwd, "tmp")
-	os.Setenv(dirEnv, tmp)
-}
 
 func testClient() (*client, error) {
 	ipfsImage := "ipfs/go-ipfs:" + config.DefaultIPFSVersion
@@ -34,7 +27,7 @@ func testClient() (*client, error) {
 	}
 
 	l, _ := log.NewLogger(true)
-	return &client{l, d, ipfsImage}, nil
+	return &client{l, d, ipfsImage, "./tmp"}, nil
 }
 
 func TestNewClient(t *testing.T) {
@@ -143,5 +136,17 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 	cancelWatch()
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
+	}
+}
+
+func Test_client_getDataDir(t *testing.T) {
+	c, err := testClient()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	d := c.getDataDir("path")
+	if !strings.Contains(d, "path") {
+		t.Error("path not found")
 	}
 }
