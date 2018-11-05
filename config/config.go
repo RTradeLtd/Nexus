@@ -86,7 +86,7 @@ func GenerateConfig(configPath string) error {
 	if err = json.Indent(&pretty, b, "", "\t"); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(configPath, pretty.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(configPath, append(pretty.Bytes(), '\n'), os.ModePerm)
 }
 
 func (c *IPFSOrchestratorConfig) setDefaults() {
