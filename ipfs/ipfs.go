@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,6 +59,12 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 	}
 	d.NegotiateAPIVersion(context.Background())
 
+	// parse file mode - 0 allows the stdlib to decide how to parse
+	mode, err := strconv.ParseUint(ipfsOpts.ModePerm, 0, 32)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse perm_mode %s: %s", ipfsOpts.ModePerm, err.Error())
+	}
+
 	// pull required images
 	ipfsImage := "ipfs/go-ipfs:" + ipfsOpts.Version
 	if _, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{}); err != nil {
@@ -69,6 +76,7 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 		d:         d,
 		ipfsImage: ipfsImage,
 		dataDir:   ipfsOpts.DataDirectory,
+		fileMode:  os.FileMode(mode),
 	}
 
 	// initialize directories

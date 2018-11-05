@@ -24,7 +24,7 @@ type IPFSOrchestratorConfig struct {
 type IPFS struct {
 	Version       string `json:"version"`
 	DataDirectory string `json:"data_dir"`
-	FileMode      uint32 `json:"file_mode"`
+	ModePerm      string `json:"perm_mode"`
 	Ports         `json:"ports"`
 }
 
@@ -98,8 +98,8 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.IPFS.DataDirectory == "" {
 		c.IPFS.DataDirectory = "/"
 	}
-	if c.IPFS.FileMode == 0 {
-		c.IPFS.FileMode = 0700
+	if c.IPFS.ModePerm == "" {
+		c.IPFS.ModePerm = "0700"
 	}
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"
