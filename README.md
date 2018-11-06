@@ -51,3 +51,16 @@ $> make test
 ```
 
 You can remove leftover assets using `make clean`.
+
+### ctl
+
+An experimental, lightweight controller for the gRPC API is available via the
+`ipfs-orchestrator ctl` command, which exposes a client via the
+[ctl](https://github.com/bobheadxi/ctl) library.
+
+```bash
+$> ipfs-orchestrator ctl help
+$> ipfs-orchestrator -dev ctl StartNetwork Network=test-network
+$> ipfs-orchestrator -dev ctl NetworkStats Network=test-network
+$> ipfs-orchestrator -dev ctl StopNetwork Network=test-network
+```
