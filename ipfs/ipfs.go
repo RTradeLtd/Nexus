@@ -114,6 +114,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if n == nil || n.NetworkID == "" || opts.SwarmKey == nil {
 		return errors.New("invalid configuration provided")
 	}
+	logger := c.l.With("network_id", n.NetworkID)
 
 	// set up directories
 	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
@@ -130,6 +131,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
 	peerBytes, _ := json.Marshal(opts.BootstrapPeers)
 
+	// set up basic configuration
 	var (
 		containerName = "ipfs-" + n.NetworkID
 		ports         = nat.PortMap{
@@ -163,42 +165,50 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// create ipfs node container
-	resp, err := c.d.ContainerCreate(
-		ctx,
-		&container.Config{
-			Image: c.ipfsImage,
-			Cmd: []string{
-				"daemon", "--migrate=true", "--enable-pubsub-experiment",
-			},
-			Env: []string{
-				"LIBP2P_FORCE_PNET=1", // enforce private networks
-			},
-			Labels:       labels,
-			Tty:          true,
-			AttachStdout: true,
-			AttachStderr: true,
+	containerConfig := &container.Config{
+		Image: c.ipfsImage,
+		Cmd: []string{
+			"daemon", "--migrate=true", "--enable-pubsub-experiment",
 		},
-		&container.HostConfig{
-			AutoRemove:    opts.AutoRemove,
-			RestartPolicy: restartPolicy,
-			Binds:         volumes,
-			PortBindings:  ports,
+		Env: []string{
+			"LIBP2P_FORCE_PNET=1", // enforce private networks
+		},
+		Labels:       labels,
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+	}
+	containerHostConfig := &container.HostConfig{
+		AutoRemove:    opts.AutoRemove,
+		RestartPolicy: restartPolicy,
+		Binds:         volumes,
+		PortBindings:  ports,
 
-			// TODO: limit resources
-			Resources: container.Resources{},
-		},
-		nil, containerName,
-	)
+		// TODO: limit resources
+		Resources: container.Resources{},
+	}
+	start := time.Now()
+	logger = logger.With("container.name", containerName)
+	logger.Infow("creating network container",
+		"container.config", containerConfig,
+		"container.host_config", containerHostConfig)
+	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
+	logger = logger.With("container.id", resp.ID)
+	logger.Infow("container created",
+		"build.duration", time.Since(start))
 
 	// check for warnings
 	if len(resp.Warnings) > 0 {
-		return fmt.Errorf("errors encountered: %s", strings.Join(resp.Warnings, "\n"))
+		logger.Warnw("warnings encountered on container build",
+			"warnings", resp.Warnings)
 	}
 
 	// spin up node
+	logger.Info("starting container")
+	start = time.Now()
 	if err := c.d.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
@@ -210,10 +220,13 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// bootstrap peers if required
 	if bootstrap {
+		logger.Info("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, resp.ID, opts.BootstrapPeers...); err != nil {
 			return err
 		}
 	}
+	logger.Infow("container started",
+		"startup.duration", time.Since(start))
 
 	// assign node metadata
 	n.DockerID = resp.ID
@@ -223,21 +236,40 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 }
 
 func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
-	if n == nil {
+	if n == nil || n.DockerID == "" {
 		return errors.New("invalid node")
 	}
 
+	logger := c.l.With(
+		"network_id", n.NetworkID,
+		"docker_id", n.DockerID)
+
 	// stop container
+	start := time.Now()
 	timeout := time.Duration(10 * time.Second)
 	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
+	if err1 != nil {
+		logger.Warnw("error stopping container", "error", err1)
+	}
 
 	// remove container
+	logger.Info("removing container")
 	err2 := c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 	})
+	if err2 != nil {
+		logger.Warnw("error removing container", "error", err2)
+	}
 
 	// remove data
 	err3 := os.RemoveAll(c.getDataDir(n.NetworkID))
+	if err3 != nil {
+		logger.Warnw("error removing node data", "error", err3)
+	}
+
+	// log duration
+	logger.Infow("node stopped",
+		"shutdown.duration", time.Since(start))
 
 	// check and return errors
 	if err1 == nil || err2 == nil || err3 == nil {
@@ -257,6 +289,8 @@ type NodeStats struct {
 }
 
 func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
+	start := time.Now()
+
 	// retrieve details from stats API
 	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
 	if err != nil {
@@ -287,6 +321,11 @@ func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) 
 	if err != nil {
 		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
 	}
+
+	c.l.Infow("retrieved node container data",
+		"network_id", n.NetworkID,
+		"docker_id", n.DockerID,
+		"stat.duration", time.Since(start))
 
 	return NodeStats{
 		Uptime:    time.Since(created),
