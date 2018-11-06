@@ -2,16 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/RTradeLtd/ctl"
 	"github.com/RTradeLtd/ipfs-orchestrator/client"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 )
 
-func runCTL(configPath string, devMode bool, args []string) {
+func runCTL(configPath string, devMode, prettyPrint bool, args []string) {
 	// load configuration
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -37,20 +39,25 @@ func runCTL(configPath string, devMode bool, args []string) {
 	}
 
 	// execute command
-	out, err := controller.Exec(args, os.Stdout)
+	start := time.Now()
+	out, err := controller.Exec(context.Background(), args, os.Stdout)
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	// parse and print output
-	fmt.Printf("%v\n", out)
-	b, err := json.Marshal(&out)
-	if err != nil {
-		fatal(err.Error())
+	fmt.Printf("\nReturned after %f seconds:\n", time.Since(start).Seconds())
+	if !prettyPrint {
+		fmt.Printf("{ %v }\n", out)
+	} else {
+		b, err := json.Marshal(&out)
+		if err != nil {
+			fatal("failed to read output: ", err.Error())
+		}
+		var pretty bytes.Buffer
+		if err = json.Indent(&pretty, b, "", "\t"); err != nil {
+			fatal("failed to pretty-print output: ", err.Error())
+		}
+		println(string(append(pretty.Bytes(), '\n')))
 	}
-	var pretty bytes.Buffer
-	if err = json.Indent(&pretty, b, "", "\t"); err != nil {
-		fatal(err.Error())
-	}
-	println(append(pretty.Bytes(), '\n'))
 }

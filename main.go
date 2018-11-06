@@ -62,7 +62,11 @@ func main() {
 			runDaemon(*address, *configPath, *devMode, args[1:])
 			return
 		case "ctl":
-			runCTL(*configPath, *devMode, args[1:])
+			if len(args) > 1 && (args[1] == "-pretty" || args[1] == "--pretty") {
+				runCTL(*configPath, *devMode, true, args[2:])
+			} else {
+				runCTL(*configPath, *devMode, false, args[1:])
+			}
 			return
 		default:
 			fatal(fmt.Sprintf("unknown command '%s' - run 'ipfs-orchestrator --help' for documentation", strings.Join(args[0:], " ")))
