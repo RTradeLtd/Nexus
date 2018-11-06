@@ -31,6 +31,8 @@ type Orchestrator struct {
 // New instantiates and bootstraps a new Orchestrator
 func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	ports config.Ports, pg tcfg.Database, dev bool) (*Orchestrator, error) {
+	logger = logger.Named("orchestrator")
+
 	// bootstrap registry
 	nodes, err := c.Nodes(context.Background())
 	if err != nil {
@@ -39,10 +41,17 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	reg := registry.New(logger, ports, nodes...)
 
 	// set up database connection
+	logger.Infow("intializing database with dev settings",
+		"db.host", pg.URL,
+		"db.port", pg.Port,
+		"db.name", pg.Name,
+		"db.with_ssl", !dev,
+		"db.with_migrations", dev)
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
 		Database: pg,
 	}, database.DatabaseOptions{
 		SSLModeDisable: dev,
+		RunMigrations:  dev,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %s", err.Error())
