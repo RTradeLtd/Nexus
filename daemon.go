@@ -50,11 +50,10 @@ func runDaemon(address, configPath string, devMode bool, args []string) {
 	// handle graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-signals
 		cancel()
-		os.Exit(1)
 	}()
 
 	// serve endpoints
@@ -63,5 +62,4 @@ func runDaemon(address, configPath string, devMode bool, args []string) {
 		println(err.Error())
 	}
 	println("server shut down")
-	cancel()
 }
