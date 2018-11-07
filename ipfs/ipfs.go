@@ -219,7 +219,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
 		logger.Errorw("error occured on startup - removing container",
 			"error", err)
-		go c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{Force: true})
+		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
