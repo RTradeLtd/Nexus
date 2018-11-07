@@ -94,6 +94,7 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 			case <-ctx.Done():
 				d.l.Info("shutting down server")
 				server.GracefulStop()
+				return
 			}
 		}
 	}()

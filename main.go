@@ -1,23 +1,45 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
+
+// Version denotes the version of ipfs-orchestrator in use
+var Version string
+
+func init() {
+	if Version == "" {
+		Version = "version unknown"
+	}
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, `ipfs-orchestrator is the IPFS private network node orchestration and registry service for Temporal.
+
+USAGE:
+
+  ipfs-orchestrator [options] [command] [arguments...]
+
+COMMANDS:
+
+  init        initialize configuration
+  daemon      spin up the ipfs-orchestrator daemon and processes
+  ctl         [EXPERIMENTAL] interact with daemon via a low-level client
+  version     display program version
+
+OPTIONS:
+
+`)
+		flag.PrintDefaults()
+	}
+}
 
 func main() {
 	var (
-		host       = flag.String("host", "127.0.0.1", "address of host")
+		address    = flag.String("address", "127.0.0.1", "network address of host")
 		configPath = flag.String("config", "./config.json", "path to ipfs-orchestrator config file")
 		devMode    = flag.Bool("dev", os.Getenv("MODE") == "development", "toggle dev mode, alternatively MODE=development")
 	)
@@ -30,65 +52,29 @@ func main() {
 
 	if len(args) >= 1 {
 		switch args[0] {
+		case "version":
+			println("ipfs-orchestrator " + Version)
 		case "init":
-			println("generating configuration at " + *configPath)
 			config.GenerateConfig(*configPath)
+			println("orchestrator configuration generated at " + *configPath)
+			return
+		case "daemon":
+			runDaemon(*address, *configPath, *devMode, args[1:])
+			return
+		case "ctl":
+			if len(args) > 1 && (args[1] == "-pretty" || args[1] == "--pretty") {
+				runCTL(*configPath, *devMode, true, args[2:])
+			} else {
+				runCTL(*configPath, *devMode, false, args[1:])
+			}
 			return
 		default:
-			fatal("unknown command", args[0:])
+			fatal(fmt.Sprintf("unknown command '%s' - run 'ipfs-orchestrator --help' for documentation", strings.Join(args[0:], " ")))
 			return
 		}
+	} else {
+		fatal("no arguments provided")
 	}
-
-	// load configuration
-	cfg, err := config.LoadConfig(*configPath)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize logger
-	println("initializing logger")
-	l, err := log.NewLogger(*devMode)
-	if err != nil {
-		fatal(err.Error())
-	}
-	defer l.Sync()
-
-	// initialize node client
-	println("initializing node client")
-	c, err := ipfs.NewClient(l, cfg.IPFS)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize orchestrator
-	println("initializing orchestrator")
-	o, err := orchestrator.New(l, *host, c, cfg.IPFS.Ports, cfg.Database, *devMode)
-	if err != nil {
-		fatal(err.Error())
-	}
-
-	// initialize daemon
-	println("initializing daemon")
-	d := daemon.New(l, o)
-
-	// handle graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-signals
-		cancel()
-		os.Exit(1)
-	}()
-
-	// serve endpoints
-	println("spinning up server")
-	if err := d.Run(ctx, cfg.API); err != nil {
-		println(err.Error())
-	}
-	println("server shut down")
-	cancel()
 }
 
 func fatal(msg ...interface{}) {

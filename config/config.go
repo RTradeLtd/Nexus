@@ -11,7 +11,7 @@ import (
 )
 
 // DefaultIPFSVersion declares the current default version of go-ipfs to use
-const DefaultIPFSVersion = "v0.4.17"
+const DefaultIPFSVersion = "v0.4.18"
 
 // IPFSOrchestratorConfig configures the orchestration daemon
 type IPFSOrchestratorConfig struct {
@@ -22,8 +22,10 @@ type IPFSOrchestratorConfig struct {
 
 // IPFS configures settings relevant to IPFS nodes
 type IPFS struct {
-	Version string `json:"version"`
-	Ports   `json:"ports"`
+	Version       string `json:"version"`
+	DataDirectory string `json:"data_dir"`
+	ModePerm      string `json:"perm_mode"`
+	Ports         `json:"ports"`
 }
 
 // Ports declares port-range configuration for IPFS nodes. Elements of each
@@ -39,7 +41,7 @@ type API struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
 	Key  string `json:"key"`
-	TLS  `json:"ssl"`
+	TLS  `json:"tls"`
 }
 
 // TLS declares HTTPS configuration for the daemon's gRPC API
@@ -73,7 +75,7 @@ func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 	return cfg, nil
 }
 
-// GenerateConfig writes a empty TemporalConfig template to given filepath
+// GenerateConfig writes an empty orchestrator config template to given filepath
 func GenerateConfig(configPath string) error {
 	template := &IPFSOrchestratorConfig{}
 	template.setDefaults()
@@ -83,15 +85,21 @@ func GenerateConfig(configPath string) error {
 	}
 
 	var pretty bytes.Buffer
-	if err = json.Indent(&pretty, b, "", "\t"); err != nil {
+	if err = json.Indent(&pretty, b, "", "  "); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(configPath, pretty.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(configPath, append(pretty.Bytes(), '\n'), os.ModePerm)
 }
 
 func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.IPFS.Version == "" {
 		c.IPFS.Version = DefaultIPFSVersion
+	}
+	if c.IPFS.DataDirectory == "" {
+		c.IPFS.DataDirectory = "/"
+	}
+	if c.IPFS.ModePerm == "" {
+		c.IPFS.ModePerm = "0700"
 	}
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"

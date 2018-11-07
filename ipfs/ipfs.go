@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +34,9 @@ type NodeClient interface {
 	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
 
+	// NodeStats retrieves statistics about the provided node
+	NodeStats(ctx context.Context, n *NodeInfo) (stats NodeStats, err error)
+
 	// Watch initalizes a goroutine that tracks IPFS node events
 	Watch(ctx context.Context) (<-chan Event, <-chan error)
 }
@@ -41,6 +46,8 @@ type client struct {
 	d *docker.Client
 
 	ipfsImage string
+	dataDir   string
+	fileMode  os.FileMode
 }
 
 // NewClient creates a new Docker Client from ENV values and negotiates the
@@ -52,16 +59,30 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 	}
 	d.NegotiateAPIVersion(context.Background())
 
+	// parse file mode - 0 allows the stdlib to decide how to parse
+	mode, err := strconv.ParseUint(ipfsOpts.ModePerm, 0, 32)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse perm_mode %s: %s", ipfsOpts.ModePerm, err.Error())
+	}
+
 	// pull required images
 	ipfsImage := "ipfs/go-ipfs:" + ipfsOpts.Version
 	if _, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{}); err != nil {
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
 
-	// initialize directories
-	os.MkdirAll(getDataDir(""), 0755)
+	c := &client{
+		l:         logger.Named("ipfs"),
+		d:         d,
+		ipfsImage: ipfsImage,
+		dataDir:   ipfsOpts.DataDirectory,
+		fileMode:  os.FileMode(mode),
+	}
 
-	return &client{logger.Named("ipfs"), d, ipfsImage}, nil
+	// initialize directories
+	os.MkdirAll(c.getDataDir(""), 0755)
+
+	return c, nil
 }
 
 func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
@@ -93,14 +114,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if n == nil || n.NetworkID == "" || opts.SwarmKey == nil {
 		return errors.New("invalid configuration provided")
 	}
+	logger := c.l.With("network_id", n.NetworkID)
 
 	// set up directories
-	os.MkdirAll(getDataDir(n.NetworkID), 0700)
+	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
 
 	// write swarm.key to mount point
 	if err := ioutil.WriteFile(
-		getDataDir(n.NetworkID)+"/swarm.key",
-		opts.SwarmKey, 0700,
+		c.getDataDir(n.NetworkID)+"/swarm.key",
+		opts.SwarmKey, c.fileMode,
 	); err != nil {
 		return fmt.Errorf("failed to write key: %s", err.Error())
 	}
@@ -109,22 +131,23 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
 	peerBytes, _ := json.Marshal(opts.BootstrapPeers)
 
+	// set up basic configuration
 	var (
 		containerName = "ipfs-" + n.NetworkID
 		ports         = nat.PortMap{
 			// public ports
-			"4001": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
+			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
+			"5001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
 
 			// private ports
-			"5001": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.API}},
-			"8080": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
+			"8080/tcp": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
-			getDataDir(n.NetworkID) + ":/data/ipfs",
+			c.getDataDir(n.NetworkID) + ":/data/ipfs",
 		}
 		labels = map[string]string{
 			"network_id":      n.NetworkID,
-			"data_dir":        getDataDir(n.NetworkID),
+			"data_dir":        c.getDataDir(n.NetworkID),
 			"swarm_port":      n.Ports.Swarm,
 			"api_port":        n.Ports.API,
 			"gateway_port":    n.Ports.Gateway,
@@ -142,136 +165,183 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// create ipfs node container
-	resp, err := c.d.ContainerCreate(
-		ctx,
-		&container.Config{
-			Image: c.ipfsImage,
-			Cmd: []string{
-				"daemon", "--migrate=true", "--enable-pubsub-experiment",
-			},
-			Env: []string{
-				"LIBP2P_FORCE_PNET=1", // enforce private networks
-			},
-			Labels:       labels,
-			Tty:          true,
-			AttachStdout: true,
-			AttachStderr: true,
+	containerConfig := &container.Config{
+		Image: c.ipfsImage,
+		Cmd: []string{
+			"daemon", "--migrate=true", "--enable-pubsub-experiment",
 		},
-		&container.HostConfig{
-			AutoRemove:    opts.AutoRemove,
-			RestartPolicy: restartPolicy,
-			Binds:         volumes,
-			PortBindings:  ports,
+		Env: []string{
+			"LIBP2P_FORCE_PNET=1", // enforce private networks
+		},
+		Labels:       labels,
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+	}
+	containerHostConfig := &container.HostConfig{
+		AutoRemove:    opts.AutoRemove,
+		RestartPolicy: restartPolicy,
+		Binds:         volumes,
+		PortBindings:  ports,
 
-			// TODO: limit resources
-			Resources: container.Resources{},
-		},
-		nil, containerName,
-	)
+		// TODO: limit resources
+		Resources: container.Resources{},
+	}
+	start := time.Now()
+	logger = logger.With("container.name", containerName)
+	logger.Infow("creating network container",
+		"container.config", containerConfig,
+		"container.host_config", containerHostConfig)
+	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
 	if err != nil {
+		logger.Errorw("failed to create container",
+			"error", err)
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
+	logger = logger.With("container.id", resp.ID)
+	logger.Infow("container created",
+		"build.duration", time.Since(start))
 
 	// check for warnings
 	if len(resp.Warnings) > 0 {
-		return fmt.Errorf("errors encountered: %s", strings.Join(resp.Warnings, "\n"))
-	}
-
-	// spin up node
-	if err := c.d.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
-	}
-
-	// wait for node to start
-	if err := c.waitForNode(ctx, resp.ID); err != nil {
-		return err
-	}
-
-	// bootstrap peers if required
-	if bootstrap {
-		if err := c.bootstrapNode(ctx, resp.ID, opts.BootstrapPeers...); err != nil {
-			return err
-		}
+		logger.Warnw("warnings encountered on container build",
+			"warnings", resp.Warnings)
 	}
 
 	// assign node metadata
 	n.DockerID = resp.ID
 	n.ContainerName = containerName
-	n.DataDir = getDataDir(n.NetworkID)
+	n.DataDir = c.getDataDir(n.NetworkID)
+
+	// spin up node
+	logger.Info("starting container")
+	start = time.Now()
+	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
+		logger.Errorw("error occured on startup - removing container",
+			"error", err)
+		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
+		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
+	}
+
+	// wait for node to start
+	if err := c.waitForNode(ctx, n.DockerID); err != nil {
+		return err
+	}
+
+	// bootstrap peers if required
+	if bootstrap {
+		logger.Info("bootstrapping network node with provided peers")
+		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
+			logger.Warnw("failed to bootstrap node - stopping container",
+				"error", err)
+			go c.StopNode(ctx, n)
+			return fmt.Errorf("failed to bootstrap network node with provided peers: %s", err.Error())
+		}
+	}
+
+	// everything is good to go
+	logger.Infow("container started",
+		"startup.duration", time.Since(start))
 	return nil
 }
 
 func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
-	if n == nil {
+	if n == nil || n.DockerID == "" {
 		return errors.New("invalid node")
 	}
 
+	logger := c.l.With(
+		"network_id", n.NetworkID,
+		"docker_id", n.DockerID)
+
 	// stop container
+	start := time.Now()
 	timeout := time.Duration(10 * time.Second)
-	if err := c.d.ContainerStop(ctx, n.DockerID, &timeout); err != nil {
-		return err
+	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
+	if err1 != nil {
+		logger.Warnw("error stopping container", "error", err1)
 	}
 
 	// remove container
-	c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
-		RemoveLinks:   true,
+	logger.Info("removing container")
+	err2 := c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 	})
+	if err2 != nil {
+		logger.Warnw("error removing container", "error", err2)
+	}
 
-	// remove ipfs data
-	return os.RemoveAll(getDataDir(n.NetworkID))
+	// remove data
+	err3 := os.RemoveAll(c.getDataDir(n.NetworkID))
+	if err3 != nil {
+		logger.Warnw("error removing node data", "error", err3)
+	}
+
+	// log duration
+	logger.Infow("node stopped",
+		"shutdown.duration", time.Since(start))
+
+	// check and return errors
+	if err1 == nil || err2 == nil || err3 == nil {
+		return nil
+	}
+	return fmt.Errorf(
+		"errors encountered: { ContainerStop: '%v', ContainerRemove: '%v', os.RemoveAll: '%v'}",
+		err1, err2, err3,
+	)
 }
 
-func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
-	if peers == nil || len(peers) == 0 {
-		return errors.New("no peers provided")
-	}
-
-	// remove default peers
-	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
-	if err != nil {
-		return err
-	}
-	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
-		return err
-	}
-
-	// bootstrap custom peers
-	bootstrap := []string{"ipfs", "bootstrap", "add"}
-	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
-		Cmd: append(bootstrap, peers...),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
-	}
-
-	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
+// NodeStats provides details about a node container
+type NodeStats struct {
+	Uptime    time.Duration
+	DiskUsage int64
+	Stats     interface{}
 }
 
-func (c *client) waitForNode(ctx context.Context, dockerID string) error {
-	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
-		ShowStdout: true,
-		Follow:     true,
-	})
+func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
+	start := time.Now()
+
+	// retrieve details from stats API
+	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
 	if err != nil {
-		return err
+		return NodeStats{}, err
 	}
-	defer logs.Close()
-
-	scanner := bufio.NewScanner(logs)
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("cancelled wait for %s", dockerID)
-		default:
-			if strings.Contains(scanner.Text(), "Daemon is ready") {
-				return nil
-			}
-		}
+	defer s.Body.Close()
+	b, err := ioutil.ReadAll(s.Body)
+	if err != nil {
+		return NodeStats{}, err
+	}
+	var stats rawContainerStats
+	if err = json.Unmarshal(b, &stats); err != nil {
+		return NodeStats{}, err
 	}
 
-	return scanner.Err()
+	// retrieve details from container inspection
+	info, err := c.d.ContainerInspect(ctx, n.DockerID)
+	if err != nil {
+		return NodeStats{}, err
+	}
+	created, err := time.Parse(time.RFC3339, info.Created)
+	if err != nil {
+		return NodeStats{}, err
+	}
+
+	// check disk usage
+	usage, err := dirSize(n.DataDir)
+	if err != nil {
+		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
+	}
+
+	c.l.Infow("retrieved node container data",
+		"network_id", n.NetworkID,
+		"docker_id", n.DockerID,
+		"stat.duration", time.Since(start))
+
+	return NodeStats{
+		Uptime:    time.Since(created),
+		Stats:     stats,
+		DiskUsage: usage,
+	}, nil
 }
 
 // Event is a node-related container event
@@ -324,4 +394,61 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	}()
 
 	return events, errs
+}
+
+func (c *client) getDataDir(network string) string {
+	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
+	return p
+}
+
+func (c *client) waitForNode(ctx context.Context, dockerID string) error {
+	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		Follow:     true,
+	})
+	if err != nil {
+		return err
+	}
+	defer logs.Close()
+
+	scanner := bufio.NewScanner(logs)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled wait for %s", dockerID)
+		default:
+			if strings.Contains(scanner.Text(), "Daemon is ready") {
+				return nil
+			}
+		}
+	}
+
+	return scanner.Err()
+}
+
+func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
+	if peers == nil || len(peers) == 0 {
+		return errors.New("no peers provided")
+	}
+
+	// remove default peers
+	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
+	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
+	if err != nil {
+		return err
+	}
+	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
+		return err
+	}
+
+	// bootstrap custom peers
+	bootstrap := []string{"ipfs", "bootstrap", "add"}
+	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
+		Cmd: append(bootstrap, peers...),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
+	}
+
+	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }

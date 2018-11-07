@@ -23,14 +23,16 @@ type Orchestrator struct {
 	l  *zap.SugaredLogger
 	nm *models.IPFSNetworkManager
 
-	client ipfs.NodeClient
-	reg    *registry.NodeRegistry
-	host   string
+	client  ipfs.NodeClient
+	reg     *registry.NodeRegistry
+	address string
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New(logger *zap.SugaredLogger, host string, c ipfs.NodeClient,
+func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	ports config.Ports, pg tcfg.Database, dev bool) (*Orchestrator, error) {
+	logger = logger.Named("orchestrator")
+
 	// bootstrap registry
 	nodes, err := c.Nodes(context.Background())
 	if err != nil {
@@ -39,20 +41,28 @@ func New(logger *zap.SugaredLogger, host string, c ipfs.NodeClient,
 	reg := registry.New(logger, ports, nodes...)
 
 	// set up database connection
+	logger.Infow("intializing database with dev settings",
+		"db.host", pg.URL,
+		"db.port", pg.Port,
+		"db.name", pg.Name,
+		"db.with_ssl", !dev,
+		"db.with_migrations", dev)
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
 		Database: pg,
 	}, database.DatabaseOptions{
 		SSLModeDisable: dev,
+		RunMigrations:  dev,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %s", err.Error())
 	}
 
 	return &Orchestrator{
-		l:      logger,
-		nm:     models.NewHostedIPFSNetworkManager(dbm.DB),
-		client: c,
-		reg:    reg,
+		l:       logger,
+		nm:      models.NewHostedIPFSNetworkManager(dbm.DB),
+		client:  c,
+		reg:     reg,
+		address: address,
 	}, nil
 }
 
@@ -71,10 +81,16 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 	return nil
 }
 
+// NetworkDetails provides information about an instantiated network
+type NetworkDetails struct {
+	API      string
+	SwarmKey string
+}
+
 // NetworkUp intializes a node for given network
-func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
+func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDetails, error) {
 	if network == "" {
-		return errors.New("invalid network name provided")
+		return NetworkDetails{}, errors.New("invalid network name provided")
 	}
 
 	start := time.Now()
@@ -89,7 +105,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err != nil {
 		l.Infow("failed to fetch network 's'",
 			"error", err)
-		return fmt.Errorf("no network with name '%s' found", network)
+		return NetworkDetails{}, fmt.Errorf("no network with name '%s' found", network)
 	}
 	l = l.With("network.db_id", n.ID)
 	l.Info("network retrieved from database")
@@ -99,7 +115,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err != nil {
 		l.Warnw("invalid database entry",
 			"error", err)
-		return fmt.Errorf("failed to configure network: %s", err.Error())
+		return NetworkDetails{}, fmt.Errorf("failed to configure network: %s", err.Error())
 	}
 
 	// register node for network
@@ -107,7 +123,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err := o.reg.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)
-		return fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
+		return NetworkDetails{}, fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
 	}
 
 	// instantiate node
@@ -116,25 +132,28 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) error {
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
 		l.Errorw("unable to create node",
 			"error", err)
-		return fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
+		return NetworkDetails{}, fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Info("node created")
 
 	// update network in database
-	n.APIURL = o.host + ":" + newNode.Ports.API
+	n.APIURL = o.address + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
 		l.Errorw("failed to update database",
 			"error", err,
 			"entry", n)
-		return fmt.Errorf("failed to update network '%s': %s", network, check.Error)
+		return NetworkDetails{}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
 	l.Infow("network up process completed",
 		"network_up.duration", time.Since(start))
 
-	return nil
+	return NetworkDetails{
+		API:      n.APIURL,
+		SwarmKey: n.SwarmKey,
+	}, nil
 }
 
 // NetworkDown brings a network offline
@@ -187,4 +206,34 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 		"network_down.duration", time.Since(start))
 
 	return nil
+}
+
+// NetworkStatus denotes details about requested network
+type NetworkStatus struct {
+	Network   string
+	API       string
+	Uptime    time.Duration
+	DiskUsage int64
+	Stats     interface{}
+}
+
+// NetworkStatus retrieves the status of the node for the given status
+func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (NetworkStatus, error) {
+	n, err := o.reg.Get(network)
+	if err != nil {
+		return NetworkStatus{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
+	}
+
+	stats, err := o.client.NodeStats(ctx, &n)
+	if err != nil {
+		return NetworkStatus{}, err
+	}
+
+	return NetworkStatus{
+		Network:   network,
+		API:       o.address + ":" + n.Ports.API,
+		Uptime:    stats.Uptime,
+		DiskUsage: stats.DiskUsage,
+		Stats:     stats.Stats,
+	}, nil
 }

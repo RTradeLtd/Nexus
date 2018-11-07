@@ -49,7 +49,7 @@ func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo)
 		nodes: m,
 
 		swarmPorts:   network.NewRegistry(logger, "0.0.0.0", ports.Swarm),
-		apiPorts:     network.NewRegistry(logger, "127.0.0.1", ports.API),
+		apiPorts:     network.NewRegistry(logger, "0.0.0.0", ports.API),
 		gatewayPorts: network.NewRegistry(logger, "127.0.0.1", ports.Gateway),
 	}
 }

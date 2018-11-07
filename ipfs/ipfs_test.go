@@ -3,22 +3,14 @@ package ipfs
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 )
-
-func init() {
-	pwd, _ := os.Getwd()
-	tmp := filepath.Join(pwd, "tmp")
-	os.Setenv(dirEnv, tmp)
-}
 
 func testClient() (*client, error) {
 	ipfsImage := "ipfs/go-ipfs:" + config.DefaultIPFSVersion
@@ -28,24 +20,22 @@ func testClient() (*client, error) {
 	}
 	d.NegotiateAPIVersion(context.Background())
 
-	_, err = d.ImagePull(context.Background(), ipfsImage, types.ImagePullOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
-	}
-
 	l, _ := log.NewLogger(true)
-	return &client{l, d, ipfsImage}, nil
+	return &client{l, d, ipfsImage, "./tmp", 0755}, nil
 }
 
 func TestNewClient(t *testing.T) {
 	l, _ := log.NewTestLogger()
-	_, err := NewClient(l, config.IPFS{Version: config.DefaultIPFSVersion})
+	_, err := NewClient(l, config.IPFS{
+		Version:  config.DefaultIPFSVersion,
+		ModePerm: "0700",
+	})
 	if err != nil {
 		t.Error(err)
 	}
 }
 
-func Test_client_CreateNode_GetNode(t *testing.T) {
+func Test_client_NodeOperations(t *testing.T) {
 	c, err := testClient()
 	if err != nil {
 		t.Error(err)
@@ -115,6 +105,7 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
+			defer c.StopNode(ctx, tt.args.n)
 
 			// check that container is up, watcher should receive an event
 			shouldGetEvents++
@@ -124,24 +115,48 @@ func Test_client_CreateNode_GetNode(t *testing.T) {
 				t.Error(err.Error())
 				return
 			}
-			found := false
 			for _, node := range n {
 				if node.DockerID == tt.args.n.DockerID {
-					found = true
+					goto FOUND
 				}
 			}
-			if !found {
-				t.Errorf("could not find container %s", tt.args.n.DockerID)
-			}
+			t.Errorf("could not find container %s", tt.args.n.DockerID)
+			return
 
-			// clean up, watcher should receive an event
-			c.StopNode(ctx, tt.args.n)
+		FOUND:
+			// should receive a cleanup event
 			shouldGetEvents++
+
+			// get node stats
+			s, err := c.NodeStats(ctx, tt.args.n)
+			if err != nil {
+				t.Error(err.Error())
+				return
+			}
+			t.Logf("received stats: %v", s)
+
+			// stop node
+			c.StopNode(ctx, tt.args.n)
 		})
 	}
 
 	cancelWatch()
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
+	}
+}
+
+func Test_client_getDataDir(t *testing.T) {
+	c, err := testClient()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	d := c.getDataDir("path")
+	if !strings.Contains(d, "path") {
+		t.Errorf("expected 'path' in path, got %s", d)
+	}
+	if !strings.HasPrefix(d, "/") {
+		t.Errorf("expected absolute path, got %s", d)
 	}
 }

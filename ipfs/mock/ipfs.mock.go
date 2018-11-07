@@ -22,6 +22,20 @@ type FakeNodeClient struct {
 	createNodeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	NodeStatsStub        func(context.Context, *ipfs.NodeInfo) (ipfs.NodeStats, error)
+	nodeStatsMutex       sync.RWMutex
+	nodeStatsArgsForCall []struct {
+		arg1 context.Context
+		arg2 *ipfs.NodeInfo
+	}
+	nodeStatsReturns struct {
+		result1 ipfs.NodeStats
+		result2 error
+	}
+	nodeStatsReturnsOnCall map[int]struct {
+		result1 ipfs.NodeStats
+		result2 error
+	}
 	NodesStub        func(context.Context) ([]*ipfs.NodeInfo, error)
 	nodesMutex       sync.RWMutex
 	nodesArgsForCall []struct {
@@ -124,6 +138,70 @@ func (fake *FakeNodeClient) CreateNodeReturnsOnCall(i int, result1 error) {
 	fake.createNodeReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeNodeClient) NodeStats(arg1 context.Context, arg2 *ipfs.NodeInfo) (ipfs.NodeStats, error) {
+	fake.nodeStatsMutex.Lock()
+	ret, specificReturn := fake.nodeStatsReturnsOnCall[len(fake.nodeStatsArgsForCall)]
+	fake.nodeStatsArgsForCall = append(fake.nodeStatsArgsForCall, struct {
+		arg1 context.Context
+		arg2 *ipfs.NodeInfo
+	}{arg1, arg2})
+	fake.recordInvocation("NodeStats", []interface{}{arg1, arg2})
+	fake.nodeStatsMutex.Unlock()
+	if fake.NodeStatsStub != nil {
+		return fake.NodeStatsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.nodeStatsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeNodeClient) NodeStatsCallCount() int {
+	fake.nodeStatsMutex.RLock()
+	defer fake.nodeStatsMutex.RUnlock()
+	return len(fake.nodeStatsArgsForCall)
+}
+
+func (fake *FakeNodeClient) NodeStatsCalls(stub func(context.Context, *ipfs.NodeInfo) (ipfs.NodeStats, error)) {
+	fake.nodeStatsMutex.Lock()
+	defer fake.nodeStatsMutex.Unlock()
+	fake.NodeStatsStub = stub
+}
+
+func (fake *FakeNodeClient) NodeStatsArgsForCall(i int) (context.Context, *ipfs.NodeInfo) {
+	fake.nodeStatsMutex.RLock()
+	defer fake.nodeStatsMutex.RUnlock()
+	argsForCall := fake.nodeStatsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeNodeClient) NodeStatsReturns(result1 ipfs.NodeStats, result2 error) {
+	fake.nodeStatsMutex.Lock()
+	defer fake.nodeStatsMutex.Unlock()
+	fake.NodeStatsStub = nil
+	fake.nodeStatsReturns = struct {
+		result1 ipfs.NodeStats
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeNodeClient) NodeStatsReturnsOnCall(i int, result1 ipfs.NodeStats, result2 error) {
+	fake.nodeStatsMutex.Lock()
+	defer fake.nodeStatsMutex.Unlock()
+	fake.NodeStatsStub = nil
+	if fake.nodeStatsReturnsOnCall == nil {
+		fake.nodeStatsReturnsOnCall = make(map[int]struct {
+			result1 ipfs.NodeStats
+			result2 error
+		})
+	}
+	fake.nodeStatsReturnsOnCall[i] = struct {
+		result1 ipfs.NodeStats
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeNodeClient) Nodes(arg1 context.Context) ([]*ipfs.NodeInfo, error) {
@@ -318,6 +396,8 @@ func (fake *FakeNodeClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createNodeMutex.RLock()
 	defer fake.createNodeMutex.RUnlock()
+	fake.nodeStatsMutex.RLock()
+	defer fake.nodeStatsMutex.RUnlock()
 	fake.nodesMutex.RLock()
 	defer fake.nodesMutex.RUnlock()
 	fake.stopNodeMutex.RLock()

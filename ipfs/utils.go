@@ -1,21 +1,23 @@
 package ipfs
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-const (
-	dirEnv = "DATA_DIR"
-)
-
-func getDataDir(network string) string {
-	return filepath.Join(os.Getenv(dirEnv), fmt.Sprintf("/data/ipfs/%s", network))
-}
-
 func isNodeContainer(imageName string) bool {
 	parts := strings.Split(imageName, "-")
 	return len(parts) > 0 && strings.Contains(parts[0], "ipfs")
+}
+
+func dirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
 }
