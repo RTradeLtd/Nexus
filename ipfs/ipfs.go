@@ -194,6 +194,8 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		"container.host_config", containerHostConfig)
 	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
 	if err != nil {
+		logger.Errorw("failed to create container",
+			"error", err)
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
 	logger = logger.With("container.id", resp.ID)
@@ -206,32 +208,40 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			"warnings", resp.Warnings)
 	}
 
+	// assign node metadata
+	n.DockerID = resp.ID
+	n.ContainerName = containerName
+	n.DataDir = c.getDataDir(n.NetworkID)
+
 	// spin up node
 	logger.Info("starting container")
 	start = time.Now()
-	if err := c.d.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
+		logger.Errorw("error occured on startup - removing container",
+			"error", err)
+		go c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
 	// wait for node to start
-	if err := c.waitForNode(ctx, resp.ID); err != nil {
+	if err := c.waitForNode(ctx, n.DockerID); err != nil {
 		return err
 	}
 
 	// bootstrap peers if required
 	if bootstrap {
 		logger.Info("bootstrapping network node with provided peers")
-		if err := c.bootstrapNode(ctx, resp.ID, opts.BootstrapPeers...); err != nil {
-			return err
+		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
+			logger.Warnw("failed to bootstrap node - stopping container",
+				"error", err)
+			go c.StopNode(ctx, n)
+			return fmt.Errorf("failed to bootstrap network node with provided peers: %s", err.Error())
 		}
 	}
+
+	// everything is good to go
 	logger.Infow("container started",
 		"startup.duration", time.Since(start))
-
-	// assign node metadata
-	n.DockerID = resp.ID
-	n.ContainerName = containerName
-	n.DataDir = c.getDataDir(n.NetworkID)
 	return nil
 }
 
