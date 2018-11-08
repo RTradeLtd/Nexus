@@ -8,14 +8,12 @@ github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEV
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/RTradeLtd/config v1.0.5 h1:7x6/TqyWDwPE2+Sx+zTbzG0pjk+ZNNuIArlWv7nqUCk=
 github.com/RTradeLtd/config v1.0.5/go.mod h1:FVv/bU49cFXT3MRNrPe1VztMBxHQW6MS/DHWqtxNiRc=
-github.com/RTradeLtd/ctl v0.0.0-20181105082351-62e449d61e82 h1:PFqn45TdxWo9LFSD01GyqPsFldkDu+NaeKUR0e4J56M=
-github.com/RTradeLtd/ctl v0.0.0-20181105082351-62e449d61e82/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60QmXUNoHbqBEmUBvMzfDU5QdV4CrI=
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce h1:cl77GiYjGgf5IHISp2JeBEpduvfHsGh5XNNheMvpg4A=
 github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
-github.com/RTradeLtd/grpc v1.0.4-0.20181105062243-2860e5b60b18 h1:LK0WWNefYCCa0+uJdDMaWRCAEp4VtQmaw4ifr9HZHmo=
-github.com/RTradeLtd/grpc v1.0.4-0.20181105062243-2860e5b60b18/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
+github.com/RTradeLtd/grpc v1.0.4-0.20181108205021-4233863fd7ff h1:5YVmJrpDAq0+0Y8MFLLxXuSfRRpMrpzlGO5M43XxQKI=
+github.com/RTradeLtd/grpc v1.0.4-0.20181108205021-4233863fd7ff/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac h1:/zx+Hglw2JN/pwVam1Z8cTCTl4pWyrbvOn2oooqCQSs=

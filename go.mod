@@ -7,7 +7,7 @@ require (
 	github.com/RTradeLtd/config v1.0.5
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
 	github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce
-	github.com/RTradeLtd/grpc v1.0.4-0.20181105062243-2860e5b60b18
+	github.com/RTradeLtd/grpc v1.0.4-0.20181108205021-4233863fd7ff
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
@@ -18,7 +18,6 @@ require (
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/go-sql-driver/mysql v1.4.0 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
-	github.com/golang/protobuf v1.2.0
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2 // indirect
@@ -46,7 +45,7 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1
 	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3 // indirect
-	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1
+	golang.org/x/net v0.0.0-20181011144130-49bb7cea24b1 // indirect
 	golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/grpc v1.15.0

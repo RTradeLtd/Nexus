@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	ipfs_orchestrator "github.com/RTradeLtd/ipfs-orchestrator/protobuf"
+	ipfs_orchestrator "github.com/RTradeLtd/grpc/ipfs-orchestrator"
 )
 
 // Ping is useful for checking client-server connection

@@ -43,11 +43,6 @@ testenv:
 	curl $(TESTCOMPOSE) --output tmp/docker-compose.yml
 	$(COMPOSECOMMAND) up -d postgres
 
-# Generate protobuf code from definitions
-.PHONY: proto
-proto:
-	protoc -I protobuf service.proto --go_out=plugins=grpc:protobuf
-
 # Clean up containers and things
 .PHONY: clean
 clean:
