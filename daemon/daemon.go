@@ -84,7 +84,7 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 	go d.o.Run(ctx)
 
 	// initialize server
-	server := grpc.NewServer()
+	server := grpc.NewServer(serverOpts...)
 	ipfs_orchestrator.RegisterServiceServer(server, d)
 
 	// interrupt server gracefully if context is cancelled
