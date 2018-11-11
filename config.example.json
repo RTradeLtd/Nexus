@@ -1,4 +1,6 @@
 {
+  "address": "",
+  "log_path": "",
   "ipfs": {
     "version": "v0.4.18",
     "data_dir": "/",

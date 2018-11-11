@@ -15,7 +15,12 @@ const DefaultIPFSVersion = "v0.4.18"
 
 // IPFSOrchestratorConfig configures the orchestration daemon
 type IPFSOrchestratorConfig struct {
-	LogPath       string `json:"log_path"`
+	// Address is the address through which external clients connect to this host
+	Address string `json:"address"`
+
+	// LogPath, if given, will be where logs are written
+	LogPath string `json:"log_path"`
+
 	IPFS          `json:"ipfs"`
 	API           `json:"api"`
 	tcfg.Database `json:"postgres"`

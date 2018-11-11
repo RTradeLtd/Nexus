@@ -13,7 +13,7 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 )
 
-func runDaemon(address, configPath string, devMode bool, args []string) {
+func runDaemon(configPath string, devMode bool, args []string) {
 	// load configuration
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -38,7 +38,7 @@ func runDaemon(address, configPath string, devMode bool, args []string) {
 
 	// initialize orchestrator
 	println("initializing orchestrator")
-	o, err := orchestrator.New(l, address, c, cfg.IPFS.Ports, cfg.Database, devMode)
+	o, err := orchestrator.New(l, cfg.Address, c, cfg.IPFS.Ports, cfg.Database, devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
