@@ -6,19 +6,20 @@ import (
 
 func TestNewLogger(t *testing.T) {
 	type args struct {
-		dev bool
+		logpath string
+		dev     bool
 	}
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		{"dev", args{true}, false},
-		{"prod", args{false}, false},
+		{"dev", args{"", true}, false},
+		{"prod", args{"./tmp/log", false}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSugar, err := NewLogger(tt.args.dev)
+			gotSugar, err := NewLogger(tt.args.logpath, tt.args.dev)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewLogger() error = %v, wantErr %v", err, tt.wantErr)
 				return

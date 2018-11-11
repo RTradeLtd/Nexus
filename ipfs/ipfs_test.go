@@ -20,7 +20,7 @@ func testClient() (*client, error) {
 	}
 	d.NegotiateAPIVersion(context.Background())
 
-	l, _ := log.NewLogger(true)
+	l, _ := log.NewLogger("", true)
 	return &client{l, d, ipfsImage, "./tmp", 0755}, nil
 }
 

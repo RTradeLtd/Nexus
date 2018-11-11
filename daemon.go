@@ -22,7 +22,7 @@ func runDaemon(address, configPath string, devMode bool, args []string) {
 
 	// initialize logger
 	println("initializing logger")
-	l, err := log.NewLogger(devMode)
+	l, err := log.NewLogger(cfg.LogPath, devMode)
 	if err != nil {
 		fatal(err.Error())
 	}
