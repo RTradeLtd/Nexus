@@ -37,7 +37,7 @@ type NodeClient interface {
 	// NodeStats retrieves statistics about the provided node
 	NodeStats(ctx context.Context, n *NodeInfo) (stats NodeStats, err error)
 
-	// Watch initalizes a goroutine that tracks IPFS node events
+	// Watch initializes a goroutine that tracks IPFS node events
 	Watch(ctx context.Context) (<-chan Event, <-chan error)
 }
 
@@ -217,7 +217,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	logger.Info("starting container")
 	start = time.Now()
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
-		logger.Errorw("error occured on startup - removing container",
+		logger.Errorw("error occurred on startup - removing container",
 			"error", err)
 		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())

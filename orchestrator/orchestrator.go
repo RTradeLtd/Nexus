@@ -66,14 +66,14 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	}, nil
 }
 
-// Run initalizes the orchestrator's background tasks
+// Run initializes the orchestrator's background tasks
 func (o *Orchestrator) Run(ctx context.Context) error {
 	go o.client.Watch(ctx)
 	go func() {
 		select {
 		case <-ctx.Done():
 			if err := o.nm.DB.Close(); err != nil {
-				o.l.Warnw("error occured closing database connection",
+				o.l.Warnw("error occurred closing database connection",
 					"error", err)
 			}
 		}
@@ -180,14 +180,14 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	l = l.With("node", node)
 	l.Info("network found, stopping node")
 	if err := o.client.StopNode(ctx, &node); err != nil {
-		l.Errorw("error occured while stopping node",
+		l.Errorw("error occurred while stopping node",
 			"error", err)
 	}
 	l.Info("node stopped")
 
 	// deregister node
 	if err := o.reg.Deregister(network); err != nil {
-		l.Errorw("error occured while deregistering node",
+		l.Errorw("error occurred while deregistering node",
 			"error", err)
 	}
 
