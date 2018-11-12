@@ -86,19 +86,56 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 }
 
 func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
-	ctrs, err := c.d.ContainerList(ctx, types.ContainerListOptions{})
+	ctrs, err := c.d.ContainerList(ctx, types.ContainerListOptions{
+		All: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	nodes := make([]*NodeInfo, 0)
+	// small function to restart a stopped node
+	restartNode := func(node NodeInfo) error {
+		logger := c.l.With("node", node)
+		logger.Infow("restarting stopped node")
+		if err := c.CreateNode(ctx, &node, NodeOpts{
+			BootstrapPeers: node.BootstrapPeers,
+		}); err != nil {
+			logger.Errorw("failed to restart node",
+				"error", err)
+			return err
+		}
+		return nil
+	}
+
+	// parse node data, restarting stopped containers if necessary
+	var (
+		nodes    = make([]*NodeInfo, 0)
+		ignored  = 0
+		restarts = 0
+		failed   = 0
+	)
 	for _, container := range ctrs {
 		n, err := newNode(container.ID, container.Names[0], container.Labels)
 		if err != nil {
+			ignored++
 			continue
+		}
+		if isStopped(container.Status) {
+			if err := restartNode(n); err != nil {
+				failed++
+				continue
+			}
+			restarts++
 		}
 		nodes = append(nodes, &n)
 	}
+
+	// report activity
+	c.l.Infow("all nodes checked",
+		"ignored", ignored,
+		"found", len(nodes),
+		"restarts", restarts,
+		"failed_restarts", failed)
 
 	return nodes, nil
 }

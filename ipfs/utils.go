@@ -21,3 +21,7 @@ func dirSize(path string) (int64, error) {
 	})
 	return size, err
 }
+
+func isStopped(status string) bool {
+	return status == "exited" || status == "dead"
+}
