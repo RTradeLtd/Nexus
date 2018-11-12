@@ -17,7 +17,8 @@ func init() {
 		Version = "version unknown"
 	}
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `ipfs-orchestrator is the IPFS private network node orchestration and registry service for Temporal.
+		fmt.Fprintf(os.Stderr, `ipfs-orchestrator is the IPFS private network node orchestration and
+registry service for Temporal.
 
 USAGE:
 
@@ -39,8 +40,10 @@ OPTIONS:
 
 func main() {
 	var (
-		configPath = flag.String("config", "./config.json", "path to ipfs-orchestrator config file")
-		devMode    = flag.Bool("dev", os.Getenv("MODE") == "development", "toggle dev mode, alternatively MODE=development")
+		configPath = flag.String("config", "./config.json",
+			"path to ipfs-orchestrator config file")
+		devMode = flag.Bool("dev", os.Getenv("MODE") == "development",
+			"toggle dev mode, alternatively set using MODE=development")
 	)
 
 	flag.Parse()
@@ -68,11 +71,12 @@ func main() {
 			}
 			return
 		default:
-			fatal(fmt.Sprintf("unknown command '%s' - run 'ipfs-orchestrator --help' for documentation", strings.Join(args[0:], " ")))
+			fatal(fmt.Sprintf("unknown command '%s' - user the --help' flag for documentation",
+				strings.Join(args[0:], " ")))
 			return
 		}
 	} else {
-		fatal("no arguments provided")
+		fatal("no arguments provided - use the '--help' flag for documentation")
 	}
 }
 

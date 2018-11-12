@@ -20,6 +20,8 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		fatal(err.Error())
 	}
 
+	println("preparing to start daemon")
+
 	// initialize logger
 	println("initializing logger")
 	l, err := log.NewLogger(cfg.LogPath, devMode)
@@ -28,6 +30,9 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	}
 	defer l.Sync()
 	l = l.With("version", Version)
+	if cfg.LogPath != "" {
+		println("logger initialized - output will be written to", cfg.LogPath)
+	}
 
 	// initialize node client
 	println("initializing node client")
