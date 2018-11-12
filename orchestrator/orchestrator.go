@@ -226,6 +226,9 @@ func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (Netwo
 
 	stats, err := o.client.NodeStats(ctx, &n)
 	if err != nil {
+		o.l.Errorw("error occurred while attempting to acess registered node",
+			"error", err,
+			"node", n)
 		return NetworkStatus{}, err
 	}
 
