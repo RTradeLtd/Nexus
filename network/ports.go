@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	cache "github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +15,8 @@ type Registry struct {
 	host  string
 	ports []string
 
-	recent *cache.Cache
+	recent *cache
+	stop   chan bool
 }
 
 // NewRegistry creates a new registry with given host address and available
@@ -34,7 +34,7 @@ func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *R
 	}
 
 	// set up cache
-	c := cache.New(5*time.Minute, 10*time.Minute)
+	c := newCache(5*time.Minute, 10*time.Minute)
 
 	return &Registry{
 		l:      logger,
@@ -48,7 +48,7 @@ func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *R
 func (reg *Registry) AssignPort() (string, error) {
 	for {
 		// base case: check if all ports are taken
-		if reg.recent.ItemCount() == len(reg.ports) {
+		if reg.recent.Size() == len(reg.ports) {
 			return "", errors.New("no available port found")
 		}
 
@@ -62,7 +62,7 @@ func (reg *Registry) AssignPort() (string, error) {
 		}
 
 		// attempt to claim port, placing it in cache
-		reg.recent.Add(p, true, cache.DefaultExpiration)
+		reg.recent.Cache(p)
 		l, err := net.Listen("tcp", reg.host+":"+p)
 		if err != nil {
 			continue

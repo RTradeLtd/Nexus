@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	cache "github.com/patrickmn/go-cache"
 )
 
 func TestNewRegistry(t *testing.T) {
@@ -38,7 +37,7 @@ func TestRegistry_AssignPort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			reg := &Registry{l: l, host: "127.0.0.1", ports: tt.fields.ports,
-				recent: cache.New(5*time.Minute, 10*time.Minute)}
+				recent: newCache(5*time.Minute, 10*time.Minute)}
 			got, err := reg.AssignPort()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)
