@@ -49,6 +49,18 @@ type FakeNodeClient struct {
 		result1 []*ipfs.NodeInfo
 		result2 error
 	}
+	RemoveNodeStub        func(context.Context, string) error
+	removeNodeMutex       sync.RWMutex
+	removeNodeArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	removeNodeReturns struct {
+		result1 error
+	}
+	removeNodeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StopNodeStub        func(context.Context, *ipfs.NodeInfo) error
 	stopNodeMutex       sync.RWMutex
 	stopNodeArgsForCall []struct {
@@ -267,6 +279,67 @@ func (fake *FakeNodeClient) NodesReturnsOnCall(i int, result1 []*ipfs.NodeInfo, 
 	}{result1, result2}
 }
 
+func (fake *FakeNodeClient) RemoveNode(arg1 context.Context, arg2 string) error {
+	fake.removeNodeMutex.Lock()
+	ret, specificReturn := fake.removeNodeReturnsOnCall[len(fake.removeNodeArgsForCall)]
+	fake.removeNodeArgsForCall = append(fake.removeNodeArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("RemoveNode", []interface{}{arg1, arg2})
+	fake.removeNodeMutex.Unlock()
+	if fake.RemoveNodeStub != nil {
+		return fake.RemoveNodeStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.removeNodeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeNodeClient) RemoveNodeCallCount() int {
+	fake.removeNodeMutex.RLock()
+	defer fake.removeNodeMutex.RUnlock()
+	return len(fake.removeNodeArgsForCall)
+}
+
+func (fake *FakeNodeClient) RemoveNodeCalls(stub func(context.Context, string) error) {
+	fake.removeNodeMutex.Lock()
+	defer fake.removeNodeMutex.Unlock()
+	fake.RemoveNodeStub = stub
+}
+
+func (fake *FakeNodeClient) RemoveNodeArgsForCall(i int) (context.Context, string) {
+	fake.removeNodeMutex.RLock()
+	defer fake.removeNodeMutex.RUnlock()
+	argsForCall := fake.removeNodeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeNodeClient) RemoveNodeReturns(result1 error) {
+	fake.removeNodeMutex.Lock()
+	defer fake.removeNodeMutex.Unlock()
+	fake.RemoveNodeStub = nil
+	fake.removeNodeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNodeClient) RemoveNodeReturnsOnCall(i int, result1 error) {
+	fake.removeNodeMutex.Lock()
+	defer fake.removeNodeMutex.Unlock()
+	fake.RemoveNodeStub = nil
+	if fake.removeNodeReturnsOnCall == nil {
+		fake.removeNodeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.removeNodeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeNodeClient) StopNode(arg1 context.Context, arg2 *ipfs.NodeInfo) error {
 	fake.stopNodeMutex.Lock()
 	ret, specificReturn := fake.stopNodeReturnsOnCall[len(fake.stopNodeArgsForCall)]
@@ -400,6 +473,8 @@ func (fake *FakeNodeClient) Invocations() map[string][][]interface{} {
 	defer fake.nodeStatsMutex.RUnlock()
 	fake.nodesMutex.RLock()
 	defer fake.nodesMutex.RUnlock()
+	fake.removeNodeMutex.RLock()
+	defer fake.removeNodeMutex.RUnlock()
 	fake.stopNodeMutex.RLock()
 	defer fake.stopNodeMutex.RUnlock()
 	fake.watchMutex.RLock()
