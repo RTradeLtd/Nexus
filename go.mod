@@ -25,7 +25,6 @@ require (
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/ipfs/go-ipfs-addr v0.1.25 // indirect
 	github.com/ipfs/go-log v1.5.7 // indirect
-	github.com/ipsn/go-ipfs v0.0.0-20181028225019-96b4d9ab1b1d // indirect
 	github.com/jinzhu/gorm v1.9.1 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20180511015916-ed742868f2ae // indirect

@@ -1,6 +1,5 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
-github.com/Microsoft/go-winio v0.4.11 h1:zoIOcVf0xPN1tnMVbTtEdI+P8OofVk3NObnwOQ6nK2Q=
 github.com/Microsoft/go-winio v0.4.11/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/RTradeLtd/config v1.0.9 h1:wcoRyjkn2IedNGKEDXaKIOe3fEL/jyIx8JKQWTclHBU=
@@ -9,7 +8,7 @@ github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60Qm
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/database v1.0.7 h1:OKBAa+XCQNs3KY71PIsnzr/zLNnTL7/dz3Nxgn0h0gU=
 github.com/RTradeLtd/database v1.0.7/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
-github.com/RTradeLtd/grpc v1.0.5 h1:NghVNRL/8wmpmzRsrTaRZQp31D4KfsQp264iLUS078I=
+github.com/RTradeLtd/grpc v1.0.5 h1:OeyV1rfFA9f1olB6UL4dyUZCQ+KECczt2zJ6clt8vKk=
 github.com/RTradeLtd/grpc v1.0.5/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
@@ -46,7 +45,6 @@ github.com/ipfs/go-ipfs-addr v0.1.25 h1:ef6l+uLdEljAWa4+7Wiw5YHIYPIVX8P08iVJ6fTw
 github.com/ipfs/go-ipfs-addr v0.1.25/go.mod h1:Gu5hZ8kxPyIDoXv8edvNpIYSkRciSp7QbLUFGNxd/sQ=
 github.com/ipfs/go-log v1.5.7 h1:8ef7XW41hzAnvVNkK5009/bOA9/MFr7fhdzkfAqvolI=
 github.com/ipfs/go-log v1.5.7/go.mod h1:AKYS9u+ECLT8t30brTaoVwu3f1FpGx6C0352oI1zQ0Q=
-github.com/ipsn/go-ipfs v0.0.0-20181028225019-96b4d9ab1b1d/go.mod h1:i7fHGKFb0CfJTRzXhks1Y+cH19jn2VJ7uX5ysogkm5Y=
 github.com/jinzhu/gorm v1.9.1 h1:lDSDtsCt5AGGSKTs8AHlSDbbgif4G4+CKJ8ETBDVHTA=
 github.com/jinzhu/gorm v1.9.1/go.mod h1:Vla75njaFJ8clLU1W44h34PjIkijhjHIYnZxMqCdxqo=
 github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a h1:eeaG9XMUvRBYXJi4pg1ZKM7nxc5AfXfojeLLW7O5J3k=
