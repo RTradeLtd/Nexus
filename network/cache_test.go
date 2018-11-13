@@ -42,9 +42,12 @@ func Test_cache_cleaner(t *testing.T) {
 	c.Cache("some_key")
 	time.Sleep(time.Millisecond)
 
+	// check that collector picked up key
+	c.mux.RLock()
 	if _, f := c.store["some_key"]; f {
 		t.Error("item was not removed by cleaner")
 	}
+	c.mux.RUnlock()
 
 	// stop
 	c.stop <- true
