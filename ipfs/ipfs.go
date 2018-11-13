@@ -334,11 +334,19 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 
 func (c *client) RemoveNode(ctx context.Context, network string) error {
 	dir := c.getDataDir(network)
-	c.l.Info("removing node assets",
-		"network_id", network,
-		"data_dir", dir)
+	logger := c.l.With("network_id", network, "data_dir", dir)
+	logger.Info("removing node assets")
 	// remove data
-	return os.RemoveAll(network)
+	if err := os.RemoveAll(network); err != nil {
+		logger.Warnw("error encountered removing node directories",
+			"error", err)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("assets for network '%s' could not be found", network)
+		}
+		return fmt.Errorf("error occured while removing assets for '%s'", network)
+	}
+	logger.Info("node data removed")
+	return nil
 }
 
 // NodeStats provides details about a node container
