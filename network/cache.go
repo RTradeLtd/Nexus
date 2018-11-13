@@ -18,24 +18,29 @@ type cache struct {
 	mux sync.RWMutex
 }
 
+// newCache creates a cache
 func newCache(expire, cleanInterval time.Duration) *cache {
 	c := &cache{
 		dur:   expire,
 		store: make(map[string]item),
 		stop:  make(chan bool),
 	}
+
+	// run cleaner and set cleaner to stop when cache is destroyed
 	go c.cleaner(cleanInterval)
-	runtime.SetFinalizer(c, stopCleaner)
+	runtime.SetFinalizer(c, stopCacheCleaner)
 
 	return c
 }
 
+// Cache stores given key
 func (c *cache) Cache(key string) {
 	c.mux.Lock()
 	c.store[key] = item{time.Now().Add(c.dur).UnixNano()}
 	c.mux.Unlock()
 }
 
+// Get retrieves item and returns true if item is found, false otherwise
 func (c *cache) Get(key string) (*item, bool) {
 	c.mux.RLock()
 	i, found := c.store[key]
@@ -51,6 +56,7 @@ func (c *cache) Get(key string) (*item, bool) {
 	return &i, true
 }
 
+// Size returns the number of elements in the cache
 func (c *cache) Size() int {
 	c.mux.RLock()
 	n := len(c.store)
@@ -58,6 +64,7 @@ func (c *cache) Size() int {
 	return n
 }
 
+// prune removes all expired items
 func (c *cache) prune() {
 	c.mux.Lock()
 	now := time.Now().UnixNano()
@@ -69,6 +76,7 @@ func (c *cache) prune() {
 	c.mux.Unlock()
 }
 
+// cleaner runs at provided intervals to prune the store of expired items
 func (c *cache) cleaner(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	for {
@@ -82,6 +90,7 @@ func (c *cache) cleaner(interval time.Duration) {
 	}
 }
 
-func stopCleaner(c *cache) {
+// stopCacheCleaner is a "destructor" for cache, called by the finalizer
+func stopCacheCleaner(c *cache) {
 	c.stop <- true
 }
