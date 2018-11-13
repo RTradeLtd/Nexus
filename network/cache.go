@@ -1,7 +1,6 @@
 package network
 
 import (
-	"runtime"
 	"sync"
 	"time"
 )
@@ -26,9 +25,8 @@ func newCache(expire, cleanInterval time.Duration) *cache {
 		stop:  make(chan bool),
 	}
 
-	// run cleaner and set cleaner to stop when cache is destroyed
+	// run cleaner
 	go c.cleaner(cleanInterval)
-	runtime.SetFinalizer(c, stopCacheCleaner)
 
 	return c
 }
@@ -88,9 +86,4 @@ func (c *cache) cleaner(interval time.Duration) {
 			return
 		}
 	}
-}
-
-// stopCacheCleaner is a "destructor" for cache, called by the finalizer
-func stopCacheCleaner(c *cache) {
-	c.stop <- true
 }

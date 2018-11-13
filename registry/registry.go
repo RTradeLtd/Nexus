@@ -138,3 +138,10 @@ func (r *NodeRegistry) Get(network string) (ipfs.NodeInfo, error) {
 
 	return node, nil
 }
+
+// Close stops registry background jobs
+func (r *NodeRegistry) Close() {
+	r.apiPorts.Close()
+	r.gatewayPorts.Close()
+	r.swarmPorts.Close()
+}

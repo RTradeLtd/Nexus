@@ -16,7 +16,6 @@ type Registry struct {
 	ports []string
 
 	recent *cache
-	stop   chan bool
 }
 
 // NewRegistry creates a new registry with given host address and available
@@ -69,4 +68,9 @@ func (reg *Registry) AssignPort() (string, error) {
 
 	// if loop exists, no port was found
 	return "", errors.New("no available port found")
+}
+
+// Close stops the registry cache cleanup
+func (reg *Registry) Close() {
+	reg.recent.stop <- true
 }

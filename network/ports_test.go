@@ -38,6 +38,7 @@ func TestRegistry_AssignPort(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			reg := &Registry{l: l, host: "127.0.0.1", ports: tt.fields.ports,
 				recent: newCache(5*time.Minute, 10*time.Minute)}
+			defer reg.Close()
 			got, err := reg.AssignPort()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)
