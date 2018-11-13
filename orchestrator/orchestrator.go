@@ -49,7 +49,7 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 		"db.with_migrations", dev)
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
 		Database: pg,
-	}, database.DatabaseOptions{
+	}, database.Options{
 		SSLModeDisable: dev,
 		RunMigrations:  dev,
 	})

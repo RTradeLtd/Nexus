@@ -72,7 +72,7 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 	// pre-test database setup
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
 		Database: dbDefaults,
-	}, database.DatabaseOptions{
+	}, database.Options{
 		RunMigrations:  true,
 		SSLModeDisable: true,
 	})
@@ -134,7 +134,7 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 	// pre-test database setup
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
 		Database: dbDefaults,
-	}, database.DatabaseOptions{
+	}, database.Options{
 		RunMigrations:  true,
 		SSLModeDisable: true,
 	})

@@ -4,10 +4,10 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/RTradeLtd/config v1.0.5
+	github.com/RTradeLtd/config v1.0.9
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
-	github.com/RTradeLtd/database v1.0.6
-	github.com/RTradeLtd/grpc v1.0.4
+	github.com/RTradeLtd/database v1.0.7
+	github.com/RTradeLtd/grpc v1.0.5
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
