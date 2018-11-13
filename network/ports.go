@@ -46,12 +46,7 @@ func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *R
 
 // AssignPort assigns an available port and returns it
 func (reg *Registry) AssignPort() (string, error) {
-	for {
-		// base case: check if all ports are taken
-		if reg.recent.Size() == len(reg.ports) {
-			return "", errors.New("no available port found")
-		}
-
+	for reg.recent.Size() != len(reg.ports) {
 		// roll random port to claim
 		roll := random(len(reg.ports))
 		p := reg.ports[roll]
@@ -71,4 +66,7 @@ func (reg *Registry) AssignPort() (string, error) {
 
 		return p, nil
 	}
+
+	// if loop exists, no port was found
+	return "", errors.New("no available port found")
 }
