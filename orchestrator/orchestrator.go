@@ -215,6 +215,19 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	return nil
 }
 
+// NetworkRemove removes network assets
+func (o *Orchestrator) NetworkRemove(ctx context.Context, network string) error {
+	if network == "" {
+		return errors.New("invalid network name provided")
+	}
+
+	if _, err := o.reg.Get(network); err == nil {
+		return errors.New("network is still online and in registry - must be offline for removal")
+	}
+
+	return o.client.RemoveNode(ctx, network)
+}
+
 // NetworkStatus denotes details about requested network
 type NetworkStatus struct {
 	Network   string

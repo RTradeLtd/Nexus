@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
-
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 )
@@ -190,6 +189,47 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 
 			if err := o.NetworkDown(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkDown() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkRemove(t *testing.T) {
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"node exists", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, true},
+		{"client fail", fields{}, args{"asdf"}, true, true},
+		{"client succeed", fields{}, args{"asdf"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				l:       l,
+				client:  client,
+				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
+				address: "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.RemoveNodeReturns(errors.New("oh no"))
+			}
+
+			if err := o.NetworkRemove(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
