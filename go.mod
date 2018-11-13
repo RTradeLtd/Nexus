@@ -6,8 +6,8 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/RTradeLtd/config v1.0.5
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
-	github.com/RTradeLtd/database v1.0.5-0.20181103170937-485748d483ce
-	github.com/RTradeLtd/grpc v1.0.4-0.20181108205021-4233863fd7ff
+	github.com/RTradeLtd/database v1.0.6
+	github.com/RTradeLtd/grpc v1.0.4
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
@@ -23,17 +23,23 @@ require (
 	github.com/gorilla/mux v1.6.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
+	github.com/ipfs/go-ipfs-addr v0.1.25 // indirect
+	github.com/ipfs/go-log v1.5.7 // indirect
 	github.com/ipsn/go-ipfs v0.0.0-20181028225019-96b4d9ab1b1d // indirect
 	github.com/jinzhu/gorm v1.9.1 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20180511015916-ed742868f2ae // indirect
 	github.com/lib/pq v1.0.0 // indirect
+	github.com/libp2p/go-libp2p-crypto v2.0.1+incompatible // indirect
+	github.com/libp2p/go-libp2p-peer v2.4.0+incompatible // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v0.0.0-20181005183134-51976451ce19 // indirect
 	github.com/mr-tron/base58 v1.1.0 // indirect
+	github.com/multiformats/go-multiaddr v1.3.0 // indirect
+	github.com/multiformats/go-multihash v1.0.8 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
