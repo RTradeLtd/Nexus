@@ -42,6 +42,10 @@ func Test_cache_cleaner(t *testing.T) {
 	c.Cache("some_key")
 	time.Sleep(time.Millisecond)
 
+	if _, f := c.store["some_key"]; f {
+		t.Error("item was not removed by cleaner")
+	}
+
 	// stop
 	c.stop <- true
 	time.Sleep(time.Millisecond)
