@@ -148,7 +148,7 @@ type NodeOpts struct {
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
-	if n == nil || n.NetworkID == "" || opts.SwarmKey == nil {
+	if n == nil || n.NetworkID == "" {
 		return errors.New("invalid configuration provided")
 	}
 	logger := c.l.With("network_id", n.NetworkID)
@@ -156,12 +156,20 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	// set up directories
 	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
 
-	// write swarm.key to mount point
-	if err := ioutil.WriteFile(
-		c.getDataDir(n.NetworkID)+"/swarm.key",
-		opts.SwarmKey, c.fileMode,
-	); err != nil {
-		return fmt.Errorf("failed to write key: %s", err.Error())
+	// write swarm.key to mount point, otherwise check if a swarm key exists
+	keyPath := c.getDataDir(n.NetworkID) + "/swarm.key"
+	if opts.SwarmKey != nil {
+		c.l.Info("writing provided swarm key to disk",
+			"node.key_path", keyPath)
+		if err := ioutil.WriteFile(keyPath, opts.SwarmKey, c.fileMode); err != nil {
+			return fmt.Errorf("failed to write key: %s", err.Error())
+		}
+	} else {
+		c.l.Info("no swarm key provided - attempting to find existing key",
+			"node.key_path", keyPath)
+		if _, err := os.Stat(keyPath); err != nil {
+			return fmt.Errorf("unable to find swarm key: %s", err.Error())
+		}
 	}
 
 	// check peers
