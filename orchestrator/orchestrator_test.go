@@ -65,6 +65,7 @@ func TestOrchestrator_Run(t *testing.T) {
 	o.Run(ctx)
 	time.Sleep(1 * time.Millisecond)
 	cancel()
+	time.Sleep(1 * time.Millisecond)
 }
 
 func TestOrchestrator_NetworkUp(t *testing.T) {

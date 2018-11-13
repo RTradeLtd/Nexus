@@ -66,12 +66,19 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	}, nil
 }
 
-// Run initializes the orchestrator's background tasks
+// Run initializes the orchestrator's background tasks. Cancelling the context
+// will end the tasks and release the orchestrator's resources.
 func (o *Orchestrator) Run(ctx context.Context) error {
 	go o.client.Watch(ctx)
 	go func() {
 		select {
 		case <-ctx.Done():
+			o.l.Info("releasing orchestrator resources")
+
+			// close registry
+			o.reg.Close()
+
+			// close database
 			if err := o.nm.DB.Close(); err != nil {
 				o.l.Warnw("error occurred closing database connection",
 					"error", err)
