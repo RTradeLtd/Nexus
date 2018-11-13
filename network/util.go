@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-func random(min, max int) int {
+func random(max int) int {
+	if max <= 0 {
+		return 0
+	}
 	rand.Seed(time.Now().Unix())
-	return rand.Intn(max-min) + min
+	return rand.Intn(max)
 }

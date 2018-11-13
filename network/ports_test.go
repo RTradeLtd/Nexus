@@ -3,8 +3,10 @@ package network
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	cache "github.com/patrickmn/go-cache"
 )
 
 func TestNewRegistry(t *testing.T) {
@@ -30,11 +32,13 @@ func TestRegistry_AssignPort(t *testing.T) {
 		{"no ports", fields{[]string{}}, "", true},
 		{"no available port", fields{[]string{"9999"}}, "", true},
 		{"available port", fields{[]string{"9998"}}, "9998", false},
+		{"cache and try next port", fields{[]string{"9999", "9998"}}, "9998", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l, _ := log.NewTestLogger()
-			reg := &Registry{l: l, host: "127.0.0.1", ports: tt.fields.ports}
+			reg := &Registry{l: l, host: "127.0.0.1", ports: tt.fields.ports,
+				recent: cache.New(5*time.Minute, 10*time.Minute)}
 			got, err := reg.AssignPort()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Registry.AssignPort() error = %v, wantErr %v", err, tt.wantErr)

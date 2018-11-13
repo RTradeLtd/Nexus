@@ -53,7 +53,7 @@ func (reg *Registry) AssignPort() (string, error) {
 		}
 
 		// roll random port to claim
-		roll := random(0, len(reg.ports)-1)
+		roll := random(len(reg.ports))
 		p := reg.ports[roll]
 
 		// if in cache, skip
