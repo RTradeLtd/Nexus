@@ -52,7 +52,7 @@ func (reg *Registry) AssignPort() (string, error) {
 		p := reg.ports[roll]
 
 		// if in cache, skip
-		if _, found := reg.recent.Get(p); found {
+		if found := reg.recent.Exists(p); found {
 			continue
 		}
 

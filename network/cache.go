@@ -40,20 +40,20 @@ func (c *cache) Cache(key string) {
 	c.mux.Unlock()
 }
 
-// Get retrieves item and returns true if item is found, false otherwise
-func (c *cache) Get(key string) (*item, bool) {
+// Exists returns true if key exists
+func (c *cache) Exists(key string) bool {
 	c.mux.RLock()
 	i, found := c.store[key]
 	if !found {
 		c.mux.RUnlock()
-		return nil, false
+		return false
 	}
 	if i.expire > 0 && time.Now().UnixNano() > i.expire {
 		c.mux.RUnlock()
-		return nil, false
+		return false
 	}
 	c.mux.RUnlock()
-	return &i, true
+	return true
 }
 
 // Size returns the number of elements in the cache
