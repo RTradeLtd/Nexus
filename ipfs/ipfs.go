@@ -34,6 +34,9 @@ type NodeClient interface {
 	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
 
+	// RemoveNode removes assets for given node
+	RemoveNode(ctx context.Context, network string) (err error)
+
 	// NodeStats retrieves statistics about the provided node
 	NodeStats(ctx context.Context, n *NodeInfo) (stats NodeStats, err error)
 
@@ -178,7 +181,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// set up basic configuration
 	var (
-		containerName = "ipfs-" + n.NetworkID
+		containerName = toNodeContainerName(n.NetworkID)
 		ports         = nat.PortMap{
 			// public ports
 			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
@@ -295,20 +298,19 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		return errors.New("invalid node")
 	}
 
+	start := time.Now()
+	timeout := time.Duration(10 * time.Second)
 	logger := c.l.With(
 		"network_id", n.NetworkID,
 		"docker_id", n.DockerID)
 
 	// stop container
-	start := time.Now()
-	timeout := time.Duration(10 * time.Second)
 	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
 	if err1 != nil {
 		logger.Warnw("error stopping container", "error", err1)
 	}
 
 	// remove container
-	logger.Info("removing container")
 	err2 := c.d.ContainerRemove(ctx, n.DockerID, types.ContainerRemoveOptions{
 		RemoveVolumes: true,
 	})
@@ -316,24 +318,35 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		logger.Warnw("error removing container", "error", err2)
 	}
 
-	// remove data
-	err3 := os.RemoveAll(c.getDataDir(n.NetworkID))
-	if err3 != nil {
-		logger.Warnw("error removing node data", "error", err3)
-	}
-
 	// log duration
 	logger.Infow("node stopped",
 		"shutdown.duration", time.Since(start))
 
 	// check and return errors
-	if err1 == nil || err2 == nil || err3 == nil {
+	if err1 == nil || err2 == nil {
 		return nil
 	}
 	return fmt.Errorf(
-		"errors encountered: { ContainerStop: '%v', ContainerRemove: '%v', os.RemoveAll: '%v'}",
-		err1, err2, err3,
+		"errors encountered: { ContainerStop: '%v', ContainerRemove: '%v' }",
+		err1, err2,
 	)
+}
+
+func (c *client) RemoveNode(ctx context.Context, network string) error {
+	dir := c.getDataDir(network)
+	logger := c.l.With("network_id", network, "data_dir", dir)
+	logger.Info("removing node assets")
+	// remove data
+	if err := os.RemoveAll(network); err != nil {
+		logger.Warnw("error encountered removing node directories",
+			"error", err)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("assets for network '%s' could not be found", network)
+		}
+		return fmt.Errorf("error occured while removing assets for '%s'", network)
+	}
+	logger.Info("node data removed")
+	return nil
 }
 
 // NodeStats provides details about a node container

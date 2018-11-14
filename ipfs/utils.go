@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+func toNodeContainerName(network string) string {
+	return "ipfs-" + network
+}
+
 func isNodeContainer(imageName string) bool {
 	parts := strings.Split(imageName, "-")
 	return len(parts) > 0 && strings.Contains(parts[0], "ipfs")

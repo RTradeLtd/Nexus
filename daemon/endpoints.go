@@ -38,6 +38,13 @@ func (d *Daemon) StopNetwork(ctx context.Context,
 	return &ipfs_orchestrator.Empty{}, d.o.NetworkDown(ctx, req.GetNetwork())
 }
 
+// RemoveNetwork removes assets for requested node
+func (d *Daemon) RemoveNetwork(ctx context.Context,
+	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {
+
+	return &ipfs_orchestrator.Empty{}, d.o.NetworkRemove(ctx, req.GetNetwork())
+}
+
 // NetworkStats retrieves stats about the requested node
 func (d *Daemon) NetworkStats(ctx context.Context,
 	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.NetworkStatusReponse, error) {

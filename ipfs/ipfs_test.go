@@ -105,7 +105,12 @@ func Test_client_NodeOperations(t *testing.T) {
 			if tt.wantErr {
 				return
 			}
-			defer c.StopNode(ctx, tt.args.n)
+
+			// clean up afterwards
+			defer func() {
+				c.StopNode(ctx, tt.args.n)
+				c.RemoveNode(ctx, tt.args.n.NetworkID)
+			}()
 
 			// check that container is up, watcher should receive an event
 			shouldGetEvents++
