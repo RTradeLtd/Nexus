@@ -7,7 +7,7 @@ require (
 	github.com/RTradeLtd/config v1.0.9
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
 	github.com/RTradeLtd/database v1.0.7
-	github.com/RTradeLtd/grpc v1.0.5
+	github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
