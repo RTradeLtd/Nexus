@@ -343,7 +343,7 @@ func (c *client) RemoveNode(ctx context.Context, network string) error {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("assets for network '%s' could not be found", network)
 		}
-		return fmt.Errorf("error occured while removing assets for '%s'", network)
+		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
 	logger.Info("node data removed")
 	return nil
