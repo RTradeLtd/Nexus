@@ -1,8 +1,7 @@
 GO=env GO111MODULE=on go
 GONOMOD=env GO111MODULE=off go
 IPFSCONTAINERS=`docker ps -a -q --filter="name=ipfs-*"`
-TESTCOMPOSE=https://raw.githubusercontent.com/RTradeLtd/Temporal/V2/test/docker-compose.yml
-COMPOSECOMMAND=env ADDR_NODE1=1 ADDR_NODE2=2 docker-compose -f tmp/docker-compose.yml
+COMPOSECOMMAND=env ADDR_NODE1=1 ADDR_NODE2=2 docker-compose -f testenv/docker-compose.yml
 VERSION=`git describe --always --tags`
 
 all: deps check build
@@ -39,13 +38,12 @@ test:
 
 .PHONY: testenv
 testenv:
-	mkdir -p tmp
-	curl $(TESTCOMPOSE) --output tmp/docker-compose.yml
 	$(COMPOSECOMMAND) up -d postgres
 
 # Clean up containers and things
 .PHONY: clean
 clean:
+	$(COMPOSECOMMAND) down
 	docker stop $(IPFSCONTAINERS) || true
 	docker rm $(IPFSCONTAINERS) || true
 	rm -f ./ipfs-orchestrator
