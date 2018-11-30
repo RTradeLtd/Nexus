@@ -81,7 +81,7 @@ func Test_client_NodeOperations(t *testing.T) {
 		}, true},
 		{"new node", args{
 			&NodeInfo{"test2", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
-			NodeOpts{[]byte(key), nil, false},
+			NodeOpts{[]byte(key), nil, false, Resources{}},
 		}, false},
 		{"with bootstrap", args{
 			&NodeInfo{"test3", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
@@ -90,7 +90,8 @@ func Test_client_NodeOperations(t *testing.T) {
 					"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 					"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
 				},
-				true},
+				true,
+				Resources{}},
 		}, false},
 	}
 	for _, tt := range tests {

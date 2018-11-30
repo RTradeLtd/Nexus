@@ -148,6 +148,12 @@ type NodeOpts struct {
 	SwarmKey       []byte
 	BootstrapPeers []string
 	AutoRemove     bool
+	Resources
+}
+
+// Resources declares resource quotas for this node
+type Resources struct {
+	Disk int64
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
@@ -233,7 +239,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		PortBindings:  ports,
 
 		// TODO: limit resources
-		Resources: container.Resources{},
+		Resources: container.Resources{
+			DiskQuota: opts.Resources.Disk,
+		},
 	}
 	start := time.Now()
 	logger = logger.With("container.name", containerName)

@@ -27,5 +27,8 @@ func getOptionsFromDatabaseEntry(network *models.HostedIPFSPrivateNetwork) (ipfs
 	// set bootstrap ppers
 	opts.BootstrapPeers = network.BootstrapPeerAddresses
 
+	// set resource constraints - TODO
+	opts.Resources = ipfs.Resources{}
+
 	return opts, nil
 }
