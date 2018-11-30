@@ -131,7 +131,15 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	}
 
 	// register node for network
-	newNode := &ipfs.NodeInfo{NetworkID: network, JobID: jobID}
+	newNode := &ipfs.NodeInfo{
+		NetworkID: network,
+		JobID:     jobID,
+		Resources: ipfs.NodeResources{
+			DiskGB:   n.ResourcesDiskGB,
+			MemoryGB: n.ResourcesMemoryGB,
+			CPUs:     n.ResourcesCPUs,
+		},
+	}
 	if err := o.reg.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)

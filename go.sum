@@ -12,6 +12,8 @@ github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60Qm
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/database v1.0.7 h1:OKBAa+XCQNs3KY71PIsnzr/zLNnTL7/dz3Nxgn0h0gU=
 github.com/RTradeLtd/database v1.0.7/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
+github.com/RTradeLtd/database v1.0.8-0.20181130234800-f972da481bb4 h1:8a2Kr6eZlxPRht36Gtn3KxO2cppOZ58Rw4dYu3mJTjY=
+github.com/RTradeLtd/database v1.0.8-0.20181130234800-f972da481bb4/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c h1:/WwY/Yh5oyyUT8nBUi68Iegs7Azu+xVol6RiuBbE/bM=
 github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
