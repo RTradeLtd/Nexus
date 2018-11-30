@@ -1,16 +1,13 @@
 package ipfs
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
@@ -153,7 +150,7 @@ type NodeOpts struct {
 
 // Resources declares resource quotas for this node
 type Resources struct {
-	Disk int64
+	DiskGB int
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
@@ -162,23 +159,10 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 	logger := c.l.With("network_id", n.NetworkID)
 
-	// set up directories
-	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
-
-	// write swarm.key to mount point, otherwise check if a swarm key exists
-	keyPath := c.getDataDir(n.NetworkID) + "/swarm.key"
-	if opts.SwarmKey != nil {
-		c.l.Info("writing provided swarm key to disk",
-			"node.key_path", keyPath)
-		if err := ioutil.WriteFile(keyPath, opts.SwarmKey, c.fileMode); err != nil {
-			return fmt.Errorf("failed to write key: %s", err.Error())
-		}
-	} else {
-		c.l.Info("no swarm key provided - attempting to find existing key",
-			"node.key_path", keyPath)
-		if _, err := os.Stat(keyPath); err != nil {
-			return fmt.Errorf("unable to find swarm key: %s", err.Error())
-		}
+	// initialize filesystem for node
+	if err := c.initNodeFS(n, opts); err != nil {
+		logger.Warnw("failed to init filesystem for node", "error", err)
+		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
 
 	// check peers
@@ -198,6 +182,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		}
 		volumes = []string{
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
+			c.getDataDir(n.NetworkID) + "/ipfs_start:/usr/local/bin/start_ipfs",
 		}
 		labels = map[string]string{
 			"network_id":      n.NetworkID,
@@ -239,9 +224,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		PortBindings:  ports,
 
 		// TODO: limit resources
-		Resources: container.Resources{
-			DiskQuota: opts.Resources.Disk,
-		},
+		Resources: container.Resources{},
 	}
 	start := time.Now()
 	logger = logger.With("container.name", containerName)
@@ -460,61 +443,4 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	}()
 
 	return events, errs
-}
-
-func (c *client) getDataDir(network string) string {
-	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
-	return p
-}
-
-func (c *client) waitForNode(ctx context.Context, dockerID string) error {
-	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
-		ShowStdout: true,
-		Follow:     true,
-	})
-	if err != nil {
-		return err
-	}
-	defer logs.Close()
-
-	scanner := bufio.NewScanner(logs)
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("cancelled wait for %s", dockerID)
-		default:
-			if strings.Contains(scanner.Text(), "Daemon is ready") {
-				return nil
-			}
-		}
-	}
-
-	return scanner.Err()
-}
-
-func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
-	if peers == nil || len(peers) == 0 {
-		return errors.New("no peers provided")
-	}
-
-	// remove default peers
-	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
-	if err != nil {
-		return err
-	}
-	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
-		return err
-	}
-
-	// bootstrap custom peers
-	bootstrap := []string{"ipfs", "bootstrap", "add"}
-	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
-		Cmd: append(bootstrap, peers...),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
-	}
-
-	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }

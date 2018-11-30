@@ -22,6 +22,7 @@ config: build
 .PHONY: deps
 deps:
 	$(GO) mod vendor
+	$(GO) get github.com/UnnoTed/fileb0x
 	$(GO) get github.com/maxbrunsfeld/counterfeiter
 	$(GO) mod tidy
 
@@ -49,8 +50,10 @@ clean:
 	rm -f ./ipfs-orchestrator
 	find . -name tmp -type d -exec rm -f -r {} +
 
-.PHONY: mock
-mock:
+# Gen runs all code generators
+.PHONY: gen
+gen:
+	fileb0x b0x.yml
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
 
