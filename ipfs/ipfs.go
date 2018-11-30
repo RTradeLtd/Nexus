@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -145,19 +146,19 @@ type NodeOpts struct {
 	SwarmKey       []byte
 	BootstrapPeers []string
 	AutoRemove     bool
-	Resources
-}
-
-// Resources declares resource quotas for this node
-type Resources struct {
-	DiskGB int
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
 	if n == nil || n.NetworkID == "" {
 		return errors.New("invalid configuration provided")
 	}
-	logger := c.l.With("network_id", n.NetworkID)
+
+	// make sure important fields are all populated
+	n.withDefaults()
+
+	// set up logger to record process events
+	logger := log.NewProcessLogger(c.l, "create_node",
+		"network_id", n.NetworkID)
 
 	// initialize filesystem for node
 	if err := c.initNodeFS(n, opts); err != nil {
@@ -184,14 +185,22 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
 			c.getDataDir(n.NetworkID) + "/ipfs_start:/usr/local/bin/start_ipfs",
 		}
+
+		// important metadata about node
 		labels = map[string]string{
-			"network_id":      n.NetworkID,
-			"data_dir":        c.getDataDir(n.NetworkID),
-			"swarm_port":      n.Ports.Swarm,
-			"api_port":        n.Ports.API,
-			"gateway_port":    n.Ports.Gateway,
-			"bootstrap_peers": string(peerBytes),
-			"job_id":          n.JobID,
+			keyNetworkID: n.NetworkID,
+			keyJobID:     n.JobID,
+
+			keyPortSwarm:   n.Ports.Swarm,
+			keyPortAPI:     n.Ports.API,
+			keyPortGateway: n.Ports.Gateway,
+
+			keyBootstrapPeers: string(peerBytes),
+			keyDataDir:        c.getDataDir(n.NetworkID),
+
+			keyResourcesCPUs:   strconv.Itoa(n.Resources.CPUs),
+			keyResourcesDisk:   strconv.Itoa(n.Resources.DiskGB),
+			keyResourcesMemory: strconv.Itoa(n.Resources.MemoryGB),
 		}
 		restartPolicy container.RestartPolicy
 	)
@@ -223,8 +232,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		Binds:         volumes,
 		PortBindings:  ports,
 
-		// TODO: limit resources
-		Resources: container.Resources{},
+		// Resource constraints documentation:
+		// https://docs.docker.com/config/containers/resource_constraints/
+		Resources: container.Resources{
+			// memory is in bytes
+			Memory: int64(n.Resources.MemoryGB * 1073741824),
+			// it appears CPUCount is for Windows only, this value is set based on
+			// example from documentation (cpu=1.5 => cpu-quota=150,000)
+			CPUQuota: int64(n.Resources.CPUs * 100000),
+		},
 	}
 	start := time.Now()
 	logger = logger.With("container.name", containerName)

@@ -29,8 +29,20 @@ func Test_newNode(t *testing.T) {
 			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1"},
 			false},
 		{"parse bootstrap",
-			args{"1", "ipfs-node1", map[string]string{"bootstrap_peers": string(b)}},
+			args{"1", "ipfs-node1", map[string]string{keyBootstrapPeers: string(b)}},
 			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1", BootstrapPeers: bl},
+			false},
+		{"parse ports",
+			args{"1", "ipfs-node1", map[string]string{keyPortAPI: "8080-8090"}},
+			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1", Ports: NodePorts{
+				API: "8080-8090",
+			}},
+			false},
+		{"parse resources",
+			args{"1", "ipfs-node1", map[string]string{keyResourcesMemory: "4"}},
+			NodeInfo{DockerID: "1", ContainerName: "ipfs-node1", Resources: NodeResources{
+				MemoryGB: 4,
+			}},
 			false},
 	}
 	for _, tt := range tests {

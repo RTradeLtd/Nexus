@@ -69,9 +69,13 @@ func (c *client) initNodeFS(n *NodeInfo, opts NodeOpts) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate startup script: %s", err.Error())
 	}
-	initScriptPath := c.getDataDir(n.NetworkID) + "/ipfs_start"
-	initScript := fmt.Sprintf(string(f), opts.Resources.DiskGB)
-	if err := ioutil.WriteFile(initScriptPath, []byte(initScript), c.fileMode); err != nil {
+	initScript := fmt.Sprintf(string(f),
+		n.Resources.DiskGB)
+	if err := ioutil.WriteFile(
+		c.getDataDir(n.NetworkID)+"/ipfs_start",
+		[]byte(initScript),
+		c.fileMode,
+	); err != nil {
 		return fmt.Errorf("failed to generate startcup script: %s", err.Error())
 	}
 
