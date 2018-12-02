@@ -238,8 +238,10 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			// memory is in bytes
 			Memory: int64(n.Resources.MemoryGB * 1073741824),
 			// it appears CPUCount is for Windows only, this value is set based on
-			// example from documentation (cpu=1.5 => cpu-quota=150,000)
-			CPUQuota: int64(n.Resources.CPUs * 100000),
+			// example from documentation
+			// cpu=1.5 => --cpu-quota=150000 and --cpu-period=100000
+			CPUPeriod: int64(100000),
+			CPUQuota:  int64(n.Resources.CPUs * 100000),
 		},
 	}
 	start := time.Now()
