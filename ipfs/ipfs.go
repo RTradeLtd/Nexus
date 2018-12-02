@@ -160,8 +160,8 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	var l = log.NewProcessLogger(c.l, "create_node",
 		"network_id", n.NetworkID)
 
-	// initialize filesystem for node
-	if err := c.initNodeFS(n, opts); err != nil {
+	// initialize node assets, such as swarm keys and startup scripts
+	if err := c.initNodeAssets(n, opts); err != nil {
 		l.Warnw("failed to init filesystem for node", "error", err)
 		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
@@ -378,7 +378,7 @@ type NodeStats struct {
 }
 
 func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
-	start := time.Now()
+	var start = time.Now()
 
 	// retrieve details from stats API
 	s, err := c.d.ContainerStats(ctx, n.DockerID, false)

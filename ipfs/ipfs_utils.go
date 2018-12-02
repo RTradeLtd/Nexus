@@ -43,7 +43,7 @@ func (c *client) waitForNode(ctx context.Context, dockerID string) error {
 	return scanner.Err()
 }
 
-func (c *client) initNodeFS(n *NodeInfo, opts NodeOpts) error {
+func (c *client) initNodeAssets(n *NodeInfo, opts NodeOpts) error {
 	// set up directories
 	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
 
