@@ -2,9 +2,13 @@
 
 # Modified IPFS node initialization script.
 # Mount to /usr/local/bin/start_ipfs
-# Source: https://github.com/ipfs/go-ipfs/blob/master/bin/container_daemon
+# Source: https://github.com/ipfs/go-ipfs/blob/${IPFS_VERSION}/bin/container_daemon
 
 set -e
+
+# arguments provided through string templates
+DISK_MAX=%d
+
 user=ipfs
 repo="$IPFS_PATH"
 
@@ -22,17 +26,13 @@ ipfs version
 if [ -e "$repo/config" ]; then
   echo "Found IPFS fs-repo at $repo"
 else
-  case "$IPFS_PROFILE" in
-    "") INIT_ARGS="" ;;
-    *) INIT_ARGS="--profile=$IPFS_PROFILE" ;;
-  esac
-  ipfs init "$INIT_ARGS"
+  ipfs init
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
 
 # set datastore quota
-ipfs config Datastore.StorageMax %d
+ipfs config Datastore.StorageMax $DISK_MAX
 
 # if the first argument is daemon
 if [ "$1" = "daemon" ]; then

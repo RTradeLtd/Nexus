@@ -48,8 +48,8 @@ func Test_client_NodeOperations(t *testing.T) {
 	}
 
 	// test watcher
-	eventCount := 0
-	shouldGetEvents := 0
+	var eventCount int
+	var shouldGetEvents int
 	watchCtx, cancelWatch := context.WithCancel(context.Background())
 	go func() {
 		events, errs := c.Watch(watchCtx)
