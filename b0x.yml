@@ -10,7 +10,7 @@ dest: "ipfs/internal"
 fmt: true
 
 # output file
-output: "init.go"
+output: "scripts.go"
 noprefix: true
 
 # debug mode where the files are read directly from the filesytem
@@ -21,4 +21,4 @@ custom:
   - files: 
     # everything inside the folder
     # type: array of strings
-    - "ipfs/internal/ipfs_start.sh"
+    - "ipfs/internal/*.sh"

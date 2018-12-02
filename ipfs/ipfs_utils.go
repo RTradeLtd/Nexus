@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	internal "github.com/RTradeLtd/ipfs-orchestrator/ipfs/internal"
 	"github.com/docker/docker/api/types"
 )
 
@@ -65,18 +64,16 @@ func (c *client) initNodeFS(n *NodeInfo, opts NodeOpts) error {
 	}
 
 	// generate initialization script
-	f, err := internal.ReadFile("ipfs/internal/ipfs_start.sh")
+	script, err := newNodeStartScript(n.Resources.DiskGB)
 	if err != nil {
 		return fmt.Errorf("failed to generate startup script: %s", err.Error())
 	}
-	initScript := fmt.Sprintf(string(f),
-		n.Resources.DiskGB)
 	if err := ioutil.WriteFile(
 		c.getDataDir(n.NetworkID)+"/ipfs_start",
-		[]byte(initScript),
+		[]byte(script),
 		c.fileMode,
 	); err != nil {
-		return fmt.Errorf("failed to generate startcup script: %s", err.Error())
+		return fmt.Errorf("failed to generate startup script: %s", err.Error())
 	}
 
 	return nil
