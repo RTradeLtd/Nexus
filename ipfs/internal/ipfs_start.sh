@@ -7,7 +7,7 @@
 set -e
 
 # arguments provided through string templates
-DISK_MAX=%d
+DISK_MAX=%dGB
 
 user=ipfs
 repo="$IPFS_PATH"
