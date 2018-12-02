@@ -21,12 +21,12 @@ type Registry struct {
 // NewRegistry creates a new registry with given host address and available
 // port ranges. Elements of portRanges can be "<PORT>" or "<LOWER>-<UPPER>"
 func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *Registry {
-	logger = logger.Named("network")
+	var l = logger.Named("network")
 
 	// mark available ports
 	var ports []string
 	if portRanges == nil {
-		logger.Warn("no port ranges were provided")
+		l.Warn("no port ranges were provided")
 		ports = make([]string, 0)
 	} else {
 		ports = parsePorts(portRanges)
@@ -36,7 +36,7 @@ func NewRegistry(logger *zap.SugaredLogger, host string, portRanges []string) *R
 	c := newCache(5*time.Minute, 10*time.Minute)
 
 	return &Registry{
-		l:      logger,
+		l:      l,
 		host:   host,
 		ports:  ports,
 		recent: c,

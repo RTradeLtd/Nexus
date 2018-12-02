@@ -96,12 +96,12 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	// small function to restart a stopped node
 	restartNode := func(node NodeInfo) error {
-		logger := c.l.With("node", node)
-		logger.Infow("restarting stopped node")
+		var l = c.l.With("node", node)
+		l.Infow("restarting stopped node")
 		if err := c.CreateNode(ctx, &node, NodeOpts{
 			BootstrapPeers: node.BootstrapPeers,
 		}); err != nil {
-			logger.Errorw("failed to restart node",
+			l.Errorw("failed to restart node",
 				"error", err)
 			return err
 		}
@@ -157,12 +157,12 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	n.withDefaults()
 
 	// set up logger to record process events
-	logger := log.NewProcessLogger(c.l, "create_node",
+	var l = log.NewProcessLogger(c.l, "create_node",
 		"network_id", n.NetworkID)
 
 	// initialize filesystem for node
 	if err := c.initNodeFS(n, opts); err != nil {
-		logger.Warnw("failed to init filesystem for node", "error", err)
+		l.Warnw("failed to init filesystem for node", "error", err)
 		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
 
@@ -244,24 +244,25 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			CPUQuota:  int64(n.Resources.CPUs * 100000),
 		},
 	}
-	start := time.Now()
-	logger = logger.With("container.name", containerName)
-	logger.Infow("creating network container",
+
+	var start = time.Now()
+	l = l.With("container.name", containerName)
+	l.Infow("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
 	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
 	if err != nil {
-		logger.Errorw("failed to create container",
-			"error", err)
+		l.Errorw("failed to create container",
+			"error", err, "build.duration", time.Since(start))
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
-	logger = logger.With("container.id", resp.ID)
-	logger.Infow("container created",
+	l = l.With("container.id", resp.ID)
+	l.Infow("container created",
 		"build.duration", time.Since(start))
 
 	// check for warnings
 	if len(resp.Warnings) > 0 {
-		logger.Warnw("warnings encountered on container build",
+		l.Warnw("warnings encountered on container build",
 			"warnings", resp.Warnings)
 	}
 
@@ -271,34 +272,36 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	n.DataDir = c.getDataDir(n.NetworkID)
 
 	// spin up node
-	logger.Info("starting container")
+	l.Info("starting container")
 	start = time.Now()
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
-		logger.Errorw("error occurred on startup - removing container",
-			"error", err)
+		l.Errorw("error occurred on startup - removing container",
+			"error", err, "start.duration", time.Since(start))
 		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
 	// wait for node to start
 	if err := c.waitForNode(ctx, n.DockerID); err != nil {
+		l.Errorw("error occurred waiting for IPFS daemon startup",
+			"error", err, "start.duration", time.Since(start))
 		return err
 	}
 
 	// bootstrap peers if required
 	if bootstrap {
-		logger.Info("bootstrapping network node with provided peers")
+		l.Info("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
-			logger.Warnw("failed to bootstrap node - stopping container",
-				"error", err)
+			l.Warnw("failed to bootstrap node - stopping container",
+				"error", err, "start.duration", time.Since(start))
 			go c.StopNode(ctx, n)
 			return fmt.Errorf("failed to bootstrap network node with provided peers: %s", err.Error())
 		}
 	}
 
 	// everything is good to go
-	logger.Infow("container started",
-		"startup.duration", time.Since(start))
+	l.Infow("network container started without issue",
+		"start.duration", time.Since(start))
 	return nil
 }
 
@@ -307,16 +310,19 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		return errors.New("invalid node")
 	}
 
-	start := time.Now()
-	timeout := time.Duration(10 * time.Second)
-	logger := c.l.With(
-		"network_id", n.NetworkID,
-		"docker_id", n.DockerID)
+	var (
+		start   = time.Now()
+		timeout = time.Duration(10 * time.Second)
+
+		l = c.l.With(
+			"network_id", n.NetworkID,
+			"docker_id", n.DockerID)
+	)
 
 	// stop container
 	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
 	if err1 != nil {
-		logger.Warnw("error stopping container", "error", err1)
+		l.Warnw("error stopping container", "error", err1)
 	}
 
 	// remove container
@@ -324,11 +330,11 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		RemoveVolumes: true,
 	})
 	if err2 != nil {
-		logger.Warnw("error removing container", "error", err2)
+		l.Warnw("error removing container", "error", err2)
 	}
 
 	// log duration
-	logger.Infow("node stopped",
+	l.Infow("node stopped",
 		"shutdown.duration", time.Since(start))
 
 	// check and return errors
@@ -342,19 +348,25 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 }
 
 func (c *client) RemoveNode(ctx context.Context, network string) error {
-	dir := c.getDataDir(network)
-	logger := c.l.With("network_id", network, "data_dir", dir)
-	logger.Info("removing node assets")
-	// remove data
+	var (
+		start = time.Now()
+		dir   = c.getDataDir(network)
+		l     = c.l.With("network_id", network, "data_dir", dir)
+	)
+
+	l.Info("removing node assets")
 	if err := os.RemoveAll(network); err != nil {
-		logger.Warnw("error encountered removing node directories",
-			"error", err)
+		l.Warnw("error encountered removing node directories",
+			"error", err,
+			"duration", time.Since(start))
 		if os.IsNotExist(err) {
 			return fmt.Errorf("assets for network '%s' could not be found", network)
 		}
 		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
-	logger.Info("node data removed")
+
+	l.Info("node data removed",
+		"duration", time.Since(start))
 	return nil
 }
 
