@@ -1,19 +1,17 @@
 package ipfs
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -98,12 +96,12 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	// small function to restart a stopped node
 	restartNode := func(node NodeInfo) error {
-		logger := c.l.With("node", node)
-		logger.Infow("restarting stopped node")
+		var l = c.l.With("node", node)
+		l.Infow("restarting stopped node")
 		if err := c.CreateNode(ctx, &node, NodeOpts{
 			BootstrapPeers: node.BootstrapPeers,
 		}); err != nil {
-			logger.Errorw("failed to restart node",
+			l.Errorw("failed to restart node",
 				"error", err)
 			return err
 		}
@@ -154,25 +152,18 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if n == nil || n.NetworkID == "" {
 		return errors.New("invalid configuration provided")
 	}
-	logger := c.l.With("network_id", n.NetworkID)
 
-	// set up directories
-	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
+	// make sure important fields are all populated
+	n.withDefaults()
 
-	// write swarm.key to mount point, otherwise check if a swarm key exists
-	keyPath := c.getDataDir(n.NetworkID) + "/swarm.key"
-	if opts.SwarmKey != nil {
-		c.l.Info("writing provided swarm key to disk",
-			"node.key_path", keyPath)
-		if err := ioutil.WriteFile(keyPath, opts.SwarmKey, c.fileMode); err != nil {
-			return fmt.Errorf("failed to write key: %s", err.Error())
-		}
-	} else {
-		c.l.Info("no swarm key provided - attempting to find existing key",
-			"node.key_path", keyPath)
-		if _, err := os.Stat(keyPath); err != nil {
-			return fmt.Errorf("unable to find swarm key: %s", err.Error())
-		}
+	// set up logger to record process events
+	var l = log.NewProcessLogger(c.l, "create_node",
+		"network_id", n.NetworkID)
+
+	// initialize node assets, such as swarm keys and startup scripts
+	if err := c.initNodeAssets(n, opts); err != nil {
+		l.Warnw("failed to init filesystem for node", "error", err)
+		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
 
 	// check peers
@@ -192,15 +183,24 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		}
 		volumes = []string{
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
+			c.getDataDir(n.NetworkID) + "/ipfs_start:/usr/local/bin/start_ipfs",
 		}
+
+		// important metadata about node
 		labels = map[string]string{
-			"network_id":      n.NetworkID,
-			"data_dir":        c.getDataDir(n.NetworkID),
-			"swarm_port":      n.Ports.Swarm,
-			"api_port":        n.Ports.API,
-			"gateway_port":    n.Ports.Gateway,
-			"bootstrap_peers": string(peerBytes),
-			"job_id":          n.JobID,
+			keyNetworkID: n.NetworkID,
+			keyJobID:     n.JobID,
+
+			keyPortSwarm:   n.Ports.Swarm,
+			keyPortAPI:     n.Ports.API,
+			keyPortGateway: n.Ports.Gateway,
+
+			keyBootstrapPeers: string(peerBytes),
+			keyDataDir:        c.getDataDir(n.NetworkID),
+
+			keyResourcesCPUs:   strconv.Itoa(n.Resources.CPUs),
+			keyResourcesDisk:   strconv.Itoa(n.Resources.DiskGB),
+			keyResourcesMemory: strconv.Itoa(n.Resources.MemoryGB),
 		}
 		restartPolicy container.RestartPolicy
 	)
@@ -232,27 +232,37 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		Binds:         volumes,
 		PortBindings:  ports,
 
-		// TODO: limit resources
-		Resources: container.Resources{},
+		// Resource constraints documentation:
+		// https://docs.docker.com/config/containers/resource_constraints/
+		Resources: container.Resources{
+			// memory is in bytes
+			Memory: int64(n.Resources.MemoryGB * 1073741824),
+			// it appears CPUCount is for Windows only, this value is set based on
+			// example from documentation
+			// cpu=1.5 => --cpu-quota=150000 and --cpu-period=100000
+			CPUPeriod: int64(100000),
+			CPUQuota:  int64(n.Resources.CPUs * 100000),
+		},
 	}
-	start := time.Now()
-	logger = logger.With("container.name", containerName)
-	logger.Infow("creating network container",
+
+	var start = time.Now()
+	l = l.With("container.name", containerName)
+	l.Infow("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
 	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
 	if err != nil {
-		logger.Errorw("failed to create container",
-			"error", err)
+		l.Errorw("failed to create container",
+			"error", err, "build.duration", time.Since(start))
 		return fmt.Errorf("failed to instantiate node: %s", err.Error())
 	}
-	logger = logger.With("container.id", resp.ID)
-	logger.Infow("container created",
+	l = l.With("container.id", resp.ID)
+	l.Infow("container created",
 		"build.duration", time.Since(start))
 
 	// check for warnings
 	if len(resp.Warnings) > 0 {
-		logger.Warnw("warnings encountered on container build",
+		l.Warnw("warnings encountered on container build",
 			"warnings", resp.Warnings)
 	}
 
@@ -262,34 +272,36 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	n.DataDir = c.getDataDir(n.NetworkID)
 
 	// spin up node
-	logger.Info("starting container")
+	l.Info("starting container")
 	start = time.Now()
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
-		logger.Errorw("error occurred on startup - removing container",
-			"error", err)
+		l.Errorw("error occurred on startup - removing container",
+			"error", err, "start.duration", time.Since(start))
 		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
 	// wait for node to start
 	if err := c.waitForNode(ctx, n.DockerID); err != nil {
+		l.Errorw("error occurred waiting for IPFS daemon startup",
+			"error", err, "start.duration", time.Since(start))
 		return err
 	}
 
 	// bootstrap peers if required
 	if bootstrap {
-		logger.Info("bootstrapping network node with provided peers")
+		l.Info("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
-			logger.Warnw("failed to bootstrap node - stopping container",
-				"error", err)
+			l.Warnw("failed to bootstrap node - stopping container",
+				"error", err, "start.duration", time.Since(start))
 			go c.StopNode(ctx, n)
 			return fmt.Errorf("failed to bootstrap network node with provided peers: %s", err.Error())
 		}
 	}
 
 	// everything is good to go
-	logger.Infow("container started",
-		"startup.duration", time.Since(start))
+	l.Infow("network container started without issue",
+		"start.duration", time.Since(start))
 	return nil
 }
 
@@ -298,16 +310,19 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		return errors.New("invalid node")
 	}
 
-	start := time.Now()
-	timeout := time.Duration(10 * time.Second)
-	logger := c.l.With(
-		"network_id", n.NetworkID,
-		"docker_id", n.DockerID)
+	var (
+		start   = time.Now()
+		timeout = time.Duration(10 * time.Second)
+
+		l = c.l.With(
+			"network_id", n.NetworkID,
+			"docker_id", n.DockerID)
+	)
 
 	// stop container
 	err1 := c.d.ContainerStop(ctx, n.DockerID, &timeout)
 	if err1 != nil {
-		logger.Warnw("error stopping container", "error", err1)
+		l.Warnw("error stopping container", "error", err1)
 	}
 
 	// remove container
@@ -315,11 +330,11 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 		RemoveVolumes: true,
 	})
 	if err2 != nil {
-		logger.Warnw("error removing container", "error", err2)
+		l.Warnw("error removing container", "error", err2)
 	}
 
 	// log duration
-	logger.Infow("node stopped",
+	l.Infow("node stopped",
 		"shutdown.duration", time.Since(start))
 
 	// check and return errors
@@ -333,19 +348,25 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 }
 
 func (c *client) RemoveNode(ctx context.Context, network string) error {
-	dir := c.getDataDir(network)
-	logger := c.l.With("network_id", network, "data_dir", dir)
-	logger.Info("removing node assets")
-	// remove data
+	var (
+		start = time.Now()
+		dir   = c.getDataDir(network)
+		l     = c.l.With("network_id", network, "data_dir", dir)
+	)
+
+	l.Info("removing node assets")
 	if err := os.RemoveAll(network); err != nil {
-		logger.Warnw("error encountered removing node directories",
-			"error", err)
+		l.Warnw("error encountered removing node directories",
+			"error", err,
+			"duration", time.Since(start))
 		if os.IsNotExist(err) {
 			return fmt.Errorf("assets for network '%s' could not be found", network)
 		}
 		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
-	logger.Info("node data removed")
+
+	l.Info("node data removed",
+		"duration", time.Since(start))
 	return nil
 }
 
@@ -357,7 +378,7 @@ type NodeStats struct {
 }
 
 func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
-	start := time.Now()
+	var start = time.Now()
 
 	// retrieve details from stats API
 	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
@@ -452,61 +473,4 @@ func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	}()
 
 	return events, errs
-}
-
-func (c *client) getDataDir(network string) string {
-	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
-	return p
-}
-
-func (c *client) waitForNode(ctx context.Context, dockerID string) error {
-	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
-		ShowStdout: true,
-		Follow:     true,
-	})
-	if err != nil {
-		return err
-	}
-	defer logs.Close()
-
-	scanner := bufio.NewScanner(logs)
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("cancelled wait for %s", dockerID)
-		default:
-			if strings.Contains(scanner.Text(), "Daemon is ready") {
-				return nil
-			}
-		}
-	}
-
-	return scanner.Err()
-}
-
-func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
-	if peers == nil || len(peers) == 0 {
-		return errors.New("no peers provided")
-	}
-
-	// remove default peers
-	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
-	if err != nil {
-		return err
-	}
-	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
-		return err
-	}
-
-	// bootstrap custom peers
-	bootstrap := []string{"ipfs", "bootstrap", "add"}
-	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
-		Cmd: append(bootstrap, peers...),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
-	}
-
-	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }

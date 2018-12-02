@@ -48,8 +48,8 @@ func Test_client_NodeOperations(t *testing.T) {
 	}
 
 	// test watcher
-	eventCount := 0
-	shouldGetEvents := 0
+	var eventCount int
+	var shouldGetEvents int
 	watchCtx, cancelWatch := context.WithCancel(context.Background())
 	go func() {
 		events, errs := c.Watch(watchCtx)
@@ -76,15 +76,15 @@ func Test_client_NodeOperations(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid config", args{
-			&NodeInfo{"test1", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
+			&NodeInfo{"test1", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
 			NodeOpts{},
 		}, true},
 		{"new node", args{
-			&NodeInfo{"test2", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
+			&NodeInfo{"test2", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
 			NodeOpts{[]byte(key), nil, false},
 		}, false},
 		{"with bootstrap", args{
-			&NodeInfo{"test3", NodePorts{"4001", "5001", "8080"}, "", "", "", "", nil},
+			&NodeInfo{"test3", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
 			NodeOpts{[]byte(key),
 				[]string{
 					"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
