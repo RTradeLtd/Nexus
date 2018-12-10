@@ -15,25 +15,12 @@ import (
 // NodeClient provides an interface to the base Docker client for controlling
 // IPFS nodes
 type NodeClient interface {
-	// Nodes retrieves a list of active IPFS ndoes
 	Nodes(ctx context.Context) (nodes []*NodeInfo, err error)
-
-	// CreateNode activates a new IPFS node
 	CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) (err error)
-
-	// UpdateNode updates node configuration
 	UpdateNode(ctx context.Context, n *NodeInfo) (err error)
-
-	// StopNode shuts down an existing IPFS node
 	StopNode(ctx context.Context, n *NodeInfo) (err error)
-
-	// RemoveNode removes assets for given node
 	RemoveNode(ctx context.Context, network string) (err error)
-
-	// NodeStats retrieves statistics about the provided node
 	NodeStats(ctx context.Context, n *NodeInfo) (stats NodeStats, err error)
-
-	// Watch initializes a goroutine that tracks IPFS node events
 	Watch(ctx context.Context) (<-chan Event, <-chan error)
 }
 
@@ -58,7 +45,7 @@ func NewClient(logger *zap.SugaredLogger, ipfsOpts config.IPFS) (NodeClient, err
 		return nil, fmt.Errorf("failed to download IPFS image: %s", err.Error())
 	}
 
-	c := &client{
+	c := &Client{
 		l:         logger.Named("ipfs"),
 		d:         d,
 		ipfsImage: ipfsImage,

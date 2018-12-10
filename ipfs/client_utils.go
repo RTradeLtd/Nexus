@@ -14,12 +14,12 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
-func (c *client) getDataDir(network string) string {
+func (c *Client) getDataDir(network string) string {
 	p, _ := filepath.Abs(filepath.Join(c.dataDir, fmt.Sprintf("/data/ipfs/%s", network)))
 	return p
 }
 
-func (c *client) waitForNode(ctx context.Context, dockerID string) error {
+func (c *Client) waitForNode(ctx context.Context, dockerID string) error {
 	logs, err := c.d.ContainerLogs(ctx, dockerID, types.ContainerLogsOptions{
 		ShowStdout: true,
 		Follow:     true,
@@ -44,7 +44,7 @@ func (c *client) waitForNode(ctx context.Context, dockerID string) error {
 	return scanner.Err()
 }
 
-func (c *client) initNodeAssets(n *NodeInfo, opts NodeOpts) error {
+func (c *Client) initNodeAssets(n *NodeInfo, opts NodeOpts) error {
 	// set up directories
 	os.MkdirAll(c.getDataDir(n.NetworkID), c.fileMode)
 
@@ -80,7 +80,7 @@ func (c *client) initNodeAssets(n *NodeInfo, opts NodeOpts) error {
 	return nil
 }
 
-func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
+func (c *Client) bootstrapNode(ctx context.Context, dockerID string, peers ...string) error {
 	if peers == nil || len(peers) == 0 {
 		return errors.New("no peers provided")
 	}
@@ -93,7 +93,7 @@ func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...st
 		append([]string{"ipfs", "bootstrap", "add"}, peers...))
 }
 
-func (c *client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
+func (c *Client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
 	// NOTE: ideally, we would use ipfs commands to update the daemon configuration.
 	// this is currently impossible - see:
 	// https://github.com/ipfs/go-ipfs/issues/4380
@@ -138,7 +138,7 @@ func (c *client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
 	return nil
 }
 
-func (c *client) containerExec(ctx context.Context, dockerID string, args []string) error {
+func (c *Client) containerExec(ctx context.Context, dockerID string, args []string) error {
 	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: args})
 	if err != nil {
 		return err

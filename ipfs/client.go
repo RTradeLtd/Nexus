@@ -18,7 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
-type client struct {
+// Client is the primary implementation of the NodeClient interface
+type Client struct {
 	l *zap.SugaredLogger
 	d *docker.Client
 
@@ -27,7 +28,8 @@ type client struct {
 	fileMode  os.FileMode
 }
 
-func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
+// Nodes retrieves a list of active IPFS ndoes
+func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	ctrs, err := c.d.ContainerList(ctx, types.ContainerListOptions{
 		All: true,
 	})
@@ -86,7 +88,8 @@ type NodeOpts struct {
 	AutoRemove bool
 }
 
-func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
+// CreateNode activates a new IPFS node
+func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
 	if n == nil || n.NetworkID == "" {
 		return errors.New("invalid configuration provided")
 	}
@@ -210,7 +213,8 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	return nil
 }
 
-func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
+// UpdateNode updates node configuration
+func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	if n.NetworkID == "" && n.DockerID == "" {
 		return errors.New("network name or docker ID required")
 	}
@@ -255,7 +259,8 @@ func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	return nil
 }
 
-func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
+// StopNode shuts down an existing IPFS node
+func (c *Client) StopNode(ctx context.Context, n *NodeInfo) error {
 	if n == nil || n.DockerID == "" {
 		return errors.New("invalid node")
 	}
@@ -297,7 +302,8 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 	)
 }
 
-func (c *client) RemoveNode(ctx context.Context, network string) error {
+// RemoveNode removes assets for given node
+func (c *Client) RemoveNode(ctx context.Context, network string) error {
 	var (
 		start = time.Now()
 		dir   = c.getDataDir(network)
@@ -327,7 +333,8 @@ type NodeStats struct {
 	Stats     interface{}
 }
 
-func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
+// NodeStats retrieves statistics about the provided node
+func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
 	var start = time.Now()
 
 	// retrieve details from stats API
@@ -380,8 +387,8 @@ type Event struct {
 	Node   NodeInfo `json:"node"`
 }
 
-// Watch listens for specific container events
-func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
+// Watch initializes a goroutine that tracks IPFS node events
+func (c *Client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	var (
 		events = make(chan Event)
 		errs   = make(chan error)
