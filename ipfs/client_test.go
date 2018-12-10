@@ -195,18 +195,4 @@ func Test_client_UpdateNode(t *testing.T) {
 		t.Errorf("failed to update node: %s", err.Error())
 		return
 	}
-
-	// test configuration changes with dockerID instead
-	if err := c.UpdateNode(context.Background(), &NodeInfo{
-		DockerID: n.DockerID,
-		Resources: NodeResources{
-			DiskGB:   1,
-			MemoryGB: 2,
-			CPUs:     2,
-		},
-		BootstrapPeers: []string{},
-	}); err != nil {
-		t.Errorf("failed to update node: %s", err.Error())
-		return
-	}
 }

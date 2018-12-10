@@ -106,8 +106,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// set up basic configuration
 	var (
-		containerName = toNodeContainerName(n.NetworkID)
-		ports         = nat.PortMap{
+		ports = nat.PortMap{
 			// public ports
 			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
 			"5001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
@@ -153,11 +152,11 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	var start = time.Now()
-	l = l.With("container.name", containerName)
+	l = l.With("container.name", n.ContainerName)
 	l.Infow("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
-	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
+	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, n.ContainerName)
 	if err != nil {
 		l.Errorw("failed to create container",
 			"error", err, "build.duration", time.Since(start))
@@ -175,7 +174,6 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// assign node metadata
 	n.DockerID = resp.ID
-	n.ContainerName = containerName
 	n.DataDir = c.getDataDir(n.NetworkID)
 
 	// spin up node
@@ -184,7 +182,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
 		l.Errorw("error occurred on startup - removing container",
 			"error", err, "start.duration", time.Since(start))
-		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
+		go c.d.ContainerRemove(ctx, n.ContainerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
@@ -228,21 +226,11 @@ func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 		err  error
 	)
 
-	// set container name to query for
-	var ctr string
-	if n.DockerID != "" {
-		ctr = n.DockerID
-	} else {
-		n.ContainerName = toNodeContainerName(n.NetworkID)
-		n.DockerID = n.ContainerName
-		ctr = n.ContainerName
-	}
-
 	// update Docker-managed configuration
 	var res = containerResources(n)
 	l.Infow("updaing docker-based configuration",
 		"container.resources", containerResources(n))
-	resp, err = c.d.ContainerUpdate(ctx, ctr, container.UpdateConfig{Resources: res})
+	resp, err = c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{Resources: res})
 	if err != nil {
 		l.Errorw("failed to update container configuration",
 			"error", err, "warnings", resp.Warnings)

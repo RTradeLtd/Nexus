@@ -106,6 +106,17 @@ func (n *NodeInfo) withDefaults() {
 	if n.Resources.MemoryGB == 0 {
 		n.Resources.MemoryGB = 4
 	}
+
+	// set container name from network name
+	if n.ContainerName == "" {
+		n.ContainerName = toNodeContainerName(n.NetworkID)
+	}
+
+	// set name for node operations - container name can be used interchangably
+	// with container name
+	if n.DockerID == "" {
+		n.DockerID = n.ContainerName
+	}
 }
 
 func (n *NodeInfo) labels(peers []string, dataDir string) map[string]string {
