@@ -105,9 +105,9 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 		return NetworkDetails{}, errors.New("invalid network name provided")
 	}
 
-	start := time.Now()
-	jobID := generateID()
-	l := log.NewProcessLogger(o.l, "network_up",
+	var start = time.Now()
+	var jobID = generateID()
+	var l = log.NewProcessLogger(o.l, "network_up",
 		"job_id", jobID,
 		"network", network)
 	l.Info("network up process started")
@@ -131,16 +131,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	}
 
 	// register node for network
-	newNode := &ipfs.NodeInfo{
-		NetworkID: network,
-		JobID:     jobID,
-		Resources: ipfs.NodeResources{
-			DiskGB:   n.ResourcesDiskGB,
-			MemoryGB: n.ResourcesMemoryGB,
-			CPUs:     n.ResourcesCPUs,
-		},
-		BootstrapPeers: n.BootstrapPeerAddresses,
-	}
+	newNode := getNodeFromDatabaseEntry(jobID, n)
 	if err := o.reg.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)
@@ -175,6 +166,58 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 		API:      n.APIURL,
 		SwarmKey: n.SwarmKey,
 	}, nil
+}
+
+// NetworkUpdate updates given network's configuration from database
+func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error {
+	if network == "" {
+		return errors.New("invalid network name provided")
+	}
+
+	// check node exists
+	node, err := o.reg.Get(network)
+	if err != nil {
+		return fmt.Errorf("failed to find node for network '%s': %s", network, err.Error())
+	}
+
+	var start = time.Now()
+	var jobID = generateID()
+	var l = log.NewProcessLogger(o.l, "network_update",
+		"job_id", jobID,
+		"network", network)
+	l.Info("network up process started")
+
+	// retrieve from database
+	n, err := o.nm.GetNetworkByName(network)
+	if err != nil {
+		l.Infow("failed to fetch network 's'",
+			"error", err)
+		return fmt.Errorf("no network with name '%s' found", network)
+	}
+	l = l.With("network.db_id", n.ID)
+	l.Info("network retrieved from database")
+
+	// construct new node based on new config and old settings
+	var new = getNodeFromDatabaseEntry(jobID, n)
+	new.DockerID = node.DockerID
+	new.Ports = node.Ports
+	new.DataDir = node.DataDir
+	l = l.With("node", new)
+
+	// execute update
+	l.Info("updating node")
+	if err = o.client.UpdateNode(ctx, new); err != nil {
+		return fmt.Errorf("failed to update network '%s': %s", network, err.Error())
+	}
+
+	// update registry
+	l.Info("updating registry")
+	o.reg.Deregister(network)
+	o.reg.Register(new)
+
+	l.Infow("network update process completed",
+		"network_update.duration", time.Since(start))
+	return nil
 }
 
 // NetworkDown brings a network offline

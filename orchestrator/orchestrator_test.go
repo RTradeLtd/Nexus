@@ -275,3 +275,65 @@ func TestOrchestrator_NetworkStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestOrchestrator_NetworkUpdate(t *testing.T) {
+	// pre-test database setup
+	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+		Database: dbDefaults,
+	}, database.Options{
+		RunMigrations:  true,
+		SSLModeDisable: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to connect to dev database: %s", err.Error())
+	}
+	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
+	testNetwork := &models.HostedIPFSPrivateNetwork{
+		Name: "test-network-2",
+	}
+	if check := nm.DB.Create(testNetwork); check.Error != nil {
+		t.Log(check.Error.Error())
+	}
+	defer nm.DB.Delete(testNetwork)
+
+	// tests
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"node doesn't exist", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"client fail", fields{}, args{"asdf"}, true, true},
+		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "test-network-2"}}, args{"test-network-2"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				l:       l,
+				client:  client,
+				nm:      nm,
+				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
+				address: "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.UpdateNodeReturns(errors.New("oh no"))
+			}
+
+			if err := o.NetworkUpdate(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
