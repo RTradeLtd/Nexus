@@ -107,3 +107,22 @@ func (n *NodeInfo) withDefaults() {
 		n.Resources.MemoryGB = 4
 	}
 }
+
+func (n *NodeInfo) labels(peers []string, dataDir string) map[string]string {
+	var peerBytes, _ = json.Marshal(peers)
+	return map[string]string{
+		keyNetworkID: n.NetworkID,
+		keyJobID:     n.JobID,
+
+		keyPortSwarm:   n.Ports.Swarm,
+		keyPortAPI:     n.Ports.API,
+		keyPortGateway: n.Ports.Gateway,
+
+		keyBootstrapPeers: string(peerBytes),
+		keyDataDir:        dataDir,
+
+		keyResourcesCPUs:   strconv.Itoa(n.Resources.CPUs),
+		keyResourcesDisk:   strconv.Itoa(n.Resources.DiskGB),
+		keyResourcesMemory: strconv.Itoa(n.Resources.MemoryGB),
+	}
+}

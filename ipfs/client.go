@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
@@ -110,7 +109,6 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// check peers
 	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
-	peerBytes, _ := json.Marshal(opts.BootstrapPeers)
 
 	// set up basic configuration
 	var (
@@ -129,21 +127,8 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		}
 
 		// important metadata about node
-		labels = map[string]string{
-			keyNetworkID: n.NetworkID,
-			keyJobID:     n.JobID,
+		labels = n.labels(opts.BootstrapPeers, c.getDataDir(n.NetworkID))
 
-			keyPortSwarm:   n.Ports.Swarm,
-			keyPortAPI:     n.Ports.API,
-			keyPortGateway: n.Ports.Gateway,
-
-			keyBootstrapPeers: string(peerBytes),
-			keyDataDir:        c.getDataDir(n.NetworkID),
-
-			keyResourcesCPUs:   strconv.Itoa(n.Resources.CPUs),
-			keyResourcesDisk:   strconv.Itoa(n.Resources.DiskGB),
-			keyResourcesMemory: strconv.Itoa(n.Resources.MemoryGB),
-		}
 		restartPolicy container.RestartPolicy
 	)
 
