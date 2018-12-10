@@ -139,6 +139,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 			MemoryGB: n.ResourcesMemoryGB,
 			CPUs:     n.ResourcesCPUs,
 		},
+		BootstrapPeers: n.BootstrapPeerAddresses,
 	}
 	if err := o.reg.Register(newNode); err != nil {
 		l.Errorw("no available ports",

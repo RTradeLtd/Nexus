@@ -62,20 +62,23 @@ func Test_client_NodeOperations(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid config", args{
-			&NodeInfo{"test1", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
+			&NodeInfo{
+				"test1", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
 			NodeOpts{},
 		}, true},
 		{"new node", args{
-			&NodeInfo{"test2", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
-			NodeOpts{[]byte(key), nil, false},
+			&NodeInfo{
+				"test2", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
+			NodeOpts{[]byte(key), false},
 		}, false},
 		{"with bootstrap", args{
-			&NodeInfo{"test3", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
-			NodeOpts{[]byte(key),
+			&NodeInfo{
+				"test3", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "",
 				[]string{
 					"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 					"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-				},
+				}},
+			NodeOpts{[]byte(key),
 				true},
 		}, false},
 	}
@@ -153,6 +156,10 @@ func Test_client_UpdateNode(t *testing.T) {
 		NetworkID: "test_update",
 		Ports:     NodePorts{"4001", "5001", "8080"},
 		Resources: NodeResources{},
+		BootstrapPeers: []string{
+			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+			"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		},
 	}
 	// clean up afterwards
 	defer func() {
@@ -161,10 +168,6 @@ func Test_client_UpdateNode(t *testing.T) {
 	}()
 
 	if err := c.CreateNode(context.Background(), n, NodeOpts{
-		BootstrapPeers: []string{
-			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-			"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-		},
 		SwarmKey: []byte(key),
 	}); err != nil {
 		t.Errorf("failed to create node: %s", err.Error())

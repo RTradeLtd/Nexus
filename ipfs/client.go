@@ -39,9 +39,7 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	restartNode := func(node NodeInfo) error {
 		var l = c.l.With("node", node)
 		l.Infow("restarting stopped node")
-		if err := c.CreateNode(ctx, &node, NodeOpts{
-			BootstrapPeers: node.BootstrapPeers,
-		}); err != nil {
+		if err := c.CreateNode(ctx, &node, NodeOpts{}); err != nil {
 			l.Errorw("failed to restart node",
 				"error", err)
 			return err
@@ -84,9 +82,8 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 // NodeOpts declares options for starting up nodes
 type NodeOpts struct {
-	SwarmKey       []byte
-	BootstrapPeers []string
-	AutoRemove     bool
+	SwarmKey   []byte
+	AutoRemove bool
 }
 
 func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
@@ -125,7 +122,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		restartPolicy = container.RestartPolicy{Name: "unless-stopped"}
 
 		// important metadata about node
-		labels = n.labels(opts.BootstrapPeers, c.getDataDir(n.NetworkID))
+		labels = n.labels(n.BootstrapPeers, c.getDataDir(n.NetworkID))
 	)
 
 	// remove restart policy if AutoRemove is enabled
@@ -199,9 +196,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// bootstrap peers if required
-	if len(opts.BootstrapPeers) > 0 {
+	if len(n.BootstrapPeers) > 0 {
 		l.Info("bootstrapping network node with provided peers")
-		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
+		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
 				"error", err, "start.duration", time.Since(start))
 			go c.StopNode(ctx, n)

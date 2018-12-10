@@ -24,8 +24,5 @@ func getOptionsFromDatabaseEntry(network *models.HostedIPFSPrivateNetwork) (ipfs
 		opts.SwarmKey = []byte(key)
 	}
 
-	// set bootstrap ppers
-	opts.BootstrapPeers = network.BootstrapPeerAddresses
-
 	return opts, nil
 }
