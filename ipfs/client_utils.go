@@ -125,7 +125,11 @@ func (c *client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
 		return fmt.Errorf("failed to restart container: %s", err.Error())
 	}
 
-	return c.waitForNode(ctx, n.DockerID)
+	if err := c.waitForNode(ctx, n.DockerID); err != nil {
+		return fmt.Errorf("error occured waiting for node to start: %s", err.Error())
+	}
+
+	return c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...)
 }
 
 func (c *client) containerExec(ctx context.Context, dockerID string, args []string) error {
