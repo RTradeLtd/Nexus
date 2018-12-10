@@ -73,6 +73,18 @@ type FakeNodeClient struct {
 	stopNodeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UpdateNodeStub        func(context.Context, *ipfs.NodeInfo) error
+	updateNodeMutex       sync.RWMutex
+	updateNodeArgsForCall []struct {
+		arg1 context.Context
+		arg2 *ipfs.NodeInfo
+	}
+	updateNodeReturns struct {
+		result1 error
+	}
+	updateNodeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	WatchStub        func(context.Context) (<-chan ipfs.Event, <-chan error)
 	watchMutex       sync.RWMutex
 	watchArgsForCall []struct {
@@ -401,6 +413,67 @@ func (fake *FakeNodeClient) StopNodeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeNodeClient) UpdateNode(arg1 context.Context, arg2 *ipfs.NodeInfo) error {
+	fake.updateNodeMutex.Lock()
+	ret, specificReturn := fake.updateNodeReturnsOnCall[len(fake.updateNodeArgsForCall)]
+	fake.updateNodeArgsForCall = append(fake.updateNodeArgsForCall, struct {
+		arg1 context.Context
+		arg2 *ipfs.NodeInfo
+	}{arg1, arg2})
+	fake.recordInvocation("UpdateNode", []interface{}{arg1, arg2})
+	fake.updateNodeMutex.Unlock()
+	if fake.UpdateNodeStub != nil {
+		return fake.UpdateNodeStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateNodeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeNodeClient) UpdateNodeCallCount() int {
+	fake.updateNodeMutex.RLock()
+	defer fake.updateNodeMutex.RUnlock()
+	return len(fake.updateNodeArgsForCall)
+}
+
+func (fake *FakeNodeClient) UpdateNodeCalls(stub func(context.Context, *ipfs.NodeInfo) error) {
+	fake.updateNodeMutex.Lock()
+	defer fake.updateNodeMutex.Unlock()
+	fake.UpdateNodeStub = stub
+}
+
+func (fake *FakeNodeClient) UpdateNodeArgsForCall(i int) (context.Context, *ipfs.NodeInfo) {
+	fake.updateNodeMutex.RLock()
+	defer fake.updateNodeMutex.RUnlock()
+	argsForCall := fake.updateNodeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeNodeClient) UpdateNodeReturns(result1 error) {
+	fake.updateNodeMutex.Lock()
+	defer fake.updateNodeMutex.Unlock()
+	fake.UpdateNodeStub = nil
+	fake.updateNodeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNodeClient) UpdateNodeReturnsOnCall(i int, result1 error) {
+	fake.updateNodeMutex.Lock()
+	defer fake.updateNodeMutex.Unlock()
+	fake.UpdateNodeStub = nil
+	if fake.updateNodeReturnsOnCall == nil {
+		fake.updateNodeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateNodeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeNodeClient) Watch(arg1 context.Context) (<-chan ipfs.Event, <-chan error) {
 	fake.watchMutex.Lock()
 	ret, specificReturn := fake.watchReturnsOnCall[len(fake.watchArgsForCall)]
@@ -477,6 +550,8 @@ func (fake *FakeNodeClient) Invocations() map[string][][]interface{} {
 	defer fake.removeNodeMutex.RUnlock()
 	fake.stopNodeMutex.RLock()
 	defer fake.stopNodeMutex.RUnlock()
+	fake.updateNodeMutex.RLock()
+	defer fake.updateNodeMutex.RUnlock()
 	fake.watchMutex.RLock()
 	defer fake.watchMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
