@@ -3,7 +3,6 @@ package ipfs
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 	docker "github.com/docker/docker/client"
 )
 
-func testClient() (*client, error) {
+func newTestClient() (NodeClient, error) {
 	ipfsImage := "ipfs/go-ipfs:" + config.DefaultIPFSVersion
 	d, err := docker.NewEnvClient()
 	if err != nil {
@@ -35,8 +34,8 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func Test_client_NodeOperations(t *testing.T) {
-	c, err := testClient()
+func TestNodeClient_NodeOperations(t *testing.T) {
+	c, err := newTestClient()
 	if err != nil {
 		t.Error(err)
 		return
@@ -148,20 +147,5 @@ func Test_client_NodeOperations(t *testing.T) {
 	cancelWatch()
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
-	}
-}
-
-func Test_client_getDataDir(t *testing.T) {
-	c, err := testClient()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	d := c.getDataDir("path")
-	if !strings.Contains(d, "path") {
-		t.Errorf("expected 'path' in path, got %s", d)
-	}
-	if !strings.HasPrefix(d, "/") {
-		t.Errorf("expected absolute path, got %s", d)
 	}
 }
