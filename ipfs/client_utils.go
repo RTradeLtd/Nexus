@@ -129,7 +129,13 @@ func (c *client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
 		return fmt.Errorf("error occured waiting for node to start: %s", err.Error())
 	}
 
-	return c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...)
+	if len(n.BootstrapPeers) > 0 {
+		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
+			return fmt.Errorf("failed to bootstrap node with provided peers: %s", err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (c *client) containerExec(ctx context.Context, dockerID string, args []string) error {

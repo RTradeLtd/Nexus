@@ -136,3 +136,74 @@ func Test_client_NodeOperations(t *testing.T) {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
 	}
 }
+
+func Test_client_UpdateNode(t *testing.T) {
+	c, err := newTestClient()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	key, err := SwarmKey()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var n = &NodeInfo{
+		NetworkID: "test_update",
+		Ports:     NodePorts{"4001", "5001", "8080"},
+		Resources: NodeResources{},
+	}
+	// clean up afterwards
+	defer func() {
+		c.StopNode(context.Background(), n)
+		c.RemoveNode(context.Background(), "test_update")
+	}()
+
+	if err := c.CreateNode(context.Background(), n, NodeOpts{
+		BootstrapPeers: []string{
+			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+			"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		},
+		SwarmKey: []byte(key),
+	}); err != nil {
+		t.Errorf("failed to create node: %s", err.Error())
+		return
+	}
+
+	// insufficient info
+	if err = c.UpdateNode(context.Background(), &NodeInfo{}); err == nil {
+		t.Errorf("should have errored")
+		return
+	}
+
+	// test configuration changes
+	if err := c.UpdateNode(context.Background(), &NodeInfo{
+		NetworkID: "test_update",
+		Resources: NodeResources{
+			DiskGB:   1,
+			MemoryGB: 1,
+			CPUs:     1,
+		},
+		BootstrapPeers: []string{
+			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+		},
+	}); err != nil {
+		t.Errorf("failed to update node: %s", err.Error())
+		return
+	}
+
+	// test configuration changes with dockerID instead
+	if err := c.UpdateNode(context.Background(), &NodeInfo{
+		DockerID: n.DockerID,
+		Resources: NodeResources{
+			DiskGB:   1,
+			MemoryGB: 2,
+			CPUs:     2,
+		},
+		BootstrapPeers: []string{},
+	}); err != nil {
+		t.Errorf("failed to update node: %s", err.Error())
+		return
+	}
+}

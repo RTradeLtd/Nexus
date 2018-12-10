@@ -107,9 +107,6 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
 
-	// check peers
-	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
-
 	// set up basic configuration
 	var (
 		containerName = toNodeContainerName(n.NetworkID)
@@ -125,18 +122,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
 			c.getDataDir(n.NetworkID) + "/ipfs_start:/usr/local/bin/start_ipfs",
 		}
+		restartPolicy = container.RestartPolicy{Name: "unless-stopped"}
 
 		// important metadata about node
 		labels = n.labels(opts.BootstrapPeers, c.getDataDir(n.NetworkID))
-
-		restartPolicy container.RestartPolicy
 	)
 
-	// set restart policy
-	if !opts.AutoRemove {
-		restartPolicy = container.RestartPolicy{
-			Name: "unless-stopped",
-		}
+	// remove restart policy if AutoRemove is enabled
+	if opts.AutoRemove {
+		restartPolicy = container.RestartPolicy{}
 	}
 
 	// create ipfs node container
@@ -205,7 +199,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// bootstrap peers if required
-	if bootstrap {
+	if len(opts.BootstrapPeers) > 0 {
 		l.Info("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
@@ -222,11 +216,33 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 }
 
 func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
-	var l = log.NewProcessLogger(c.l, "node_update", "node", n)
-	var start = time.Now()
+	if n.NetworkID == "" && n.DockerID == "" {
+		return errors.New("network name or docker ID required")
+	}
+
+	// set defaults
+	n.withDefaults()
+
+	var (
+		l     = log.NewProcessLogger(c.l, "node_update", "node", n)
+		start = time.Now()
+
+		resp container.ContainerUpdateOKBody
+		err  error
+	)
+
+	// set container name to query for
+	var ctr string
+	if n.DockerID != "" {
+		ctr = n.DockerID
+	} else {
+		n.ContainerName = toNodeContainerName(n.NetworkID)
+		n.DockerID = n.ContainerName
+		ctr = n.ContainerName
+	}
 
 	// update Docker-managed configuration
-	resp, err := c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{
+	resp, err = c.d.ContainerUpdate(ctx, ctr, container.UpdateConfig{
 		Resources: containerResources(n),
 	})
 	if err != nil {
@@ -240,7 +256,7 @@ func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	}
 
 	// update IPFS configuration - currently requires restart, see function docs
-	if err := c.updateIPFSConfig(ctx, n); err != nil {
+	if err = c.updateIPFSConfig(ctx, n); err != nil {
 		l.Errorw("failed to update IPFS daemon configuration",
 			"error", err)
 		return fmt.Errorf("failed to update IPFS configuration: %s", err.Error())
