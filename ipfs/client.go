@@ -197,7 +197,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// bootstrap peers if required
 	if len(n.BootstrapPeers) > 0 {
-		l.Info("bootstrapping network node with provided peers")
+		l.Infow("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
 				"error", err, "start.duration", time.Since(start))
@@ -239,9 +239,10 @@ func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	}
 
 	// update Docker-managed configuration
-	resp, err = c.d.ContainerUpdate(ctx, ctr, container.UpdateConfig{
-		Resources: containerResources(n),
-	})
+	var res = containerResources(n)
+	l.Infow("updaing docker-based configuration",
+		"container.resources", containerResources(n))
+	resp, err = c.d.ContainerUpdate(ctx, ctr, container.UpdateConfig{Resources: res})
 	if err != nil {
 		l.Errorw("failed to update container configuration",
 			"error", err, "warnings", resp.Warnings)
@@ -253,13 +254,15 @@ func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	}
 
 	// update IPFS configuration - currently requires restart, see function docs
+	l.Infow("updating IPFS node configuration",
+		"node.disk", n.Resources.DiskGB)
 	if err = c.updateIPFSConfig(ctx, n); err != nil {
 		l.Errorw("failed to update IPFS daemon configuration",
 			"error", err)
 		return fmt.Errorf("failed to update IPFS configuration: %s", err.Error())
 	}
 
-	l.Info("successfully updated network node",
+	l.Infow("successfully updated network node",
 		"duration", time.Since(start))
 	return nil
 }
@@ -324,7 +327,7 @@ func (c *client) RemoveNode(ctx context.Context, network string) error {
 		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
 
-	l.Info("node data removed",
+	l.Infow("node data removed",
 		"duration", time.Since(start))
 	return nil
 }

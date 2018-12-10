@@ -51,13 +51,13 @@ func (c *client) initNodeAssets(n *NodeInfo, opts NodeOpts) error {
 	// write swarm.key to mount point, otherwise check if a swarm key exists
 	keyPath := c.getDataDir(n.NetworkID) + "/swarm.key"
 	if opts.SwarmKey != nil {
-		c.l.Info("writing provided swarm key to disk",
+		c.l.Infow("writing provided swarm key to disk",
 			"node.key_path", keyPath)
 		if err := ioutil.WriteFile(keyPath, opts.SwarmKey, c.fileMode); err != nil {
 			return fmt.Errorf("failed to write key: %s", err.Error())
 		}
 	} else {
-		c.l.Info("no swarm key provided - attempting to find existing key",
+		c.l.Infow("no swarm key provided - attempting to find existing key",
 			"node.key_path", keyPath)
 		if _, err := os.Stat(keyPath); err != nil {
 			return fmt.Errorf("unable to find swarm key: %s", err.Error())
