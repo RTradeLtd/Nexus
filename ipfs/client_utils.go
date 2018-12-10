@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 )
@@ -85,23 +86,52 @@ func (c *client) bootstrapNode(ctx context.Context, dockerID string, peers ...st
 	}
 
 	// remove default peers
-	rmBootstrap := []string{"ipfs", "bootstrap", "rm", "--all"}
-	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: rmBootstrap})
-	if err != nil {
-		return err
-	}
-	if err := c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{}); err != nil {
-		return err
-	}
+	c.containerExec(ctx, dockerID, []string{"ipfs", "bootstrap", "rm", "--all"})
 
 	// bootstrap custom peers
-	bootstrap := []string{"ipfs", "bootstrap", "add"}
-	exec, err = c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{
-		Cmd: append(bootstrap, peers...),
-	})
+	return c.containerExec(ctx, dockerID,
+		append([]string{"ipfs", "bootstrap", "add"}, peers...))
+}
+
+func (c *client) updateIPFSConfig(ctx context.Context, n *NodeInfo) error {
+	// NOTE: ideally, we would use ipfs commands to update the daemon configuration.
+	// this is currently impossible - see:
+	// https://github.com/ipfs/go-ipfs/issues/4380
+	/*
+		if len(config) == 0 {
+			return errors.New("no config provided")
+		}
+		for key, val := range config {
+			if err := c.containerExec(ctx, dockerID, []string{"ipfs", "config", key, val}); err != nil {
+				return err
+			}
+		}
+	*/
+
+	script, err := newNodeStartScript(n.Resources.DiskGB)
 	if err != nil {
-		return fmt.Errorf("failed to init bootstrapping process with %s: %s", dockerID, err.Error())
+		return fmt.Errorf("failed to generate startup script: %s", err.Error())
+	}
+	if err := ioutil.WriteFile(
+		c.getDataDir(n.NetworkID)+"/ipfs_start",
+		[]byte(script),
+		c.fileMode,
+	); err != nil {
+		return fmt.Errorf("failed to generate startup script: %s", err.Error())
 	}
 
+	var wait = 1 * time.Second
+	if err := c.d.ContainerRestart(ctx, n.DockerID, &wait); err != nil {
+		return fmt.Errorf("failed to restart container: %s", err.Error())
+	}
+
+	return c.waitForNode(ctx, n.DockerID)
+}
+
+func (c *client) containerExec(ctx context.Context, dockerID string, args []string) error {
+	exec, err := c.d.ContainerExecCreate(ctx, dockerID, types.ExecConfig{Cmd: args})
+	if err != nil {
+		return err
+	}
 	return c.d.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
 }

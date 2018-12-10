@@ -158,18 +158,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		RestartPolicy: restartPolicy,
 		Binds:         volumes,
 		PortBindings:  ports,
-
-		// Resource constraints documentation:
-		// https://docs.docker.com/config/containers/resource_constraints/
-		Resources: container.Resources{
-			// memory is in bytes
-			Memory: int64(n.Resources.MemoryGB * 1073741824),
-			// it appears CPUCount is for Windows only, this value is set based on
-			// example from documentation
-			// cpu=1.5 => --cpu-quota=150000 and --cpu-period=100000
-			CPUPeriod: int64(100000),
-			CPUQuota:  int64(n.Resources.CPUs * 100000),
-		},
+		Resources:     containerResources(n),
 	}
 
 	var start = time.Now()
@@ -233,6 +222,32 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 }
 
 func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
+	var l = log.NewProcessLogger(c.l, "node_update", "node", n)
+	var start = time.Now()
+
+	// update Docker-managed configuration
+	resp, err := c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{
+		Resources: containerResources(n),
+	})
+	if err != nil {
+		l.Errorw("failed to update container configuration",
+			"error", err, "warnings", resp.Warnings)
+		return fmt.Errorf("failed to update node configuration: %s", err.Error())
+	}
+	if len(resp.Warnings) > 0 {
+		l.Warnw("warnings encountered updating container",
+			"warnings", resp.Warnings)
+	}
+
+	// update IPFS configuration - currently requires restart, see function docs
+	if err := c.updateIPFSConfig(ctx, n); err != nil {
+		l.Errorw("failed to update IPFS daemon configuration",
+			"error", err)
+		return fmt.Errorf("failed to update IPFS configuration: %s", err.Error())
+	}
+
+	l.Info("successfully updated network node",
+		"duration", time.Since(start))
 	return nil
 }
 
