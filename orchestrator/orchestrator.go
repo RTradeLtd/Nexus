@@ -115,7 +115,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	// check if request is valid
 	n, err := o.nm.GetNetworkByName(network)
 	if err != nil {
-		l.Infow("failed to fetch network 's'",
+		l.Infow("failed to fetch network from database",
 			"error", err)
 		return NetworkDetails{}, fmt.Errorf("no network with name '%s' found", network)
 	}
@@ -190,7 +190,8 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	// retrieve from database
 	n, err := o.nm.GetNetworkByName(network)
 	if err != nil {
-		l.Infow("failed to fetch network 's'",
+		l.Infow("failed to fetch network from database even though node was found in registry",
+			"node", node,
 			"error", err)
 		return fmt.Errorf("no network with name '%s' found", network)
 	}
@@ -207,6 +208,7 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	l.Info("updating node",
 		"node.config", new)
 	if err = o.client.UpdateNode(ctx, new); err != nil {
+		l.Errorw("failed to update network", "error", err)
 		return fmt.Errorf("failed to update network '%s': %s", network, err.Error())
 	}
 
