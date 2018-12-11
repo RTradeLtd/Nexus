@@ -419,6 +419,7 @@ func (c *Client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 				name := status.Actor.Attributes["name"]
 				node, err := newNode(id, name, status.Actor.Attributes)
 				if err != nil {
+					c.l.Warnw("failed to parse node", "error", err)
 					continue
 				}
 				e := Event{Time: status.Time, Status: status.Status, Node: node}
