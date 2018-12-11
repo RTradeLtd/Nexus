@@ -213,7 +213,10 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	// update registry
 	l.Info("updating registry")
 	o.reg.Deregister(network)
-	o.reg.Register(new)
+	if err := o.reg.Register(new); err != nil {
+		l.Errorw("failed to register updated network", "error", err)
+		return fmt.Errorf("error updating registry: %s", err.Error())
+	}
 
 	l.Infow("network update process completed",
 		"network_update.duration", time.Since(start))
