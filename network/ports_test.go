@@ -11,6 +11,7 @@ import (
 func TestNewRegistry(t *testing.T) {
 	l, _ := log.NewTestLogger()
 	NewRegistry(l, "127.0.0.1", []string{"1234"})
+	NewRegistry(l, "127.0.0.1", nil)
 }
 
 func TestRegistry_AssignPort(t *testing.T) {
