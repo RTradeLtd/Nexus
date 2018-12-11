@@ -13,7 +13,7 @@ import (
 )
 
 // NodeClient provides an interface to the base Docker client for controlling
-// IPFS nodes
+// IPFS nodes. It is implemented by ipfs.Client
 type NodeClient interface {
 	Nodes(ctx context.Context) (nodes []*NodeInfo, err error)
 	CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) (err error)

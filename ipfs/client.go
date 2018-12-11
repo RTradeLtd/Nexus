@@ -18,7 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Client is the primary implementation of the NodeClient interface
+// Client is the primary implementation of the NodeClient interface. Instantiate
+// using ipfs.NewClient()
 type Client struct {
 	l *zap.SugaredLogger
 	d *docker.Client
