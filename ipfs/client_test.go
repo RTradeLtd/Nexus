@@ -11,7 +11,7 @@ import (
 
 func Test_client_getDataDir(t *testing.T) {
 	l, _ := log.NewLogger("", true)
-	var c = &client{l: l, dataDir: "./tmp", fileMode: 0755}
+	var c = &Client{l: l, dataDir: "./tmp", fileMode: 0755}
 	d := c.getDataDir("path")
 	if !strings.Contains(d, "path") {
 		t.Errorf("expected 'path' in path, got %s", d)
@@ -62,20 +62,23 @@ func Test_client_NodeOperations(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid config", args{
-			&NodeInfo{"test1", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
+			&NodeInfo{
+				"test1", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
 			NodeOpts{},
 		}, true},
 		{"new node", args{
-			&NodeInfo{"test2", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
-			NodeOpts{[]byte(key), nil, false},
+			&NodeInfo{
+				"test2", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
+			NodeOpts{[]byte(key), false},
 		}, false},
 		{"with bootstrap", args{
-			&NodeInfo{"test3", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "", nil},
-			NodeOpts{[]byte(key),
+			&NodeInfo{
+				"test3", "", NodePorts{"4001", "5001", "8080"}, NodeResources{}, "", "", "",
 				[]string{
 					"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 					"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-				},
+				}},
+			NodeOpts{[]byte(key),
 				true},
 		}, false},
 	}
@@ -134,5 +137,62 @@ func Test_client_NodeOperations(t *testing.T) {
 	cancelWatch()
 	if shouldGetEvents != eventCount {
 		t.Errorf("expected %d events, got %d", shouldGetEvents, eventCount)
+	}
+}
+
+func Test_client_UpdateNode(t *testing.T) {
+	c, err := newTestClient()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	key, err := SwarmKey()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var n = &NodeInfo{
+		NetworkID: "test_update",
+		Ports:     NodePorts{"4001", "5001", "8080"},
+		Resources: NodeResources{},
+		BootstrapPeers: []string{
+			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+			"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		},
+	}
+	// clean up afterwards
+	defer func() {
+		c.StopNode(context.Background(), n)
+		c.RemoveNode(context.Background(), "test_update")
+	}()
+
+	if err := c.CreateNode(context.Background(), n, NodeOpts{
+		SwarmKey: []byte(key),
+	}); err != nil {
+		t.Errorf("failed to create node: %s", err.Error())
+		return
+	}
+
+	// insufficient info
+	if err = c.UpdateNode(context.Background(), &NodeInfo{}); err == nil {
+		t.Errorf("should have errored")
+		return
+	}
+
+	// test configuration changes
+	if err := c.UpdateNode(context.Background(), &NodeInfo{
+		NetworkID: "test_update",
+		Resources: NodeResources{
+			DiskGB:   1,
+			MemoryGB: 1,
+			CPUs:     1,
+		},
+		BootstrapPeers: []string{
+			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+		},
+	}); err != nil {
+		t.Errorf("failed to update node: %s", err.Error())
+		return
 	}
 }

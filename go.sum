@@ -18,6 +18,10 @@ github.com/RTradeLtd/database v1.1.0 h1:Yr22JWdvu+OM/26fG5kIUMymm+wD3p7mlTmPNrUp
 github.com/RTradeLtd/database v1.1.0/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c h1:/WwY/Yh5oyyUT8nBUi68Iegs7Azu+xVol6RiuBbE/bM=
 github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
+github.com/RTradeLtd/grpc v1.0.7-0.20181210212311-568bb7c09779 h1:s198785EtTDHr7BiL1GYhfD8UW3u40K52dvHfd+WVy8=
+github.com/RTradeLtd/grpc v1.0.7-0.20181210212311-568bb7c09779/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
+github.com/RTradeLtd/grpc v1.2.0 h1:wiznfut+nEJiueC6AYldeFP666A0+oW9NzFckno+zm0=
+github.com/RTradeLtd/grpc v1.2.0/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac h1:/zx+Hglw2JN/pwVam1Z8cTCTl4pWyrbvOn2oooqCQSs=

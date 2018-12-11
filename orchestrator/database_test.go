@@ -36,13 +36,6 @@ func Test_getOptionsFromDatabaseEntry(t *testing.T) {
 		{"without swarm key", args{&models.HostedIPFSPrivateNetwork{}}, ipfs.NodeOpts{
 			SwarmKey: []byte("generated"),
 		}, false},
-		{"with bootstrap peers", args{&models.HostedIPFSPrivateNetwork{
-			SwarmKey:               "helloworld",
-			BootstrapPeerAddresses: []string{"1234", "5678"},
-		}}, ipfs.NodeOpts{
-			SwarmKey:       []byte("helloworld"),
-			BootstrapPeers: []string{"1234", "5678"},
-		}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

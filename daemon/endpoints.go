@@ -31,6 +31,13 @@ func (d *Daemon) StartNetwork(ctx context.Context,
 	}, nil
 }
 
+// UpdateNetwork updates the configuration of the given network
+func (d *Daemon) UpdateNetwork(ctx context.Context,
+	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {
+
+	return &ipfs_orchestrator.Empty{}, d.o.NetworkUpdate(ctx, req.GetNetwork())
+}
+
 // StopNetwork brings a node for the requested network offline
 func (d *Daemon) StopNetwork(ctx context.Context,
 	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {

@@ -18,7 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
-type client struct {
+// Client is the primary implementation of the NodeClient interface
+type Client struct {
 	l *zap.SugaredLogger
 	d *docker.Client
 
@@ -27,7 +28,8 @@ type client struct {
 	fileMode  os.FileMode
 }
 
-func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
+// Nodes retrieves a list of active IPFS ndoes
+func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	ctrs, err := c.d.ContainerList(ctx, types.ContainerListOptions{
 		All: true,
 	})
@@ -39,9 +41,7 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	restartNode := func(node NodeInfo) error {
 		var l = c.l.With("node", node)
 		l.Infow("restarting stopped node")
-		if err := c.CreateNode(ctx, &node, NodeOpts{
-			BootstrapPeers: node.BootstrapPeers,
-		}); err != nil {
+		if err := c.CreateNode(ctx, &node, NodeOpts{}); err != nil {
 			l.Errorw("failed to restart node",
 				"error", err)
 			return err
@@ -84,12 +84,12 @@ func (c *client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 // NodeOpts declares options for starting up nodes
 type NodeOpts struct {
-	SwarmKey       []byte
-	BootstrapPeers []string
-	AutoRemove     bool
+	SwarmKey   []byte
+	AutoRemove bool
 }
 
-func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
+// CreateNode activates a new IPFS node
+func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) error {
 	if n == nil || n.NetworkID == "" {
 		return errors.New("invalid configuration provided")
 	}
@@ -107,13 +107,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		return fmt.Errorf("failed to set up filesystem for node: %s", err.Error())
 	}
 
-	// check peers
-	bootstrap := opts.BootstrapPeers != nil && len(opts.BootstrapPeers) > 0
-
 	// set up basic configuration
 	var (
-		containerName = toNodeContainerName(n.NetworkID)
-		ports         = nat.PortMap{
+		ports = nat.PortMap{
 			// public ports
 			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
 			"5001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
@@ -125,18 +121,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
 			c.getDataDir(n.NetworkID) + "/ipfs_start:/usr/local/bin/start_ipfs",
 		}
+		restartPolicy = container.RestartPolicy{Name: "unless-stopped"}
 
 		// important metadata about node
-		labels = n.labels(opts.BootstrapPeers, c.getDataDir(n.NetworkID))
-
-		restartPolicy container.RestartPolicy
+		labels = n.labels(n.BootstrapPeers, c.getDataDir(n.NetworkID))
 	)
 
-	// set restart policy
-	if !opts.AutoRemove {
-		restartPolicy = container.RestartPolicy{
-			Name: "unless-stopped",
-		}
+	// remove restart policy if AutoRemove is enabled
+	if opts.AutoRemove {
+		restartPolicy = container.RestartPolicy{}
 	}
 
 	// create ipfs node container
@@ -158,26 +151,15 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 		RestartPolicy: restartPolicy,
 		Binds:         volumes,
 		PortBindings:  ports,
-
-		// Resource constraints documentation:
-		// https://docs.docker.com/config/containers/resource_constraints/
-		Resources: container.Resources{
-			// memory is in bytes
-			Memory: int64(n.Resources.MemoryGB * 1073741824),
-			// it appears CPUCount is for Windows only, this value is set based on
-			// example from documentation
-			// cpu=1.5 => --cpu-quota=150000 and --cpu-period=100000
-			CPUPeriod: int64(100000),
-			CPUQuota:  int64(n.Resources.CPUs * 100000),
-		},
+		Resources:     containerResources(n),
 	}
 
 	var start = time.Now()
-	l = l.With("container.name", containerName)
+	l = l.With("container.name", n.ContainerName)
 	l.Infow("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
-	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, containerName)
+	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, n.ContainerName)
 	if err != nil {
 		l.Errorw("failed to create container",
 			"error", err, "build.duration", time.Since(start))
@@ -195,7 +177,6 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// assign node metadata
 	n.DockerID = resp.ID
-	n.ContainerName = containerName
 	n.DataDir = c.getDataDir(n.NetworkID)
 
 	// spin up node
@@ -204,7 +185,7 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	if err := c.d.ContainerStart(ctx, n.DockerID, types.ContainerStartOptions{}); err != nil {
 		l.Errorw("error occurred on startup - removing container",
 			"error", err, "start.duration", time.Since(start))
-		go c.d.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{Force: true})
+		go c.d.ContainerRemove(ctx, n.ContainerName, types.ContainerRemoveOptions{Force: true})
 		return fmt.Errorf("failed to start ipfs node: %s", err.Error())
 	}
 
@@ -216,9 +197,9 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	}
 
 	// bootstrap peers if required
-	if bootstrap {
-		l.Info("bootstrapping network node with provided peers")
-		if err := c.bootstrapNode(ctx, n.DockerID, opts.BootstrapPeers...); err != nil {
+	if len(n.BootstrapPeers) > 0 {
+		l.Infow("bootstrapping network node with provided peers")
+		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
 				"error", err, "start.duration", time.Since(start))
 			go c.StopNode(ctx, n)
@@ -232,11 +213,54 @@ func (c *client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	return nil
 }
 
-func (c *client) UpdateNode(ctx context.Context, n *NodeInfo) error {
+// UpdateNode updates node configuration
+func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
+	if n.NetworkID == "" && n.DockerID == "" {
+		return errors.New("network name or docker ID required")
+	}
+
+	// set defaults
+	n.withDefaults()
+
+	var (
+		l     = log.NewProcessLogger(c.l, "node_update", "node", n)
+		start = time.Now()
+
+		resp container.ContainerUpdateOKBody
+		err  error
+	)
+
+	// update Docker-managed configuration
+	var res = containerResources(n)
+	l.Infow("updaing docker-based configuration",
+		"container.resources", containerResources(n))
+	resp, err = c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{Resources: res})
+	if err != nil {
+		l.Errorw("failed to update container configuration",
+			"error", err, "warnings", resp.Warnings)
+		return fmt.Errorf("failed to update node configuration: %s", err.Error())
+	}
+	if len(resp.Warnings) > 0 {
+		l.Warnw("warnings encountered updating container",
+			"warnings", resp.Warnings)
+	}
+
+	// update IPFS configuration - currently requires restart, see function docs
+	l.Infow("updating IPFS node configuration",
+		"node.disk", n.Resources.DiskGB)
+	if err = c.updateIPFSConfig(ctx, n); err != nil {
+		l.Errorw("failed to update IPFS daemon configuration",
+			"error", err)
+		return fmt.Errorf("failed to update IPFS configuration: %s", err.Error())
+	}
+
+	l.Infow("successfully updated network node",
+		"duration", time.Since(start))
 	return nil
 }
 
-func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
+// StopNode shuts down an existing IPFS node
+func (c *Client) StopNode(ctx context.Context, n *NodeInfo) error {
 	if n == nil || n.DockerID == "" {
 		return errors.New("invalid node")
 	}
@@ -278,7 +302,8 @@ func (c *client) StopNode(ctx context.Context, n *NodeInfo) error {
 	)
 }
 
-func (c *client) RemoveNode(ctx context.Context, network string) error {
+// RemoveNode removes assets for given node
+func (c *Client) RemoveNode(ctx context.Context, network string) error {
 	var (
 		start = time.Now()
 		dir   = c.getDataDir(network)
@@ -296,7 +321,7 @@ func (c *client) RemoveNode(ctx context.Context, network string) error {
 		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
 
-	l.Info("node data removed",
+	l.Infow("node data removed",
 		"duration", time.Since(start))
 	return nil
 }
@@ -308,7 +333,8 @@ type NodeStats struct {
 	Stats     interface{}
 }
 
-func (c *client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
+// NodeStats retrieves statistics about the provided node
+func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
 	var start = time.Now()
 
 	// retrieve details from stats API
@@ -361,8 +387,8 @@ type Event struct {
 	Node   NodeInfo `json:"node"`
 }
 
-// Watch listens for specific container events
-func (c *client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
+// Watch initializes a goroutine that tracks IPFS node events
+func (c *Client) Watch(ctx context.Context) (<-chan Event, <-chan error) {
 	var (
 		events = make(chan Event)
 		errs   = make(chan error)

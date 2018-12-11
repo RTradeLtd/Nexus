@@ -7,6 +7,19 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
 
+func getNodeFromDatabaseEntry(jobID string, network *models.HostedIPFSPrivateNetwork) *ipfs.NodeInfo {
+	return &ipfs.NodeInfo{
+		NetworkID: network.Name,
+		JobID:     jobID,
+		Resources: ipfs.NodeResources{
+			DiskGB:   network.ResourcesDiskGB,
+			MemoryGB: network.ResourcesMemoryGB,
+			CPUs:     network.ResourcesCPUs,
+		},
+		BootstrapPeers: network.BootstrapPeerAddresses,
+	}
+}
+
 func getOptionsFromDatabaseEntry(network *models.HostedIPFSPrivateNetwork) (ipfs.NodeOpts, error) {
 	opts := ipfs.NodeOpts{}
 	if network == nil {
@@ -23,9 +36,6 @@ func getOptionsFromDatabaseEntry(network *models.HostedIPFSPrivateNetwork) (ipfs
 		}
 		opts.SwarmKey = []byte(key)
 	}
-
-	// set bootstrap ppers
-	opts.BootstrapPeers = network.BootstrapPeerAddresses
 
 	return opts, nil
 }
