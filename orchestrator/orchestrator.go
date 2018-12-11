@@ -202,10 +202,10 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	new.DockerID = node.DockerID
 	new.Ports = node.Ports
 	new.DataDir = node.DataDir
-	l = l.With("node", new)
 
 	// execute update
-	l.Info("updating node")
+	l.Info("updating node",
+		"node.config", new)
 	if err = o.client.UpdateNode(ctx, new); err != nil {
 		return fmt.Errorf("failed to update network '%s': %s", network, err.Error())
 	}
