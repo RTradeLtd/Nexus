@@ -310,10 +310,16 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 		createErr bool
 		wantErr   bool
 	}{
-		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
-		{"node doesn't exist", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
-		{"client fail", fields{}, args{"asdf"}, true, true},
-		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "test-network-2"}}, args{"test-network-2"}, false, false},
+		{"invalid network name",
+			fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"node doesn't exist",
+			fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"node exists but not in db",
+			fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, true},
+		{"client fail",
+			fields{}, args{"asdf"}, true, true},
+		{"client succeed",
+			fields{ipfs.NodeInfo{NetworkID: "test-network-2"}}, args{"test-network-2"}, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
