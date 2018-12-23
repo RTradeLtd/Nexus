@@ -23,6 +23,7 @@ type IPFSOrchestratorConfig struct {
 
 	IPFS          `json:"ipfs"`
 	API           `json:"api"`
+	Proxy         `json:"proxy"`
 	tcfg.Database `json:"postgres"`
 }
 
@@ -50,7 +51,14 @@ type API struct {
 	TLS  `json:"tls"`
 }
 
-// TLS declares HTTPS configuration for the daemon's gRPC API
+// Proxy declares configuration for the orchestrator proxy
+type Proxy struct {
+	Host string `json:"host"`
+	Port string `json:"port"`
+	TLS  `json:"tls"`
+}
+
+// TLS declares HTTPS configuration
 type TLS struct {
 	CertPath string `json:"cert"`
 	KeyPath  string `json:"key"`
@@ -112,6 +120,12 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	}
 	if c.API.Port == "" {
 		c.API.Port = "9111"
+	}
+	if c.Proxy.Host == "" {
+		c.Proxy.Host = "127.0.0.1"
+	}
+	if c.Proxy.Port == "" {
+		c.Proxy.Port = "80"
 	}
 	if c.Database.URL == "" {
 		c.Database.URL = "127.0.0.1"
