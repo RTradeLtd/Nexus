@@ -10,16 +10,8 @@ github.com/RTradeLtd/config v1.0.9 h1:wcoRyjkn2IedNGKEDXaKIOe3fEL/jyIx8JKQWTclHB
 github.com/RTradeLtd/config v1.0.9/go.mod h1:FVv/bU49cFXT3MRNrPe1VztMBxHQW6MS/DHWqtxNiRc=
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60QmXUNoHbqBEmUBvMzfDU5QdV4CrI=
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
-github.com/RTradeLtd/database v1.0.7 h1:OKBAa+XCQNs3KY71PIsnzr/zLNnTL7/dz3Nxgn0h0gU=
-github.com/RTradeLtd/database v1.0.7/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
-github.com/RTradeLtd/database v1.0.8-0.20181130234800-f972da481bb4 h1:8a2Kr6eZlxPRht36Gtn3KxO2cppOZ58Rw4dYu3mJTjY=
-github.com/RTradeLtd/database v1.0.8-0.20181130234800-f972da481bb4/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/database v1.1.0 h1:Yr22JWdvu+OM/26fG5kIUMymm+wD3p7mlTmPNrUppJE=
 github.com/RTradeLtd/database v1.1.0/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
-github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c h1:/WwY/Yh5oyyUT8nBUi68Iegs7Azu+xVol6RiuBbE/bM=
-github.com/RTradeLtd/grpc v0.0.0-20181114192314-a01354496a0c/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
-github.com/RTradeLtd/grpc v1.0.7-0.20181210212311-568bb7c09779 h1:s198785EtTDHr7BiL1GYhfD8UW3u40K52dvHfd+WVy8=
-github.com/RTradeLtd/grpc v1.0.7-0.20181210212311-568bb7c09779/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/RTradeLtd/grpc v1.2.0 h1:wiznfut+nEJiueC6AYldeFP666A0+oW9NzFckno+zm0=
 github.com/RTradeLtd/grpc v1.2.0/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
@@ -43,6 +35,8 @@ github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 h1:Yzb9+7DP
 github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5/go.mod h1:a2zkGnVExMxdzMo3M0Hi/3sEU+cWnZpSni0O6/Yb/P0=
 github.com/go-chi/chi v3.3.3+incompatible h1:KHkmBEMNkwKuK4FdQL7N2wOeB9jnIx7jR5wsuSBEFI8=
 github.com/go-chi/chi v3.3.3+incompatible/go.mod h1:eB3wogJHnLi3x/kFX2A+IbTBlXxmMeXJVKy9tTv1XzQ=
+github.com/go-chi/cors v1.0.0 h1:e6x8k7uWbUwYs+aXDoiUzeQFT6l0cygBYyNhD7/1Tg0=
+github.com/go-chi/cors v1.0.0/go.mod h1:K2Yje0VW/SJzxiyMYu6iPQYa7hMjQX2i/F491VChg1I=
 github.com/go-sql-driver/mysql v1.4.0 h1:7LxgVwFb2hIQtMm87NdgAVfXjnt4OePseqT1tKx+opk=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/gogo/protobuf v1.1.1 h1:72R+M5VuhED/KujmZVcIquuo8mBgX4oVda//DQb3PXo=
