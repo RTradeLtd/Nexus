@@ -111,11 +111,11 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				nm:      nm,
-				client:  client,
-				reg:     registry.New(l, tt.fields.regPorts),
-				address: "127.0.0.1",
+				Registry: registry.New(l, tt.fields.regPorts),
+				l:        l,
+				nm:       nm,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -176,11 +176,11 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				nm:      nm,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				nm:       nm,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -218,10 +218,10 @@ func TestOrchestrator_NetworkRemove(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -259,10 +259,10 @@ func TestOrchestrator_NetworkStatus(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -326,11 +326,11 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				nm:      nm,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				nm:       nm,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {

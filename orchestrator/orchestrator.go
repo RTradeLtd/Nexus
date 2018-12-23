@@ -20,11 +20,12 @@ import (
 // Orchestrator contains most primary application logic and manages node
 // availability
 type Orchestrator struct {
+	Registry *registry.NodeRegistry
+
 	l  *zap.SugaredLogger
 	nm *models.IPFSNetworkManager
 
 	client  ipfs.NodeClient
-	reg     *registry.NodeRegistry
 	address string
 }
 
@@ -63,10 +64,11 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	l.Info("successfully connected to database")
 
 	return &Orchestrator{
+		Registry: reg,
+
 		l:       l,
 		nm:      models.NewHostedIPFSNetworkManager(dbm.DB),
 		client:  c,
-		reg:     reg,
 		address: address,
 	}, nil
 }
@@ -81,7 +83,7 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 			o.l.Info("releasing orchestrator resources")
 
 			// close registry
-			o.reg.Close()
+			o.Registry.Close()
 
 			// close database
 			if err := o.nm.DB.Close(); err != nil {
@@ -132,7 +134,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 
 	// register node for network
 	newNode := getNodeFromDatabaseEntry(jobID, n)
-	if err := o.reg.Register(newNode); err != nil {
+	if err := o.Registry.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)
 		return NetworkDetails{}, fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
@@ -175,7 +177,7 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	}
 
 	// check node exists
-	node, err := o.reg.Get(network)
+	node, err := o.Registry.Get(network)
 	if err != nil {
 		return fmt.Errorf("failed to find node for network '%s': %s", network, err.Error())
 	}
@@ -214,8 +216,8 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 
 	// update registry
 	l.Info("updating registry")
-	o.reg.Deregister(network)
-	if err := o.reg.Register(new); err != nil {
+	o.Registry.Deregister(network)
+	if err := o.Registry.Register(new); err != nil {
 		l.Errorw("failed to register updated network", "error", err)
 		return fmt.Errorf("error updating registry: %s", err.Error())
 	}
@@ -239,7 +241,7 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	l.Info("network up process started")
 
 	// retrieve node from registry
-	node, err := o.reg.Get(network)
+	node, err := o.Registry.Get(network)
 	if err != nil {
 		l.Info("could not find node in registry")
 		return fmt.Errorf("failed to get node for network %s from registry: %s", network, err.Error())
@@ -255,7 +257,7 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	l.Info("node stopped")
 
 	// deregister node
-	if err := o.reg.Deregister(network); err != nil {
+	if err := o.Registry.Deregister(network); err != nil {
 		l.Errorw("error occurred while deregistering node",
 			"error", err)
 	}
@@ -283,7 +285,7 @@ func (o *Orchestrator) NetworkRemove(ctx context.Context, network string) error 
 		return errors.New("invalid network name provided")
 	}
 
-	if _, err := o.reg.Get(network); err == nil {
+	if _, err := o.Registry.Get(network); err == nil {
 		return errors.New("network is still online and in registry - must be offline for removal")
 	}
 
@@ -301,7 +303,7 @@ type NetworkStatus struct {
 
 // NetworkStatus retrieves the status of the node for the given status
 func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (NetworkStatus, error) {
-	n, err := o.reg.Get(network)
+	n, err := o.Registry.Get(network)
 	if err != nil {
 		return NetworkStatus{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
 	}

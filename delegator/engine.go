@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 )
 
@@ -23,22 +26,75 @@ type Engine struct {
 	timeout time.Duration
 }
 
-// RunOpts declares options for running the delegator engine
-type RunOpts struct {
-	certpath string
-	keypath  string
-}
-
 // New instantiates a new delegator engine
-func New(l *zap.SugaredLogger, timeout time.Duration, reg *registry.NodeRegistry) (*Engine, error) {
-	l = l.Named("delegator")
+func New(l *zap.SugaredLogger, timeout time.Duration, reg *registry.NodeRegistry) *Engine {
 	return &Engine{
-		l:   l,
+		l:   l.Named("delegator"),
 		reg: reg,
 		net: http.DefaultClient,
 
 		timeout: timeout,
-	}, nil
+	}
+}
+
+// Run spins up a server that listens for requests and proxies them appropriately
+func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
+	var r = chi.NewRouter()
+
+	// mount middleware
+	r.Use(
+		cors.New(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"},
+			AllowedHeaders:   []string{"*"},
+			AllowCredentials: true,
+		}).Handler,
+		middleware.RequestID,
+		middleware.RealIP,
+		newLoggerMiddleware(e.l),
+		middleware.Recoverer,
+		middleware.Timeout(e.timeout),
+	)
+
+	// register endpoints
+	r.Route(fmt.Sprintf("/networks/{%s}", keyNetwork), func(r chi.Router) {
+		r.Use(e.Context)
+		r.HandleFunc(fmt.Sprintf("/{%s}", keyFeature), e.Redirect)
+	})
+
+	// set up server
+	var srv = &http.Server{Addr: opts.Host + ":" + opts.Port, Handler: r}
+
+	// handle shutdown
+	go func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				shutdown, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+				if err := srv.Shutdown(shutdown); err != nil {
+					e.l.Warnw("error encountered during shutdown", "error", err.Error())
+					return err
+				}
+				return nil
+			}
+		}
+	}()
+
+	// go!
+	if opts.TLS.CertPath != "" {
+		if err := srv.ListenAndServeTLS(opts.TLS.CertPath, opts.TLS.KeyPath); err != nil && err != http.ErrServerClosed {
+			e.l.Errorw("error encountered - service stopped", "error", err)
+			return err
+		}
+	} else {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			e.l.Errorw("error encountered - service stopped", "error", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Context injects relevant context into all requests

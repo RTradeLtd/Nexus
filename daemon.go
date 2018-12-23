@@ -5,9 +5,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
+	"github.com/RTradeLtd/ipfs-orchestrator/delegator"
+
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
@@ -50,21 +53,40 @@ func runDaemon(configPath string, devMode bool, args []string) {
 
 	// initialize daemon
 	println("initializing daemon")
-	d := daemon.New(l, o)
+	dm := daemon.New(l, o)
 
-	// handle graceful shutdown
+	// initialize delegator
+	println("initializing delegator")
+	dl := delegator.New(l, 1*time.Minute, o.Registry)
+
+	// catch interrupts
 	ctx, cancel := context.WithCancel(context.Background())
-	signals := make(chan os.Signal)
+	var signals = make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-signals
 		cancel()
 	}()
 
-	// serve endpoints
-	println("spinning up server")
-	if err := d.Run(ctx, cfg.API); err != nil {
-		println(err.Error())
-	}
-	println("server shut down")
+	// serve gRPC endpoints
+	println("spinning up gRPC server...")
+	go func() {
+		if err := dm.Run(ctx, cfg.API); err != nil {
+			println(err.Error())
+		}
+		cancel()
+	}()
+
+	// serve delegator
+	println("spinning up delegator...")
+	go func() {
+		if err := dl.Run(ctx, cfg.Proxy); err != nil {
+			println(err.Error())
+		}
+		cancel()
+	}()
+
+	// block
+	<-ctx.Done()
+	println("orchestrator shut down")
 }
