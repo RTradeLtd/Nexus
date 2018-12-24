@@ -54,15 +54,19 @@ func main() {
 
 	if len(args) >= 1 {
 		switch args[0] {
+		// version info
 		case "version":
 			println("ipfs-orchestrator " + Version)
+		// init default config
 		case "init":
 			config.GenerateConfig(*configPath)
 			println("orchestrator configuration generated at " + *configPath)
 			return
+		// run daemon
 		case "daemon":
 			runDaemon(*configPath, *devMode, args[1:])
 			return
+		// run ctl
 		case "ctl":
 			if len(args) > 1 && (args[1] == "-pretty" || args[1] == "--pretty") {
 				runCTL(*configPath, *devMode, true, args[2:])
@@ -70,6 +74,18 @@ func main() {
 				runCTL(*configPath, *devMode, false, args[1:])
 			}
 			return
+		// dev utilities
+		case "dev":
+			if len(args) > 1 {
+				switch args[1] {
+				case "db":
+					if len(args) < 2 {
+						fatal("additional argument required")
+					}
+					initTestNetwork(*configPath, args[2])
+				}
+			}
+		// default error
 		default:
 			fatal(fmt.Sprintf("unknown command '%s' - user the --help' flag for documentation",
 				strings.Join(args[0:], " ")))
