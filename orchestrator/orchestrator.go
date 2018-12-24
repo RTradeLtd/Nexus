@@ -144,8 +144,9 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	l = l.With("node", newNode)
 	l.Info("network registered, creating node")
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
-		l.Errorw("unable to create node",
+		l.Errorw("unable to create node - deregistering",
 			"error", err)
+		o.Registry.Deregister(newNode.NetworkID)
 		return NetworkDetails{}, fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Info("node created")
@@ -155,9 +156,11 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
-		l.Errorw("failed to update database",
+		l.Errorw("failed to update database - removing node",
 			"error", err,
 			"entry", n)
+		o.Registry.Deregister(newNode.NetworkID)
+		o.client.RemoveNode(ctx, newNode.NetworkID)
 		return NetworkDetails{}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
