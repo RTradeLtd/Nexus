@@ -58,13 +58,16 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 		failed   = 0
 	)
 	for _, container := range ctrs {
+		var l = c.l.With("container.id", container.ID, "container.name", container.Names[0])
 		n, err := newNode(container.ID, container.Names[0], container.Labels)
 		if err != nil {
+			l.Debugw("container ignored", "reason", err)
 			ignored++
 			continue
 		}
 		if isStopped(container.Status) {
 			if err := restartNode(n); err != nil {
+				l.Warnw("node container failed to restart", "error", err)
 				failed++
 				continue
 			}
@@ -75,8 +78,9 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	// report activity
 	c.l.Infow("all nodes checked",
+		"found", len(ctrs),
 		"ignored", ignored,
-		"found", len(nodes),
+		"registered", len(nodes),
 		"restarts", restarts,
 		"failed_restarts", failed)
 
