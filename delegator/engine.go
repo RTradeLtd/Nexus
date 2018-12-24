@@ -72,7 +72,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 	}
 
 	// handle shutdown
-	go func() error {
+	go func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -80,9 +80,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 				defer cancel()
 				if err := srv.Shutdown(shutdown); err != nil {
 					e.l.Warnw("error encountered during shutdown", "error", err.Error())
-					return err
 				}
-				return nil
 			}
 		}
 	}()
