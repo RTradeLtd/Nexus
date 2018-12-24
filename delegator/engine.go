@@ -1,11 +1,11 @@
 package delegator
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
@@ -63,7 +63,13 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 	})
 
 	// set up server
-	var srv = &http.Server{Addr: opts.Host + ":" + opts.Port, Handler: r}
+	var srv = &http.Server{
+		Handler: r,
+
+		Addr:         opts.Host + ":" + opts.Port,
+		WriteTimeout: e.timeout,
+		ReadTimeout:  e.timeout,
+	}
 
 	// handle shutdown
 	go func() error {
@@ -139,34 +145,18 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("invalid feature '%s'", f), http.StatusBadRequest)
 	}
 
-	// set target
+	// set up target
 	var (
 		protocol = r.URL.Scheme
 		address  = fmt.Sprintf("%s:%s", "0.0.0.0", port)
 		target   = fmt.Sprintf("%s://%s%s", protocol, address, r.RequestURI)
 	)
 
-	// read request for forwarding
-	body, err := ioutil.ReadAll(r.Body)
+	// proxy request
+	url, err := url.Parse(target)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
-	defer r.Body.Close()
-
-	// set up proxy
-	proxy, err := http.NewRequest(r.Method, target, bytes.NewReader(body))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	proxy.Header = r.Header
-
-	// execute forward
-	resp, err := e.net.Do(proxy)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
+	var proxy = httputil.NewSingleHostReverseProxy(url)
+	proxy.ServeHTTP(w, r)
 }
