@@ -21,17 +21,23 @@ type IPFSOrchestratorClient struct {
 
 // New instantiates a new orchestrator API client
 func New(opts config.API, devMode bool) (*IPFSOrchestratorClient, error) {
-	c := &IPFSOrchestratorClient{}
-	// set up parameters for core conn
-	dialOpts := make([]grpc.DialOption, 0)
+	var (
+		c        = &IPFSOrchestratorClient{}
+		dialOpts []grpc.DialOption
+	)
+
+	if opts.Key != "" {
+		dialOpts = []grpc.DialOption{
+			grpc.WithPerRPCCredentials(dialer.NewCredentials(opts.Key, !devMode)),
+		}
+	}
+
 	if opts.TLS.CertPath != "" {
 		creds, err := credentials.NewClientTLSFromFile(opts.TLS.CertPath, "")
 		if err != nil {
 			return nil, fmt.Errorf("could not load tls cert: %s", err)
 		}
-		dialOpts = append(dialOpts,
-			grpc.WithTransportCredentials(creds),
-			grpc.WithPerRPCCredentials(dialer.NewCredentials(opts.Key, !devMode)))
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
 	} else {
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
