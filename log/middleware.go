@@ -1,4 +1,4 @@
-package delegator
+package log
 
 import (
 	"time"
@@ -13,11 +13,12 @@ type loggerMiddleware struct {
 	l *zap.Logger
 }
 
-func newLoggerMiddleware(logger *zap.SugaredLogger) func(next http.Handler) http.Handler {
-	return loggerMiddleware{logger.Desugar()}.Handler
+// NewMiddleware instantiates a middleware function that logs all requests
+// using the provided logger
+func NewMiddleware(l *zap.SugaredLogger) func(next http.Handler) http.Handler {
+	return loggerMiddleware{l.Desugar()}.Handler
 }
 
-// zapMiddleware manages logging requests and errors going through gin router
 func (z loggerMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

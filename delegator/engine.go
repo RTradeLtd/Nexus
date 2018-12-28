@@ -9,6 +9,7 @@ import (
 
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -53,7 +54,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 		}).Handler,
 		middleware.RequestID,
 		middleware.RealIP,
-		newLoggerMiddleware(e.l.Named("requests")),
+		log.NewMiddleware(e.l.Named("requests")),
 		middleware.Recoverer,
 	)
 
