@@ -2,6 +2,7 @@ package delegator
 
 import (
 	"context"
+	"net"
 	"testing"
 	"time"
 
@@ -10,6 +11,11 @@ import (
 )
 
 func TestEngine_Run(t *testing.T) {
+	// claim port for testing unavailable port
+	if port, err := net.Listen("tcp", "127.0.0.1:69"); err != nil && port != nil {
+		defer port.Close()
+	}
+
 	var l, _ = log.NewLogger("", true)
 	type args struct {
 		opts config.Proxy
@@ -28,7 +34,7 @@ func TestEngine_Run(t *testing.T) {
 		{"invalid port",
 			args{config.Proxy{
 				Host: "127.0.0.1",
-				Port: "7",
+				Port: "69",
 			}},
 			true},
 		{"invalid cert",
