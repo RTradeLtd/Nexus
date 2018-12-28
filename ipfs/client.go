@@ -316,13 +316,10 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 	)
 
 	l.Info("removing node assets")
-	if err := os.RemoveAll(network); err != nil {
+	if err := os.RemoveAll(dir); err != nil {
 		l.Warnw("error encountered removing node directories",
 			"error", err,
 			"duration", time.Since(start))
-		if os.IsNotExist(err) {
-			return fmt.Errorf("assets for network '%s' could not be found", network)
-		}
 		return fmt.Errorf("error occurred while removing assets for '%s'", network)
 	}
 
