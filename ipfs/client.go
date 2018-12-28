@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/ipfs-orchestrator/network"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -115,12 +116,9 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	// set up basic configuration
 	var (
 		ports = nat.PortMap{
-			// public ports
-			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
-			"5001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
-
-			// private ports
-			"8080/tcp": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
+			"4001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Swarm}},
+			"5001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.API}},
+			"8080/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",

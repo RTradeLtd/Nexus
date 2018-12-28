@@ -10,6 +10,7 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/ipfs-orchestrator/network"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -160,7 +161,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		address = fmt.Sprintf("%s:%s", "0.0.0.0", port)
+		address = fmt.Sprintf("%s:%s", network.Private, port)
 		target  = fmt.Sprintf("%s%s%s", protocol, address, r.RequestURI)
 	)
 

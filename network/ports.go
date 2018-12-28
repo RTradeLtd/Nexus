@@ -8,6 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// Private denotes localhost
+	Private = "127.0.0.1"
+
+	// Public denotes 0.0.0.0
+	Public = "0.0.0.0"
+)
+
 // Registry manages host network usage
 type Registry struct {
 	l *zap.SugaredLogger
