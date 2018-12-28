@@ -27,9 +27,11 @@ USAGE:
 COMMANDS:
 
   init        initialize configuration
-  daemon      spin up the ipfs-orchestrator daemon and processes
-  ctl         [EXPERIMENTAL] interact with daemon via a low-level client
-  version     display program version
+	daemon      spin up the ipfs-orchestrator daemon and processes
+	version     display program version
+
+	dev         [DEV] utilities for development purposes
+	ctl         [EXPERIMENTAL] interact with daemon via a low-level client
 
 OPTIONS:
 
@@ -76,6 +78,9 @@ func main() {
 			return
 		// dev utilities
 		case "dev":
+			if *devMode != true {
+				fatal("do not use the dev utilities outside of dev mode!")
+			}
 			if len(args) > 1 {
 				switch args[1] {
 				case "db":
@@ -92,7 +97,7 @@ func main() {
 			return
 		}
 	} else {
-		fatal("no arguments provided - use the '--help' flag for documentation")
+		fatal("insufficient arguments provided - use the '--help' flag for documentation")
 	}
 }
 

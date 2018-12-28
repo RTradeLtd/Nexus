@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/render"
 	"go.uber.org/zap"
 )
 
@@ -24,16 +25,18 @@ type Engine struct {
 	net *http.Client
 
 	timeout time.Duration
+	version string
 }
 
 // New instantiates a new delegator engine
-func New(l *zap.SugaredLogger, timeout time.Duration, reg *registry.NodeRegistry) *Engine {
+func New(l *zap.SugaredLogger, version string, timeout time.Duration, reg *registry.NodeRegistry) *Engine {
 	return &Engine{
 		l:   l.Named("delegator"),
 		reg: reg,
 		net: http.DefaultClient,
 
 		timeout: timeout,
+		version: version,
 	}
 }
 
@@ -51,15 +54,18 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 		}).Handler,
 		middleware.RequestID,
 		middleware.RealIP,
-		newLoggerMiddleware(e.l),
+		newLoggerMiddleware(e.l.Named("requests")),
 		middleware.Recoverer,
-		middleware.Timeout(e.timeout),
 	)
 
 	// register endpoints
-	r.Route(fmt.Sprintf("/networks/{%s}", keyNetwork), func(r chi.Router) {
+	r.HandleFunc("/status", e.Status)
+	r.Route(fmt.Sprintf("/network/{%s}", keyNetwork), func(r chi.Router) {
 		r.Use(e.Context)
-		r.HandleFunc(fmt.Sprintf("/{%s}", keyFeature), e.Redirect)
+		r.HandleFunc("/status", e.NetworkStatus)
+		r.Route(fmt.Sprintf("/{%s}", keyFeature), func(r chi.Router) {
+			r.HandleFunc("/*", e.Redirect)
+		})
 	})
 
 	// set up server
@@ -107,11 +113,12 @@ func (e *Engine) Context(next http.Handler) http.Handler {
 		var id = chi.URLParam(r, string(keyNetwork))
 		n, err := e.reg.Get(id)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+
 		next.ServeHTTP(w, r.WithContext(
-			context.WithValue(r.Context(), keyNetwork, n),
+			context.WithValue(r.Context(), keyNetwork, &n),
 		))
 	})
 }
@@ -126,9 +133,9 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// retrieve requested feature
-	f, ok := r.Context().Value(keyFeature).(string)
-	if !ok || f == "" {
-		http.Error(w, http.StatusText(422), 422)
+	var f = chi.URLParam(r, string(keyFeature))
+	if f == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -141,20 +148,70 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		port = n.Ports.Swarm
 	default:
 		http.Error(w, fmt.Sprintf("invalid feature '%s'", f), http.StatusBadRequest)
+		return
 	}
 
 	// set up target
+	var protocol string
+	if r.URL.Scheme != "" {
+		protocol = r.URL.Scheme + "://"
+	} else {
+		protocol = "http://"
+	}
+
 	var (
-		protocol = r.URL.Scheme
-		address  = fmt.Sprintf("%s:%s", "0.0.0.0", port)
-		target   = fmt.Sprintf("%s://%s%s", protocol, address, r.RequestURI)
+		address = fmt.Sprintf("%s:%s", "0.0.0.0", port)
+		target  = fmt.Sprintf("%s%s%s", protocol, address, r.RequestURI)
 	)
 
-	// proxy request
+	// set up forwarder - TODO: cache
 	url, err := url.Parse(target)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	var proxy = httputil.NewSingleHostReverseProxy(url)
+	var proxy = httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = url.Scheme
+			req.URL.Host = url.Host
+
+			// remove delgator-specific leading elements, e.g. /networks/test_network/api,
+			// and accomodate for specific cases
+			switch f {
+			case "api":
+				req.URL.Path = "/api" + stripLeadingSegments(req.URL.Path)
+			default:
+				req.URL.Path = stripLeadingSegments(req.URL.Path)
+			}
+
+			e.l.Debugw("forwarded request",
+				"path", req.URL.Path,
+				"url", req.URL)
+		},
+	}
+
+	// serve proxy request
 	proxy.ServeHTTP(w, r)
+}
+
+// Status reports on proxy status
+func (e *Engine) Status(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	render.JSON(w, r, map[string]string{
+		"status":  "online",
+		"version": e.version,
+	})
+}
+
+// NetworkStatus reports on the status of a network
+func (e *Engine) NetworkStatus(w http.ResponseWriter, r *http.Request) {
+	if _, ok := r.Context().Value(keyNetwork).(*ipfs.NodeInfo); !ok {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	render.JSON(w, r, map[string]string{
+		"status": "registered",
+	})
 }
