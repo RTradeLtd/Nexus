@@ -9,22 +9,25 @@ set -e
 # arguments provided through string templates
 DISK_MAX=%dGB
 
+# set variables
 user=ipfs
 repo="$IPFS_PATH"
 
+# set user
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Changing user to $user"
+  echo "changing user to $user"
   # ensure folder is writable
   su-exec "$user" test -w "$repo" || chown -R -- "$user" "$repo"
   # restart script with new privileges
   exec su-exec "$user" "$0" "$@"
 fi
 
-# 2nd invocation with regular user
+# check exec, report version
 ipfs version
 
+# check for existing repo - otherwise init new one
 if [ -e "$repo/config" ]; then
-  echo "Found IPFS fs-repo at $repo"
+  echo "found IPFS fs-repo at $repo"
 else
   ipfs init
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
@@ -33,6 +36,9 @@ fi
 
 # set datastore quota
 ipfs config Datastore.StorageMax $DISK_MAX
+
+# release locks
+ipfs repo fsck
 
 # if the first argument is daemon
 if [ "$1" = "daemon" ]; then
