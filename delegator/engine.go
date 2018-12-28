@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -170,25 +169,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	var proxy = httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			req.URL.Scheme = url.Scheme
-			req.URL.Host = url.Host
-
-			// remove delgator-specific leading elements, e.g. /networks/test_network/api,
-			// and accomodate for specific cases
-			switch f {
-			case "api":
-				req.URL.Path = "/api" + stripLeadingSegments(req.URL.Path)
-			default:
-				req.URL.Path = stripLeadingSegments(req.URL.Path)
-			}
-
-			e.l.Debugw("forwarded request",
-				"path", req.URL.Path,
-				"url", req.URL)
-		},
-	}
+	proxy := newProxy(f, url, e.l)
 
 	// serve proxy request
 	proxy.ServeHTTP(w, r)
