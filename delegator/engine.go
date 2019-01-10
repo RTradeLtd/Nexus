@@ -62,7 +62,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 	// register endpoints
 	r.HandleFunc("/status", e.Status)
 	r.Route(fmt.Sprintf("/network/{%s}", keyNetwork), func(r chi.Router) {
-		r.Use(e.Context)
+		r.Use(e.NetworkContext)
 		r.HandleFunc("/status", e.NetworkStatus)
 		r.Route(fmt.Sprintf("/{%s}", keyFeature), func(r chi.Router) {
 			r.HandleFunc("/*", e.Redirect)
@@ -108,8 +108,9 @@ func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
 	return nil
 }
 
-// Context injects relevant context into all requests
-func (e *Engine) Context(next http.Handler) http.Handler {
+// NetworkContext creates a handler that injects relevant network context into
+// all incoming requests through URL parameters
+func (e *Engine) NetworkContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var id = chi.URLParam(r, string(keyNetwork))
 		n, err := e.reg.Get(id)
