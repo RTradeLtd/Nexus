@@ -8,12 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi"
-
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+	"github.com/go-chi/chi"
 )
 
 func TestEngine_Run(t *testing.T) {
@@ -110,5 +109,16 @@ func TestEngine_NetworkContext(t *testing.T) {
 				t.Errorf("expected status '%d', found '%d'", tt.wantCode, rec.Code)
 			}
 		})
+	}
+}
+
+func TestEngine_Status(t *testing.T) {
+	var l, _ = log.NewLogger("", true)
+	var e = New(l, "test", time.Second, registry.New(l, config.New().Ports))
+	var req = httptest.NewRequest("GET", "/", nil)
+	var rec = httptest.NewRecorder()
+	e.Status(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status '%d', found '%d'", http.StatusOK, rec.Code)
 	}
 }
