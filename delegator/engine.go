@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -21,9 +22,10 @@ import (
 
 // Engine manages request delegation
 type Engine struct {
-	l   *zap.SugaredLogger
-	reg *registry.NodeRegistry
-	net *http.Client
+	l     *zap.SugaredLogger
+	reg   *registry.NodeRegistry
+	net   *http.Client
+	cache *cache
 
 	timeout time.Duration
 	version string
@@ -32,9 +34,10 @@ type Engine struct {
 // New instantiates a new delegator engine
 func New(l *zap.SugaredLogger, version string, timeout time.Duration, reg *registry.NodeRegistry) *Engine {
 	return &Engine{
-		l:   l.Named("delegator"),
-		reg: reg,
-		net: http.DefaultClient,
+		l:     l.Named("delegator"),
+		reg:   reg,
+		net:   http.DefaultClient,
+		cache: newCache(30*time.Minute, 30*time.Minute),
 
 		timeout: timeout,
 		version: version,
@@ -135,21 +138,21 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// retrieve requested feature
-	var f = chi.URLParam(r, string(keyFeature))
-	if f == "" {
+	var feature string
+	if feature = chi.URLParam(r, string(keyFeature)); feature == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	// set target port based on feature
 	var port string
-	switch f {
+	switch feature {
 	case "api":
 		port = n.Ports.API
 	case "swarm":
 		port = n.Ports.Swarm
 	default:
-		http.Error(w, fmt.Sprintf("invalid feature '%s'", f), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("invalid feature '%s'", feature), http.StatusBadRequest)
 		return
 	}
 
@@ -166,13 +169,18 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		target  = fmt.Sprintf("%s%s%s", protocol, address, r.RequestURI)
 	)
 
-	// set up forwarder - TODO: cache
 	url, err := url.Parse(target)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	proxy := newProxy(f, url, e.l)
+
+	// set up forwarder, retrieving from cache if available, otherwise set up new
+	var proxy *httputil.ReverseProxy
+	if proxy = e.cache.Get(fmt.Sprintf("%s-%s", n.NetworkID, feature)); proxy == nil {
+		proxy = newProxy(feature, url, e.l)
+		e.cache.Cache(fmt.Sprintf("%s-%s", n.NetworkID, feature), proxy)
+	}
 
 	// serve proxy request
 	proxy.ServeHTTP(w, r)
