@@ -14,10 +14,6 @@ build:
 install: deps
 	go install -ldflags "-X main.Version=$(VERSION)"
 
-.PHONY: config
-config: build
-	./ipfs-orchestrator -config ./config.example.json init
-
 # Install dependencies
 .PHONY: deps
 deps:
@@ -67,6 +63,14 @@ release:
 
 NETWORK=test_network
 TESTFLAGS=-dev -config ./config.example.json
+
+.PHONY: config
+config: build
+	./ipfs-orchestrator -config ./config.example.json init
+
+.PHONY: daemon
+daemon: build
+	./ipfs-orchestrator $(TESTFLAGS) daemon
 
 .PHONY: new-network
 new-network: build
