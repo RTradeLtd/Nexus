@@ -88,6 +88,9 @@ func main() {
 						fatal("additional argument required")
 					}
 					initTestNetwork(*configPath, args[2])
+				default:
+					fatal(fmt.Sprintf("unknown command '%s' - user the --help' flag for documentation",
+						strings.Join(args[0:], " ")))
 				}
 			}
 		// default error
