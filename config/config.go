@@ -106,7 +106,11 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 		c.Delegator.Host = "127.0.0.1"
 	}
 	if c.Delegator.Port == "" {
-		c.Delegator.Port = "80"
+		if dev {
+			c.Delegator.Port = "8080"
+		} else {
+			c.Delegator.Port = "80"
+		}
 	}
 
 	// Database settings
