@@ -41,6 +41,7 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 	l.Info("bootstrapping existing nodes")
 	nodes, err := c.Nodes(context.Background())
 	if err != nil {
+		l.Errorw("failed to fetch nodes", "error", err)
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}
 	reg := registry.New(l, ports, nodes...)
@@ -59,6 +60,7 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 		RunMigrations:  dev,
 	})
 	if err != nil {
+		l.Errorw("failed to connect to database", "error", err)
 		return nil, fmt.Errorf("unable to connect to database: %s", err.Error())
 	}
 	l.Info("successfully connected to database")
