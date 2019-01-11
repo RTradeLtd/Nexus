@@ -235,47 +235,6 @@ func TestOrchestrator_NetworkRemove(t *testing.T) {
 	}
 }
 
-func TestOrchestrator_NetworkStatus(t *testing.T) {
-	type fields struct {
-		node ipfs.NodeInfo
-	}
-	type args struct {
-		network string
-	}
-	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		createErr bool
-		wantErr   bool
-	}{
-		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
-		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
-		{"client fail", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, true},
-		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l, _ := log.NewTestLogger()
-			client := &mock.FakeNodeClient{}
-			o := &Orchestrator{
-				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
-				l:        l,
-				client:   client,
-				address:  "127.0.0.1",
-			}
-
-			if tt.createErr {
-				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
-			}
-
-			if _, err := o.NetworkStatus(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
-				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestOrchestrator_NetworkUpdate(t *testing.T) {
 	// pre-test database setup
 	dbm, err := database.Initialize(&tcfg.TemporalConfig{
@@ -339,6 +298,88 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 
 			if err := o.NetworkUpdate(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkStatus(t *testing.T) {
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"client fail", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, true},
+		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
+			}
+
+			if _, err := o.NetworkStatus(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkDiagnostics(t *testing.T) {
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"client fail should still return", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, false},
+		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
+			}
+
+			if _, err := o.NetworkDiagnostics(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkDiagnostics() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

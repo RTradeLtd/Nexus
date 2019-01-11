@@ -296,13 +296,12 @@ func (o *Orchestrator) NetworkRemove(ctx context.Context, network string) error 
 	return o.client.RemoveNode(ctx, network)
 }
 
-// NetworkStatus denotes details about requested network
+// NetworkStatus denotes high-level details about requested network, intended
+// for consumer use
 type NetworkStatus struct {
 	Network   string
-	API       string
 	Uptime    time.Duration
 	DiskUsage int64
-	Stats     interface{}
 }
 
 // NetworkStatus retrieves the status of the node for the given status
@@ -322,9 +321,35 @@ func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (Netwo
 
 	return NetworkStatus{
 		Network:   network,
-		API:       o.address + ":" + n.Ports.API,
 		Uptime:    stats.Uptime,
 		DiskUsage: stats.DiskUsage,
-		Stats:     stats.Stats,
+	}, nil
+}
+
+// NetworkDiagnostics describe detailed statistics and information about a node
+type NetworkDiagnostics struct {
+	ipfs.NodeInfo
+	ipfs.NodeStats
+}
+
+// NetworkDiagnostics retrieves detailed statistics and information about a node
+func (o *Orchestrator) NetworkDiagnostics(ctx context.Context, network string) (NetworkDiagnostics, error) {
+	o.l.Info("diagnostics requested for network", "network.id", network)
+	n, err := o.Registry.Get(network)
+	if err != nil {
+		return NetworkDiagnostics{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
+	}
+
+	// attempt to retrieve live network stats, return what's possible
+	stats, err := o.client.NodeStats(ctx, &n)
+	if err != nil {
+		o.l.Errorw("error occurred while attempting to acess registered node",
+			"error", err,
+			"node", n)
+	}
+
+	return NetworkDiagnostics{
+		NodeInfo:  n,
+		NodeStats: stats,
 	}, nil
 }
