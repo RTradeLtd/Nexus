@@ -90,6 +90,46 @@ func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 // SetDefaults initializes certain blank values with defaults, with special
 // presets for dev
 func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
+	// API settings
+	if c.API.Host == "" {
+		c.API.Host = "127.0.0.1"
+	}
+	if c.API.Port == "" {
+		c.API.Port = "9111"
+	}
+	if c.API.Key == "" {
+		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+	}
+
+	// Proxy settings
+	if c.Proxy.Host == "" {
+		c.Proxy.Host = "127.0.0.1"
+	}
+	if c.Proxy.Port == "" {
+		c.Proxy.Port = "80"
+	}
+
+	// Database settings
+	if c.Database.URL == "" {
+		c.Database.URL = "127.0.0.1"
+	}
+	if c.Database.Port == "" {
+		if dev {
+			c.Database.Port = "5433"
+		} else {
+			c.Database.Port = "5432"
+		}
+	}
+	if dev {
+		if c.Database.Username == "" {
+			c.Database.Username = "postgres"
+		}
+		if c.Database.Password == "" {
+			c.Database.Password = "password123"
+		}
+	}
+
+	// IPFS settings
 	if c.IPFS.Version == "" {
 		c.IPFS.Version = DefaultIPFSVersion
 	}
@@ -102,35 +142,6 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 	}
 	if c.IPFS.ModePerm == "" {
 		c.IPFS.ModePerm = "0700"
-	}
-	if c.API.Host == "" {
-		c.API.Host = "127.0.0.1"
-	}
-	if c.API.Port == "" {
-		c.API.Port = "9111"
-	}
-	if c.API.Key == "" {
-		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
-	}
-	if c.Proxy.Host == "" {
-		c.Proxy.Host = "127.0.0.1"
-	}
-	if c.Proxy.Port == "" {
-		c.Proxy.Port = "80"
-	}
-	if c.Database.URL == "" {
-		c.Database.URL = "127.0.0.1"
-	}
-	if c.Database.Port == "" {
-		c.Database.Port = "5432"
-	}
-	if dev {
-		if c.Database.Username == "" {
-			c.Database.Username = "postgres"
-		}
-		if c.Database.Password == "" {
-			c.Database.Password = "password123"
-		}
 	}
 	if c.IPFS.Ports.Swarm == nil {
 		c.IPFS.Ports.Swarm = []string{"4001-5000"}

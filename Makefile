@@ -83,3 +83,7 @@ new-network: build
 .PHONY: start-network
 start-network: build
 	./ipfs-orchestrator $(TESTFLAGS) ctl StartNetwork Network=$(NETWORK)
+
+.PHONY: stat-network
+stat-network:
+	./ipfs-orchestrator $(TESTFLAGS) ctl NetworkStats Network=$(NETWORK)
