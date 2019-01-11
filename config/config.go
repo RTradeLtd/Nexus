@@ -21,7 +21,7 @@ type IPFSOrchestratorConfig struct {
 
 	IPFS          `json:"ipfs"`
 	API           `json:"api"`
-	Proxy         `json:"proxy"`
+	Delegator     `json:"delegator"`
 	tcfg.Database `json:"postgres"`
 }
 
@@ -49,8 +49,8 @@ type API struct {
 	TLS  `json:"tls"`
 }
 
-// Proxy declares configuration for the orchestrator proxy
-type Proxy struct {
+// Delegator declares configuration for the orchestrator proxy
+type Delegator struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
 	TLS  `json:"tls"`
@@ -102,11 +102,11 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 	}
 
 	// Proxy settings
-	if c.Proxy.Host == "" {
-		c.Proxy.Host = "127.0.0.1"
+	if c.Delegator.Host == "" {
+		c.Delegator.Host = "127.0.0.1"
 	}
-	if c.Proxy.Port == "" {
-		c.Proxy.Port = "80"
+	if c.Delegator.Port == "" {
+		c.Delegator.Port = "80"
 	}
 
 	// Database settings

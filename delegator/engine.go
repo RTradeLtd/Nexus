@@ -45,7 +45,7 @@ func New(l *zap.SugaredLogger, version string, timeout time.Duration, reg *regis
 }
 
 // Run spins up a server that listens for requests and proxies them appropriately
-func (e *Engine) Run(ctx context.Context, opts config.Proxy) error {
+func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 	var r = chi.NewRouter()
 
 	// mount middleware

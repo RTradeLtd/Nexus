@@ -80,7 +80,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	// serve delegator
 	println("spinning up delegator...")
 	go func() {
-		if err := dl.Run(ctx, cfg.Proxy); err != nil {
+		if err := dl.Run(ctx, cfg.Delegator); err != nil {
 			println(err.Error())
 		}
 		cancel()

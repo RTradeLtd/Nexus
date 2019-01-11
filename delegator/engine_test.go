@@ -23,7 +23,7 @@ func TestEngine_Run(t *testing.T) {
 
 	var l, _ = log.NewLogger("", true)
 	type args struct {
-		opts config.Proxy
+		opts config.Delegator
 	}
 	tests := []struct {
 		name    string
@@ -31,19 +31,19 @@ func TestEngine_Run(t *testing.T) {
 		wantErr bool
 	}{
 		{"no cert",
-			args{config.Proxy{
+			args{config.Delegator{
 				Host: "127.0.0.1",
 				Port: "",
 			}},
 			false},
 		{"invalid port",
-			args{config.Proxy{
+			args{config.Delegator{
 				Host: "127.0.0.1",
 				Port: "69",
 			}},
 			true},
 		{"invalid cert",
-			args{config.Proxy{
+			args{config.Delegator{
 				Host: "127.0.0.1",
 				Port: "",
 				TLS:  config.TLS{CertPath: "../README.md"},
