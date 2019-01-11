@@ -83,7 +83,7 @@ func main() {
 			}
 			if len(args) > 1 {
 				switch args[1] {
-				case "db":
+				case "network":
 					if len(args) < 2 {
 						fatal("additional argument required")
 					}

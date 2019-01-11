@@ -60,3 +60,17 @@ gen:
 .PHONY: release
 release:
 	bash .scripts/release.sh
+
+#####################
+# DEVELOPMENT UTILS #
+#####################
+
+NETWORK=test_network
+
+.PHONY: new-network
+new-network: build
+	./ipfs-orchestrator -dev dev -config config.example.json db $(NETWORK)
+
+.PHONY: start-network
+start-network: build
+	./ipfs-orchestrator -dev ctl StartNetwork Network=$(NETWORK)
