@@ -81,7 +81,7 @@ daemon: build
 
 .PHONY: new-network
 new-network: build
-	./ipfs-orchestrator $(TESTFLAGS) dev db $(NETWORK)
+	./ipfs-orchestrator $(TESTFLAGS) dev network $(NETWORK)
 
 .PHONY: start-network
 start-network: build
@@ -90,3 +90,7 @@ start-network: build
 .PHONY: stat-network
 stat-network:
 	./ipfs-orchestrator $(TESTFLAGS) ctl NetworkStats Network=$(NETWORK)
+
+.PHONY: diag-network
+diag-network:
+	./ipfs-orchestrator $(TESTFLAGS) ctl NetworkDiagnostics Network=$(NETWORK)
