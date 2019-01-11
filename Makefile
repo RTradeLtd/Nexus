@@ -66,11 +66,12 @@ release:
 #####################
 
 NETWORK=test_network
+TESTFLAGS=-dev -config ./config.example.json
 
 .PHONY: new-network
 new-network: build
-	./ipfs-orchestrator -dev dev -config config.example.json db $(NETWORK)
+	./ipfs-orchestrator $(TESTFLAGS) dev db $(NETWORK)
 
 .PHONY: start-network
 start-network: build
-	./ipfs-orchestrator -dev ctl StartNetwork Network=$(NETWORK)
+	./ipfs-orchestrator $(TESTFLAGS) ctl StartNetwork Network=$(NETWORK)
