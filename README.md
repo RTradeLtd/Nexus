@@ -66,3 +66,20 @@ $> ipfs-orchestrator -dev ctl StartNetwork Network=test-network
 $> ipfs-orchestrator -dev ctl NetworkStats Network=test-network
 $> ipfs-orchestrator -dev ctl StopNetwork Network=test-network
 ```
+
+### Running Locally
+
+A few make commands make it easy to simulate a full orchestrator environment on your machine:
+
+```bash
+$> make dev-config # make sure dev configuration is up to date
+$> make testenv    # initialize test environment
+$> make daemon     # start up daemon with dev configuration
+```
+
+Then, you can set up and start a network node:
+
+```bash
+$> make new-network   # create network entry in database
+$> make start-network # spin up network node
+```
