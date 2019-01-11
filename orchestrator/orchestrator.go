@@ -99,8 +99,8 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 
 // NetworkDetails provides information about an instantiated network
 type NetworkDetails struct {
-	API      string
-	SwarmKey string
+	NetworkID string
+	SwarmKey  string
 }
 
 // NetworkUp intializes a node for given network
@@ -154,7 +154,6 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	l.Info("node created")
 
 	// update network in database
-	n.APIURL = o.address + ":" + newNode.Ports.API
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
 	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
@@ -163,15 +162,15 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 			"entry", n)
 		o.Registry.Deregister(newNode.NetworkID)
 		o.client.RemoveNode(ctx, newNode.NetworkID)
-		return NetworkDetails{}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
+		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
 	}
 
 	l.Infow("network up process completed",
 		"network_up.duration", time.Since(start))
 
 	return NetworkDetails{
-		API:      n.APIURL,
-		SwarmKey: n.SwarmKey,
+		NetworkID: network,
+		SwarmKey:  n.SwarmKey,
 	}, nil
 }
 
