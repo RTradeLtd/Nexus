@@ -159,7 +159,7 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	var start = time.Now()
 	l = l.With("container.name", n.ContainerName)
-	l.Infow("creating network container",
+	l.Debugw("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
 	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, n.ContainerName)
@@ -201,7 +201,7 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// bootstrap peers if required
 	if len(n.BootstrapPeers) > 0 {
-		l.Infow("bootstrapping network node with provided peers")
+		l.Debugw("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
 				"error", err, "start.duration", time.Since(start))
@@ -235,7 +235,7 @@ func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 
 	// update Docker-managed configuration
 	var res = containerResources(n)
-	l.Infow("updaing docker-based configuration",
+	l.Debugw("updating docker-based configuration",
 		"container.resources", containerResources(n))
 	resp, err = c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{Resources: res})
 	if err != nil {
@@ -249,7 +249,7 @@ func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	}
 
 	// update IPFS configuration - currently requires restart, see function docs
-	l.Infow("updating IPFS node configuration",
+	l.Debugw("updating IPFS node configuration",
 		"node.disk", n.Resources.DiskGB)
 	if err = c.updateIPFSConfig(ctx, n); err != nil {
 		l.Errorw("failed to update IPFS daemon configuration",
@@ -313,7 +313,7 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 		l     = c.l.With("network_id", network, "data_dir", dir)
 	)
 
-	l.Info("removing node assets")
+	l.Debug("removing node assets")
 	if err := os.RemoveAll(dir); err != nil {
 		l.Warnw("error encountered removing node directories",
 			"error", err,
@@ -368,7 +368,7 @@ func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) 
 		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
 	}
 
-	c.l.Infow("retrieved node container data",
+	c.l.Debugw("retrieved node container data",
 		"network_id", n.NetworkID,
 		"docker_id", n.DockerID,
 		"stat.duration", time.Since(start))
