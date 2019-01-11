@@ -61,7 +61,7 @@ func main() {
 			println("ipfs-orchestrator " + Version)
 		// init default config
 		case "init":
-			config.GenerateConfig(*configPath)
+			config.GenerateConfig(*configPath, *devMode)
 			println("orchestrator configuration generated at " + *configPath)
 			return
 		// run daemon

@@ -8,9 +8,9 @@ import (
 )
 
 // GenerateConfig writes an empty orchestrator config template to given filepath
-func GenerateConfig(configPath string) error {
+func GenerateConfig(configPath string, dev bool) error {
 	template := &IPFSOrchestratorConfig{}
-	template.setDefaults()
+	template.SetDefaults(dev)
 	b, err := json.Marshal(template)
 	if err != nil {
 		return err

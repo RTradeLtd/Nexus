@@ -1,0 +1,44 @@
+{
+  "address": "",
+  "log_path": "",
+  "ipfs": {
+    "version": "v0.4.18",
+    "data_dir": "tmp",
+    "perm_mode": "0700",
+    "ports": {
+      "swarm": [
+        "4001-5000"
+      ],
+      "api": [
+        "5001-6000"
+      ],
+      "gateway": [
+        "8001-9000"
+      ]
+    }
+  },
+  "api": {
+    "host": "127.0.0.1",
+    "port": "9111",
+    "key": "DO_NOT_LEAVE_ME_AS_DEFAULT",
+    "tls": {
+      "cert": "",
+      "key": ""
+    }
+  },
+  "proxy": {
+    "host": "127.0.0.1",
+    "port": "80",
+    "tls": {
+      "cert": "",
+      "key": ""
+    }
+  },
+  "postgres": {
+    "name": "",
+    "url": "127.0.0.1",
+    "port": "5432",
+    "username": "postgres",
+    "password": "password123"
+  }
+}

@@ -57,16 +57,20 @@ gen:
 release:
 	bash .scripts/release.sh
 
+.PHONY: example-config
+example-config: build
+	./ipfs-orchestrator -config ./config.example.json init
+
 #####################
 # DEVELOPMENT UTILS #
 #####################
 
 NETWORK=test_network
-TESTFLAGS=-dev -config ./config.example.json
+TESTFLAGS=-dev -config ./config.dev.json
 
-.PHONY: config
-config: build
-	./ipfs-orchestrator -config ./config.example.json init
+.PHONY: dev-config
+dev-config: build
+	./ipfs-orchestrator $(TESTFLAGS) init
 
 .PHONY: daemon
 daemon: build

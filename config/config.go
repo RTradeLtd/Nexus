@@ -65,7 +65,7 @@ type TLS struct {
 // New creates a new, default configuration
 func New() IPFSOrchestratorConfig {
 	var cfg IPFSOrchestratorConfig
-	cfg.setDefaults()
+	cfg.SetDefaults(false)
 	return cfg
 }
 
@@ -82,17 +82,23 @@ func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 		return cfg, fmt.Errorf("could not read config: %s", err.Error())
 	}
 
-	cfg.setDefaults()
+	cfg.SetDefaults(false)
 
 	return cfg, nil
 }
 
-func (c *IPFSOrchestratorConfig) setDefaults() {
+// SetDefaults initializes certain blank values with defaults, with special
+// presets for dev
+func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 	if c.IPFS.Version == "" {
 		c.IPFS.Version = DefaultIPFSVersion
 	}
 	if c.IPFS.DataDirectory == "" {
-		c.IPFS.DataDirectory = "/"
+		if dev {
+			c.IPFS.DataDirectory = "tmp"
+		} else {
+			c.IPFS.DataDirectory = "/"
+		}
 	}
 	if c.IPFS.ModePerm == "" {
 		c.IPFS.ModePerm = "0700"
@@ -117,6 +123,14 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	}
 	if c.Database.Port == "" {
 		c.Database.Port = "5432"
+	}
+	if dev {
+		if c.Database.Username == "" {
+			c.Database.Username = "postgres"
+		}
+		if c.Database.Password == "" {
+			c.Database.Password = "password123"
+		}
 	}
 	if c.IPFS.Ports.Swarm == nil {
 		c.IPFS.Ports.Swarm = []string{"4001-5000"}
