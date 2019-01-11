@@ -103,6 +103,9 @@ func (c *IPFSOrchestratorConfig) setDefaults() {
 	if c.API.Port == "" {
 		c.API.Port = "9111"
 	}
+	if c.API.Key == "" {
+		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+	}
 	if c.Proxy.Host == "" {
 		c.Proxy.Host = "127.0.0.1"
 	}

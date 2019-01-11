@@ -20,7 +20,7 @@
   "api": {
     "host": "127.0.0.1",
     "port": "9111",
-    "key": "",
+    "key": "DO_NOT_LEAVE_ME_AS_DEFAULT",
     "tls": {
       "cert": "",
       "key": ""
