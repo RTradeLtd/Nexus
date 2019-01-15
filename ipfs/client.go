@@ -116,8 +116,18 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	// set up basic configuration
 	var (
 		ports = nat.PortMap{
-			"4001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Swarm}},
+			// TODO: make this private - blocked by lack of multiaddr support for /http
+			// paths, which means delegator can't work with go-ipfs swarm.
+			// See https://github.com/multiformats/multiaddr/issues/63
+			"4001/tcp": []nat.PortBinding{{HostIP: network.Public, HostPort: n.Ports.Swarm}},
+
+			// API server connections can be made via delegator. Suffers from same
+			// issue as above, but direct API exposure is dangeorous since it is
+			// authenticated. Delegator can handle authentication
 			"5001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.API}},
+
+			// Not currently available, but gateway connections can be made via delegator
+			// TODO: database setting to enable public gateway exposure
 			"8080/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{

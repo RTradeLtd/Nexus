@@ -48,7 +48,9 @@ func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo)
 		l:     logger.Named("registry"),
 		nodes: m,
 
-		swarmPorts:   network.NewRegistry(logger, network.Private, ports.Swarm),
+		// See documentation regarding public/private-ness of IPFS ports in package
+		// ipfs
+		swarmPorts:   network.NewRegistry(logger, network.Public, ports.Swarm),
 		apiPorts:     network.NewRegistry(logger, network.Private, ports.API),
 		gatewayPorts: network.NewRegistry(logger, network.Private, ports.Gateway),
 	}
