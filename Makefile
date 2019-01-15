@@ -52,6 +52,8 @@ gen:
 	fileb0x b0x.yml
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
+	counterfeiter -o ./temporal/mock/access.mock.go \
+		./temporal/access.go AccessChecker
 
 .PHONY: release
 release:
