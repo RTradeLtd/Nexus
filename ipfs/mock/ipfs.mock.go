@@ -2,10 +2,10 @@
 package mock
 
 import (
-	context "context"
-	sync "sync"
+	"context"
+	"sync"
 
-	ipfs "github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
 
 type FakeNodeClient struct {
