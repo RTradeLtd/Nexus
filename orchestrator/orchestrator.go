@@ -66,12 +66,6 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 
 			// close registry
 			o.Registry.Close()
-
-			// close database
-			if err := o.nm.DB.Close(); err != nil {
-				o.l.Warnw("error occurred closing database connection",
-					"error", err)
-			}
 		}
 	}()
 	return nil
