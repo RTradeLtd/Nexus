@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	tcfg "github.com/RTradeLtd/config"
+	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
 	"github.com/RTradeLtd/ipfs-orchestrator/delegator"
@@ -44,9 +46,29 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		fatal(err.Error())
 	}
 
+	// set up database connection
+	l.Infow("intializing database connection",
+		"db.host", cfg.Database.URL,
+		"db.port", cfg.Database.Port,
+		"db.name", cfg.Database.Name,
+		"db.with_ssl", !devMode,
+		"db.with_migrations", devMode)
+	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+		Database: cfg.Database,
+	}, database.Options{
+		SSLModeDisable: devMode,
+		RunMigrations:  devMode,
+	})
+	if err != nil {
+		l.Errorw("failed to connect to database", "error", err)
+		fatal("unable to connect to database: %s", err.Error())
+	}
+	l.Info("successfully connected to database")
+
 	// initialize orchestrator
 	println("initializing orchestrator")
-	o, err := orchestrator.New(l, cfg.Address, c, cfg.IPFS.Ports, cfg.Database, devMode)
+	o, err := orchestrator.New(l, cfg.Address, cfg.IPFS.Ports, devMode,
+		c, dbm)
 	if err != nil {
 		fatal(err.Error())
 	}

@@ -18,7 +18,6 @@ import (
 
 func TestNew(t *testing.T) {
 	type args struct {
-		pgOpts tcfg.Database
 	}
 	tests := []struct {
 		name          string
@@ -26,9 +25,8 @@ func TestNew(t *testing.T) {
 		wantClientErr bool
 		wantErr       bool
 	}{
-		{"node client err", args{dbDefaults}, true, true},
-		{"invalid db options", args{tcfg.Database{}}, false, true},
-		{"all good", args{dbDefaults}, false, false},
+		{"node client err", args{}, true, true},
+		{"all good", args{}, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -41,7 +39,12 @@ func TestNew(t *testing.T) {
 				client.NodesReturns([]*ipfs.NodeInfo{}, nil)
 			}
 
-			_, err := New(l, "", client, config.Ports{}, tt.args.pgOpts, true)
+			dbm, err := newTestDB()
+			if err != nil {
+				t.Fatalf("failed to reach database: %s\n", err.Error())
+			}
+
+			_, err = New(l, "", config.Ports{}, true, client, dbm)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -53,8 +56,11 @@ func TestNew(t *testing.T) {
 func TestOrchestrator_Run(t *testing.T) {
 	l, _ := log.NewTestLogger()
 	client := &mock.FakeNodeClient{}
-
-	o, err := New(l, "", client, config.Ports{}, dbDefaults, true)
+	dbm, err := newTestDB()
+	if err != nil {
+		t.Fatalf("failed to reach database: %s\n", err.Error())
+	}
+	o, err := New(l, "", config.Ports{}, true, client, dbm)
 	if err != nil {
 		t.Error(err)
 		return

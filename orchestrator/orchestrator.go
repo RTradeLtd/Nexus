@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
 
@@ -30,8 +29,8 @@ type Orchestrator struct {
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
-	ports config.Ports, pg tcfg.Database, dev bool) (*Orchestrator, error) {
+func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool,
+	c ipfs.NodeClient, dbm *database.Manager) (*Orchestrator, error) {
 	var l = logger.Named("orchestrator")
 	if address == "" {
 		l.Warn("host address not set")
@@ -45,25 +44,6 @@ func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}
 	reg := registry.New(l, ports, nodes...)
-
-	// set up database connection
-	l.Infow("intializing database connection",
-		"db.host", pg.URL,
-		"db.port", pg.Port,
-		"db.name", pg.Name,
-		"db.with_ssl", !dev,
-		"db.with_migrations", dev)
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
-		Database: pg,
-	}, database.Options{
-		SSLModeDisable: dev,
-		RunMigrations:  dev,
-	})
-	if err != nil {
-		l.Errorw("failed to connect to database", "error", err)
-		return nil, fmt.Errorf("unable to connect to database: %s", err.Error())
-	}
-	l.Info("successfully connected to database")
 
 	return &Orchestrator{
 		Registry: reg,
