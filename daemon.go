@@ -9,6 +9,7 @@ import (
 
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
+	"github.com/RTradeLtd/database/models"
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
 	"github.com/RTradeLtd/ipfs-orchestrator/delegator"
@@ -64,6 +65,13 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		fatal("unable to connect to database: %s", err.Error())
 	}
 	l.Info("successfully connected to database")
+	defer func() {
+		// close database
+		if err := o.nm.DB.Close(); err != nil {
+			l.Warnw("error occurred closing database connection",
+				"error", err)
+		}
+	}()
 
 	// initialize orchestrator
 	println("initializing orchestrator")
@@ -79,7 +87,8 @@ func runDaemon(configPath string, devMode bool, args []string) {
 
 	// initialize delegator
 	println("initializing delegator")
-	dl := delegator.New(l, Version, 1*time.Minute, o.Registry)
+	dl := delegator.New(l, Version, 1*time.Minute, []byte(cfg.Delegator.JWTKey),
+		o.Registry, models.NewUserManager(dbm.DB))
 
 	// catch interrupts
 	ctx, cancel := context.WithCancel(context.Background())

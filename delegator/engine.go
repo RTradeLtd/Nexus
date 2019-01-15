@@ -8,11 +8,14 @@ import (
 	"net/url"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
+
 	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/network"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+	"github.com/RTradeLtd/ipfs-orchestrator/temporal"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -22,25 +25,33 @@ import (
 
 // Engine manages request delegation
 type Engine struct {
-	l     *zap.SugaredLogger
-	reg   *registry.NodeRegistry
-	net   *http.Client
-	cache *cache
+	l      *zap.SugaredLogger
+	reg    *registry.NodeRegistry
+	net    *http.Client
+	cache  *cache
+	access temporal.AccessChecker
 
-	timeout time.Duration
-	version string
+	timeout   time.Duration
+	keyLookup jwt.Keyfunc
+	version   string
 }
 
 // New instantiates a new delegator engine
-func New(l *zap.SugaredLogger, version string, timeout time.Duration, reg *registry.NodeRegistry) *Engine {
+func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []byte,
+	reg *registry.NodeRegistry, access temporal.AccessChecker) *Engine {
+
 	return &Engine{
-		l:     l.Named("delegator"),
-		reg:   reg,
-		net:   http.DefaultClient,
-		cache: newCache(30*time.Minute, 30*time.Minute),
+		l:      l.Named("delegator"),
+		reg:    reg,
+		net:    http.DefaultClient,
+		cache:  newCache(30*time.Minute, 30*time.Minute),
+		access: access,
 
 		timeout: timeout,
 		version: version,
+		keyLookup: func(t *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		},
 	}
 }
 
@@ -119,6 +130,18 @@ func (e *Engine) NetworkContext(next http.Handler) http.Handler {
 		n, err := e.reg.Get(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		user, err := getUserFromJWT(r, e.keyLookup)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if ok, err := e.access.CheckIfUserHasAccessToNetwork(user, n.NetworkID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		} else if !ok {
+			http.Error(w, "user not authorized", http.StatusForbidden)
 			return
 		}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 	"github.com/RTradeLtd/ipfs-orchestrator/log"
 	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+	"github.com/RTradeLtd/ipfs-orchestrator/temporal/mock"
 	"github.com/go-chi/chi"
 )
 
@@ -52,7 +53,8 @@ func TestEngine_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var e = New(l, "test", time.Minute, nil)
+			var checker = &mock.FakeAccessChecker{}
+			var e = New(l, "test", time.Minute, []byte("hello"), nil, checker)
 			var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := e.Run(ctx, tt.args.opts); (err != nil) != tt.wantErr {
@@ -81,9 +83,11 @@ func TestEngine_NetworkContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var e = New(l, "test", time.Second, registry.New(l, config.New().Ports, &ipfs.NodeInfo{
-				NetworkID: tt.args.nodeName,
-			}))
+			var checker = &mock.FakeAccessChecker{}
+			var e = New(l, "test", time.Second, []byte("hello"),
+				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
+					NetworkID: tt.args.nodeName,
+				}), checker)
 			// set up route context and request
 			var route = chi.NewRouteContext()
 			route.URLParams.Add(string(tt.args.key), tt.args.target)
@@ -114,7 +118,8 @@ func TestEngine_NetworkContext(t *testing.T) {
 
 func TestEngine_Status(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
-	var e = New(l, "test", time.Second, registry.New(l, config.New().Ports))
+	var checker = &mock.FakeAccessChecker{}
+	var e = New(l, "test", time.Second, []byte("hello"), registry.New(l, config.New().Ports), checker)
 	var req = httptest.NewRequest("GET", "/", nil)
 	var rec = httptest.NewRecorder()
 	e.Status(rec, req)

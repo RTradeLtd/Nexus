@@ -51,9 +51,10 @@ type API struct {
 
 // Delegator declares configuration for the orchestrator proxy
 type Delegator struct {
-	Host string `json:"host"`
-	Port string `json:"port"`
-	TLS  `json:"tls"`
+	Host   string `json:"host"`
+	Port   string `json:"port"`
+	JWTKey string `json:"jwt_key"`
+	TLS    `json:"tls"`
 }
 
 // TLS declares HTTPS configuration
