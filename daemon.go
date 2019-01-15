@@ -62,12 +62,12 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	})
 	if err != nil {
 		l.Errorw("failed to connect to database", "error", err)
-		fatal("unable to connect to database: %s", err.Error())
+		fatalf("unable to connect to database: %s", err.Error())
 	}
 	l.Info("successfully connected to database")
 	defer func() {
 		// close database
-		if err := o.nm.DB.Close(); err != nil {
+		if err := dbm.DB.Close(); err != nil {
 			l.Warnw("error occurred closing database connection",
 				"error", err)
 		}

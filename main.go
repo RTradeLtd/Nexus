@@ -108,3 +108,9 @@ func fatal(msg ...interface{}) {
 	fmt.Println(msg...)
 	os.Exit(1)
 }
+
+func fatalf(format string, msg ...interface{}) {
+	fmt.Printf(format, msg...)
+	println()
+	os.Exit(1)
+}
