@@ -127,8 +127,8 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			// authenticated. Delegator can handle authentication
 			"5001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.API}},
 
-			// Not currently available, but gateway connections can be made via delegator
-			// TODO: database setting to enable public gateway exposure
+			// Gateway connections can be made via delegator, with access controlled
+			// by database
 			"8080/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{

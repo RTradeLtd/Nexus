@@ -25,11 +25,12 @@ import (
 
 // Engine manages request delegation
 type Engine struct {
-	l      *zap.SugaredLogger
-	reg    *registry.NodeRegistry
-	net    *http.Client
-	cache  *cache
-	access temporal.AccessChecker
+	l     *zap.SugaredLogger
+	reg   *registry.NodeRegistry
+	cache *cache
+
+	access   temporal.AccessChecker
+	networks temporal.PrivateNetworks
 
 	timeout   time.Duration
 	keyLookup jwt.Keyfunc
@@ -38,14 +39,15 @@ type Engine struct {
 
 // New instantiates a new delegator engine
 func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []byte,
-	reg *registry.NodeRegistry, access temporal.AccessChecker) *Engine {
+	reg *registry.NodeRegistry, access temporal.AccessChecker, networks temporal.PrivateNetworks) *Engine {
 
 	return &Engine{
-		l:      l.Named("delegator"),
-		reg:    reg,
-		net:    http.DefaultClient,
-		cache:  newCache(30*time.Minute, 30*time.Minute),
-		access: access,
+		l:     l.Named("delegator"),
+		reg:   reg,
+		cache: newCache(30*time.Minute, 30*time.Minute),
+
+		access:   access,
+		networks: networks,
 
 		timeout: timeout,
 		version: version,
@@ -132,18 +134,6 @@ func (e *Engine) NetworkContext(next http.Handler) http.Handler {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		user, err := getUserFromJWT(r, e.keyLookup)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		if ok, err := e.access.CheckIfUserHasAccessToNetwork(user, n.NetworkID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		} else if !ok {
-			http.Error(w, "user not authorized", http.StatusForbidden)
-			return
-		}
 
 		next.ServeHTTP(w, r.WithContext(
 			context.WithValue(r.Context(), keyNetwork, &n),
@@ -170,10 +160,31 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	// set target port based on feature
 	var port string
 	switch feature {
-	case "api":
-		port = n.Ports.API
 	case "swarm":
 		port = n.Ports.Swarm
+	case "api":
+		user, err := getUserFromJWT(r, e.keyLookup)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		if ok, err := e.access.CheckIfUserHasAccessToNetwork(user, n.NetworkID); err != nil {
+			http.Error(w, "failed to find user", http.StatusNotFound)
+			return
+		} else if !ok {
+			http.Error(w, "user not authorized", http.StatusForbidden)
+			return
+		}
+		port = n.Ports.API
+	case "gateway":
+		if entry, err := e.networks.GetNetworkByName(n.NetworkID); err != nil {
+			http.Error(w, "failed to find network", http.StatusNotFound)
+			return
+		} else if !entry.GatewayPublic {
+			http.Error(w, "failed to find network gateway", http.StatusNotFound)
+			return
+		}
+		port = n.Ports.Gateway
 	default:
 		http.Error(w, fmt.Sprintf("invalid feature '%s'", feature), http.StatusBadRequest)
 		return

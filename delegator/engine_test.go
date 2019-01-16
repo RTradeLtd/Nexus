@@ -54,7 +54,8 @@ func TestEngine_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var checker = &mock.FakeAccessChecker{}
-			var e = New(l, "test", time.Minute, []byte("hello"), nil, checker)
+			var networks = &mock.FakePrivateNetworks{}
+			var e = New(l, "test", time.Minute, []byte("hello"), nil, checker, networks)
 			var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := e.Run(ctx, tt.args.opts); (err != nil) != tt.wantErr {
@@ -67,11 +68,9 @@ func TestEngine_Run(t *testing.T) {
 func TestEngine_NetworkContext(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	type args struct {
-		nodeName      string
-		key           contextKey
-		target        string
-		authorization string
-		authorized    bool
+		nodeName string
+		key      contextKey
+		target   string
 	}
 	tests := []struct {
 		name     string
@@ -79,33 +78,24 @@ func TestEngine_NetworkContext(t *testing.T) {
 		wantNode bool
 		wantCode int
 	}{
-		{"non existent node", args{"hello", keyNetwork, "bye", "", false}, false, http.StatusNotFound},
-		{"invalid key", args{"hello", keyFeature, "hello", "", false}, false, http.StatusNotFound},
-		{"find node but no auth", args{"hello", keyNetwork, "hello", "", false}, true, http.StatusUnauthorized},
-		{"find node with auth but not allowed",
-			args{"hello", keyNetwork, "hello", mock.FakeToken("bob", "hello"), false}, true, http.StatusForbidden},
-		{"find node with auth but allowed",
-			args{"hello", keyNetwork, "hello", mock.FakeToken("bob", "hello"), true}, true, http.StatusOK},
+		{"non existent node", args{"hello", keyNetwork, "bye"}, false, http.StatusNotFound},
+		{"invalid key", args{"hello", keyFeature, "hello"}, false, http.StatusNotFound},
+		{"find node", args{"hello", keyNetwork, "hello"}, true, http.StatusOK},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var checker = &mock.FakeAccessChecker{}
+			var networks = &mock.FakePrivateNetworks{}
 			var e = New(l, "test", time.Second, []byte("hello"),
 				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
 					NetworkID: tt.args.nodeName,
-				}), checker)
-
-			// set up mock
-			if tt.args.authorized {
-				checker.CheckIfUserHasAccessToNetworkReturns(true, nil)
-			}
+				}), checker, networks)
 
 			// set up route context and request
 			var route = chi.NewRouteContext()
 			route.URLParams.Add(string(tt.args.key), tt.args.target)
 			var req = httptest.NewRequest("GET", "/", nil).
 				WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, route))
-			req.Header.Set("Authorization", "Bearer "+tt.args.authorization)
 
 			// test handler
 			var rec = httptest.NewRecorder()
@@ -132,7 +122,8 @@ func TestEngine_NetworkContext(t *testing.T) {
 func TestEngine_Status(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	var checker = &mock.FakeAccessChecker{}
-	var e = New(l, "test", time.Second, []byte("hello"), registry.New(l, config.New().Ports), checker)
+	var networks = &mock.FakePrivateNetworks{}
+	var e = New(l, "test", time.Second, []byte("hello"), registry.New(l, config.New().Ports), checker, networks)
 	var req = httptest.NewRequest("GET", "/", nil)
 	var rec = httptest.NewRecorder()
 	e.Status(rec, req)

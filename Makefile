@@ -53,7 +53,9 @@ gen:
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
 	counterfeiter -o ./temporal/mock/access.mock.go \
-		./temporal/access.go AccessChecker
+		./temporal/database.go AccessChecker
+	counterfeiter -o ./temporal/mock/networks.mock.go \
+		./temporal/database.go PrivateNetworks
 
 .PHONY: release
 release:
