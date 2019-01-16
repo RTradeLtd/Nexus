@@ -29,7 +29,6 @@ type Engine struct {
 	reg   *registry.NodeRegistry
 	cache *cache
 
-	access   temporal.AccessChecker
 	networks temporal.PrivateNetworks
 
 	timeout   time.Duration
@@ -39,14 +38,13 @@ type Engine struct {
 
 // New instantiates a new delegator engine
 func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []byte,
-	reg *registry.NodeRegistry, access temporal.AccessChecker, networks temporal.PrivateNetworks) *Engine {
+	reg *registry.NodeRegistry, networks temporal.PrivateNetworks) *Engine {
 
 	return &Engine{
 		l:     l.Named("delegator"),
 		reg:   reg,
 		cache: newCache(30*time.Minute, 30*time.Minute),
 
-		access:   access,
 		networks: networks,
 
 		timeout: timeout,
@@ -170,10 +168,18 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		if ok, err := e.access.CheckIfUserHasAccessToNetwork(user, n.NetworkID); err != nil {
-			http.Error(w, "failed to find user", http.StatusNotFound)
+		entry, err := e.networks.GetNetworkByName(n.NetworkID)
+		if err != nil {
+			http.Error(w, "failed to find network", http.StatusNotFound)
 			return
-		} else if !ok {
+		}
+		var found = false
+		for _, authorized := range entry.Users {
+			if user == authorized {
+				found = true
+			}
+		}
+		if !found {
 			http.Error(w, "user not authorized", http.StatusForbidden)
 			return
 		}

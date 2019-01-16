@@ -52,8 +52,6 @@ gen:
 	fileb0x b0x.yml
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
-	counterfeiter -o ./temporal/mock/access.mock.go \
-		./temporal/database.go AccessChecker
 	counterfeiter -o ./temporal/mock/networks.mock.go \
 		./temporal/database.go PrivateNetworks
 
