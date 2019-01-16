@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/network"
 	"go.uber.org/zap"
+
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/ipfs"
+	"github.com/RTradeLtd/Nexus/network"
 )
 
 const (

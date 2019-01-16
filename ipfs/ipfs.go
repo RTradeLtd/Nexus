@@ -6,10 +6,11 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 	"go.uber.org/zap"
+
+	"github.com/RTradeLtd/Nexus/config"
 )
 
 // NodeClient provides an interface to the base Docker client for controlling

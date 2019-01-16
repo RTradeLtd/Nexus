@@ -3,9 +3,9 @@ package registry
 import (
 	"testing"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/ipfs"
+	"github.com/RTradeLtd/Nexus/log"
 )
 
 var defaultNode = ipfs.NodeInfo{

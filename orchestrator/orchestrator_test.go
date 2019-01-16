@@ -9,11 +9,12 @@ import (
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs/mock"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/registry"
+
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/ipfs"
+	"github.com/RTradeLtd/Nexus/ipfs/mock"
+	"github.com/RTradeLtd/Nexus/log"
+	"github.com/RTradeLtd/Nexus/registry"
 )
 
 func TestNew(t *testing.T) {

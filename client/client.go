@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/Nexus/config"
 )
 
 // IPFSOrchestratorClient is a lighweight container for the orchestrator's

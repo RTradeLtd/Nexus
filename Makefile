@@ -8,15 +8,15 @@ all: deps check build
 
 .PHONY: build
 build:
-	go build -ldflags "-X main.Version=$(VERSION)"
+	go build -ldflags "-X main.Version=$(VERSION)" ./cmd/nexus
 
 .PHONY: install
 install: deps
-	go install -ldflags "-X main.Version=$(VERSION)"
+	go install -ldflags "-X main.Version=$(VERSION)" ./cmd/nexus
 
 .PHONY: config
 config: build
-	./ipfs-orchestrator -config ./config.example.json init
+	./nexus -config ./config.example.json init
 
 # Install dependencies
 .PHONY: deps
@@ -47,7 +47,7 @@ clean:
 	$(COMPOSECOMMAND) down
 	docker stop $(IPFSCONTAINERS) || true
 	docker rm $(IPFSCONTAINERS) || true
-	rm -f ./ipfs-orchestrator
+	rm -f ./nexus
 	find . -name tmp -type d -exec rm -f -r {} +
 
 # Gen runs all code generators
