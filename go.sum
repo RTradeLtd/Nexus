@@ -12,6 +12,10 @@ github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60Qm
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/database v1.1.0 h1:Yr22JWdvu+OM/26fG5kIUMymm+wD3p7mlTmPNrUppJE=
 github.com/RTradeLtd/database v1.1.0/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
+github.com/RTradeLtd/database v1.2.1-0.20190115084042-489885b20ba2 h1:NyCQENND45rUtncvrxkFGEIH4tbNRGRlUI/7GCbh3Rk=
+github.com/RTradeLtd/database v1.2.1-0.20190115084042-489885b20ba2/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
+github.com/RTradeLtd/gorm v1.9.2 h1:pbk8/C7k2h6fwYXXVGjrceJ0zTri7vAQY0QcOICT4tI=
+github.com/RTradeLtd/gorm v1.9.2/go.mod h1:FaVJ0C0yhoQGrKSsMaTl1p05GfuV+63S+P18+H9ETAg=
 github.com/RTradeLtd/grpc v1.2.0 h1:wiznfut+nEJiueC6AYldeFP666A0+oW9NzFckno+zm0=
 github.com/RTradeLtd/grpc v1.2.0/go.mod h1:wtgJzW1fsgyF4iRl9Fdz5dg2Xa6uuo01msxyAPQJHks=
 github.com/RTradeLtd/grpc v1.3.0 h1:Iao6opai9SokXcYH7mEdS6r5vhDkmwLFmQueHp2gN9U=
@@ -20,6 +24,8 @@ github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7I
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac h1:/zx+Hglw2JN/pwVam1Z8cTCTl4pWyrbvOn2oooqCQSs=
 github.com/btcsuite/btcd v0.0.0-20181013004428-67e573d211ac/go.mod h1:Dmm/EzmjnCiweXmzRIAiUWCInVmPgjkzgv5k4tVyXiQ=
+github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae h1:2Zmk+8cNvAGuY8AyvZuWpUdpQUAXwfom4ReVMe/CTIo=
+github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae/go.mod h1:S/7n9copUssQ56c7aAgHqftWO4LTf4xY6CGWt8Bc+3M=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
