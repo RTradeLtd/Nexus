@@ -6,7 +6,7 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/RTradeLtd/config v1.0.9
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
-	github.com/RTradeLtd/database v1.2.1-0.20190116023732-0ff8e31c3757
+	github.com/RTradeLtd/database v1.2.1-0.20190116031709-d8f3d9f2e53c
 	github.com/RTradeLtd/gorm v1.9.2 // indirect
 	github.com/RTradeLtd/grpc v1.3.0
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect

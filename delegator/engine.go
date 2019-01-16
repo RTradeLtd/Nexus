@@ -183,6 +183,16 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not authorized", http.StatusForbidden)
 			return
 		}
+		// set access rules
+		if entry.APIAllowedOrigin == "" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", entry.APIAllowedOrigin)
+		}
+		// catch preflights
+		if r.Method == "OPTIONS" {
+			return
+		}
 		port = n.Ports.API
 	case "gateway":
 		// Gateway is only open if configured as such
