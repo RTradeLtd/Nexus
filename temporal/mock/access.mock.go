@@ -4,7 +4,7 @@ package mock
 import (
 	"sync"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/temporal"
+	"github.com/RTradeLtd/Nexus/temporal"
 )
 
 type FakeAccessChecker struct {

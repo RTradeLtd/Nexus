@@ -6,10 +6,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/orchestrator"
 	ipfs_orchestrator "github.com/RTradeLtd/grpc/ipfs-orchestrator"
 	"github.com/RTradeLtd/grpc/middleware"
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/Nexus/log"
 )
 
 func TestNewRegistry(t *testing.T) {

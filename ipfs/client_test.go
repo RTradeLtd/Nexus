@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/Nexus/log"
 )
 
 func Test_client_getDataDir(t *testing.T) {

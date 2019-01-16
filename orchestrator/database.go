@@ -3,8 +3,8 @@ package orchestrator
 import (
 	"errors"
 
+	"github.com/RTradeLtd/Nexus/ipfs"
 	"github.com/RTradeLtd/database/models"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
 
 func getNodeFromDatabaseEntry(jobID string, network *models.HostedIPFSPrivateNetwork) *ipfs.NodeInfo {

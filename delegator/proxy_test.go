@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/Nexus/log"
 )
 
 func Test_newProxy(t *testing.T) {

@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/RTradeLtd/Nexus/client"
+	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/ctl"
-	"github.com/RTradeLtd/ipfs-orchestrator/client"
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
 )
 
 func runCTL(configPath string, devMode, prettyPrint bool, args []string) {

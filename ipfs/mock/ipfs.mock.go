@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
+	"github.com/RTradeLtd/Nexus/ipfs"
 )
 
 type FakeNodeClient struct {

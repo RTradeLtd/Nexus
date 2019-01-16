@@ -10,13 +10,13 @@ import (
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/daemon"
-	"github.com/RTradeLtd/ipfs-orchestrator/delegator"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/orchestrator"
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/daemon"
+	"github.com/RTradeLtd/Nexus/delegator"
+	"github.com/RTradeLtd/Nexus/ipfs"
+	"github.com/RTradeLtd/Nexus/log"
+	"github.com/RTradeLtd/Nexus/orchestrator"
 )
 
 func runDaemon(configPath string, devMode bool, args []string) {
@@ -66,7 +66,6 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	}
 	l.Info("successfully connected to database")
 	defer func() {
-		// close database
 		if err := dbm.DB.Close(); err != nil {
 			l.Warnw("error occurred closing database connection",
 				"error", err)

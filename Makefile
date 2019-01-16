@@ -8,11 +8,11 @@ all: deps check build
 
 .PHONY: build
 build:
-	go build -ldflags "-X main.Version=$(VERSION)"
+	go build -ldflags "-X main.Version=$(VERSION)" ./cmd/nexus
 
 .PHONY: install
 install: deps
-	go install -ldflags "-X main.Version=$(VERSION)"
+	go install -ldflags "-X main.Version=$(VERSION)" ./cmd/nexus
 
 # Install dependencies
 .PHONY: deps
@@ -43,7 +43,7 @@ clean:
 	$(COMPOSECOMMAND) down
 	docker stop $(IPFSCONTAINERS) || true
 	docker rm $(IPFSCONTAINERS) || true
-	rm -f ./ipfs-orchestrator
+	rm -f ./nexus
 	find . -name tmp -type d -exec rm -f -r {} +
 
 # Gen runs all code generators
@@ -68,31 +68,31 @@ TESTFLAGS=-dev -config ./config.dev.json
 
 .PHONY: example-config
 example-config: build
-	./ipfs-orchestrator -config ./config.example.json init
+	./nexus -config ./config.example.json init
 
 .PHONY: dev-config
 dev-config: build
-	./ipfs-orchestrator $(TESTFLAGS) init
+	./nexus $(TESTFLAGS) init
 
 .PHONY: config
 config: example-config dev-config
 
 .PHONY: daemon
 daemon: build
-	./ipfs-orchestrator $(TESTFLAGS) daemon
+	./nexus $(TESTFLAGS) daemon
 
 .PHONY: new-network
 new-network: build
-	./ipfs-orchestrator $(TESTFLAGS) dev network $(NETWORK)
+	./nexus $(TESTFLAGS) dev network $(NETWORK)
 
 .PHONY: start-network
 start-network: build
-	./ipfs-orchestrator $(TESTFLAGS) ctl --pretty StartNetwork Network=$(NETWORK)
+	./nexus $(TESTFLAGS) ctl --pretty StartNetwork Network=$(NETWORK)
 
 .PHONY: stat-network
 stat-network:
-	./ipfs-orchestrator $(TESTFLAGS) ctl --pretty NetworkStats Network=$(NETWORK)
+	./nexus $(TESTFLAGS) ctl --pretty NetworkStats Network=$(NETWORK)
 
 .PHONY: diag-network
 diag-network:
-	./ipfs-orchestrator $(TESTFLAGS) ctl NetworkDiagnostics Network=$(NETWORK)
+	./nexus $(TESTFLAGS) ctl NetworkDiagnostics Network=$(NETWORK)

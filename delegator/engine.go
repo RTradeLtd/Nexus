@@ -10,12 +10,12 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/network"
-	"github.com/RTradeLtd/ipfs-orchestrator/registry"
-	"github.com/RTradeLtd/ipfs-orchestrator/temporal"
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/ipfs"
+	"github.com/RTradeLtd/Nexus/log"
+	"github.com/RTradeLtd/Nexus/network"
+	"github.com/RTradeLtd/Nexus/registry"
+	"github.com/RTradeLtd/Nexus/temporal"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"

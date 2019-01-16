@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/Nexus/config"
 )
 
-// Version denotes the version of ipfs-orchestrator in use
+// Version denotes the version of Nexus in use
 var Version string
 
 func init() {
@@ -17,17 +17,17 @@ func init() {
 		Version = "version unknown"
 	}
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `ipfs-orchestrator is the IPFS private network node orchestration and
+		fmt.Fprintf(os.Stderr, `Nexus is the IPFS private network node orchestration and
 registry service for Temporal.
 
 USAGE:
 
-  ipfs-orchestrator [options] [command] [arguments...]
+  nexus [options] [command] [arguments...]
 
 COMMANDS:
 
   init        initialize configuration
-	daemon      spin up the ipfs-orchestrator daemon and processes
+	daemon      spin up the Nexus daemon and related processes
 	version     display program version
 
 	dev         [DEV] utilities for development purposes
@@ -43,7 +43,7 @@ OPTIONS:
 func main() {
 	var (
 		configPath = flag.String("config", "./config.json",
-			"path to ipfs-orchestrator config file")
+			"path to Nexus configuration file")
 		devMode = flag.Bool("dev", os.Getenv("MODE") == "development",
 			"toggle dev mode, alternatively set using MODE=development")
 	)
@@ -58,8 +58,7 @@ func main() {
 		switch args[0] {
 		// version info
 		case "version":
-			println("ipfs-orchestrator " + Version)
-		// init default config
+			println("Nexus " + Version)
 		case "init":
 			config.GenerateConfig(*configPath, *devMode)
 			println("orchestrator configuration generated at " + *configPath)

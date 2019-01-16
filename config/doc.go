@@ -1,2 +1,2 @@
-// Package config provides configuration definitions for the ipfs-orchestrator
+// Package config provides configuration definitions for Nexus
 package config

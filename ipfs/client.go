@@ -9,14 +9,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
-	"github.com/RTradeLtd/ipfs-orchestrator/network"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"go.uber.org/zap"
+
+	"github.com/RTradeLtd/Nexus/log"
+	"github.com/RTradeLtd/Nexus/network"
 )
 
 // Client is the primary implementation of the NodeClient interface. Instantiate

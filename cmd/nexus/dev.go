@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/RTradeLtd/Nexus/config"
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
 )
 
 func initTestNetwork(configPath, networkName string) {
