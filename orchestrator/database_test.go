@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/RTradeLtd/Nexus/ipfs"
+
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database/models"
-	"github.com/RTradeLtd/ipfs-orchestrator/ipfs"
 )
 
 var dbDefaults = tcfg.Database{

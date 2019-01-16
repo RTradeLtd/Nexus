@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
+	"github.com/RTradeLtd/Nexus/config"
 )
 
 // Version denotes the version of Nexus in use

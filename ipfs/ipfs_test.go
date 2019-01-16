@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/RTradeLtd/ipfs-orchestrator/config"
-	"github.com/RTradeLtd/ipfs-orchestrator/log"
+	"github.com/RTradeLtd/Nexus/config"
+	"github.com/RTradeLtd/Nexus/log"
 	docker "github.com/docker/docker/client"
 )
 

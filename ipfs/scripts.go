@@ -3,7 +3,7 @@ package ipfs
 import (
 	"fmt"
 
-	internal "github.com/RTradeLtd/ipfs-orchestrator/ipfs/internal"
+	internal "github.com/RTradeLtd/Nexus/ipfs/internal"
 )
 
 func newNodeStartScript(diskMax int) (string, error) {
