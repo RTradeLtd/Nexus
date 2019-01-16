@@ -9,6 +9,7 @@ import (
 	tcfg "github.com/RTradeLtd/config"
 	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
+
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
 	"github.com/RTradeLtd/Nexus/ipfs/mock"
