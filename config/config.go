@@ -74,6 +74,7 @@ func New() IPFSOrchestratorConfig {
 func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 	var cfg IPFSOrchestratorConfig
 
+	/* #nosec */
 	raw, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return cfg, fmt.Errorf("could not open config: %s", err.Error())
