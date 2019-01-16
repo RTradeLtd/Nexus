@@ -161,8 +161,10 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	var port string
 	switch feature {
 	case "swarm":
+		// Swarm access is open to all by default
 		port = n.Ports.Swarm
 	case "api":
+		// IPFS network API access requires an authorized user
 		user, err := getUserFromJWT(r, e.keyLookup)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -177,6 +179,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		}
 		port = n.Ports.API
 	case "gateway":
+		// Gateway is only open if configured as such
 		if entry, err := e.networks.GetNetworkByName(n.NetworkID); err != nil {
 			http.Error(w, "failed to find network", http.StatusNotFound)
 			return
