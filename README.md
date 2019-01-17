@@ -1,8 +1,12 @@
-# 🦑 Nexus: IPFS Network Node Orchestrator
+# 🦑 Nexus
 
-Nexus is the IPFS private network node orchestration and registry service for
-[Temporal](https://github.com/RTradeLtd/Temporal), an easy-to-use interface into
-distributed and decentralized storage technologies.
+> IPFS Network Node Orchestrator
+
+Nexus is the [IPFS](https://github.com/ipfs/go-ipfs) private network node
+orchestration and registry service for [Temporal](https://github.com/RTradeLtd/Temporal),
+an easy-to-use interface into distributed and decentralized storage technologies.
+Nexus handles on-demand deployment, resource management, metadata persistence,
+and fine-grained access control for IPFS nodes running within Docker containers.
 
 [![GoDoc](https://godoc.org/github.com/RTradeLtd/Nexus?status.svg)](https://godoc.org/github.com/RTradeLtd/Nexus)
 [![Build Status](https://travis-ci.com/RTradeLtd/Nexus.svg?branch=master)](https://travis-ci.com/RTradeLtd/Nexus)
