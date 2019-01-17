@@ -163,6 +163,16 @@ func TestEngine_Redirect(t *testing.T) {
 				nil},
 			args{validToken, map[contextKey]string{keyFeature: "api"}},
 			http.StatusForbidden},
+		{"api + good token + disallowed origin",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
+				&models.HostedIPFSPrivateNetwork{
+					Users:            []string{"testuser"},
+					APIAllowedOrigin: "https://www.google.com",
+				},
+				nil},
+			args{validToken, map[contextKey]string{keyFeature: "api"}},
+			http.StatusBadGateway}, // badgateway because proxy points to nothing
 		{"OK: api + good token + authorization",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
@@ -171,6 +181,31 @@ func TestEngine_Redirect(t *testing.T) {
 				},
 				nil},
 			args{validToken, map[contextKey]string{keyFeature: "api"}},
+			http.StatusBadGateway}, // badgateway because proxy points to nothing
+		{"gateway + good token + no network",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{Gateway: "5000"}},
+				nil,
+				errors.New("oh")},
+			args{validToken, map[contextKey]string{keyFeature: "gateway"}},
+			http.StatusNotFound},
+		{"gateway + good token + not public",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{Gateway: "5000"}},
+				&models.HostedIPFSPrivateNetwork{
+					GatewayPublic: false,
+				},
+				nil},
+			args{validToken, map[contextKey]string{keyFeature: "gateway"}},
+			http.StatusNotFound},
+		{"OK: gateway + good token + public",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{Gateway: "5000"}},
+				&models.HostedIPFSPrivateNetwork{
+					GatewayPublic: true,
+				},
+				nil},
+			args{validToken, map[contextKey]string{keyFeature: "gateway"}},
 			http.StatusBadGateway}, // badgateway because proxy points to nothing
 	}
 	for _, tt := range tests {

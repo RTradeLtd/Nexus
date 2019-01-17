@@ -9,6 +9,11 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/render"
+	"go.uber.org/zap"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
@@ -16,11 +21,6 @@ import (
 	"github.com/RTradeLtd/Nexus/network"
 	"github.com/RTradeLtd/Nexus/registry"
 	"github.com/RTradeLtd/Nexus/temporal"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
-	"go.uber.org/zap"
 )
 
 // Engine manages request delegation
@@ -184,6 +184,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// set access rules
+		w.Header().Set("Vary", "Origin")
 		if entry.APIAllowedOrigin == "" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 		} else {
@@ -191,6 +192,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		}
 		// catch preflights
 		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		port = n.Ports.API
