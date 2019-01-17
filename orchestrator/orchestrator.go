@@ -75,6 +75,7 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 // NetworkDetails provides information about an instantiated network
 type NetworkDetails struct {
 	NetworkID string
+	SwarmPort string
 	SwarmKey  string
 }
 
@@ -145,6 +146,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 
 	return NetworkDetails{
 		NetworkID: network,
+		SwarmPort: newNode.Ports.Swarm,
 		SwarmKey:  n.SwarmKey,
 	}, nil
 }
@@ -274,7 +276,7 @@ func (o *Orchestrator) NetworkRemove(ctx context.Context, network string) error 
 // NetworkStatus denotes high-level details about requested network, intended
 // for consumer use
 type NetworkStatus struct {
-	Network   string
+	NetworkDetails
 	Uptime    time.Duration
 	DiskUsage int64
 }
@@ -295,7 +297,11 @@ func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (Netwo
 	}
 
 	return NetworkStatus{
-		Network:   network,
+		NetworkDetails: NetworkDetails{
+			NetworkID: network,
+			SwarmPort: n.Ports.Swarm,
+			SwarmKey:  "<OMITTED>",
+		},
 		Uptime:    stats.Uptime,
 		DiskUsage: stats.DiskUsage,
 	}, nil
