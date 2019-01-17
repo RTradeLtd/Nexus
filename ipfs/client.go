@@ -67,6 +67,7 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 			ignored++
 			continue
 		}
+		n.updateFromContainerDetails(&container)
 		l = l.With("node", n)
 		if isStopped(container.State) {
 			if err := restartNode(n); err != nil {
@@ -124,16 +125,19 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 			// TODO: make this private - blocked by lack of multiaddr support for /http
 			// paths, which means delegator can't work with go-ipfs swarm.
 			// See https://github.com/multiformats/multiaddr/issues/63
-			"4001/tcp": []nat.PortBinding{{HostIP: network.Public, HostPort: n.Ports.Swarm}},
+			containerSwarmPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Public, HostPort: n.Ports.Swarm}},
 
 			// API server connections can be made via delegator. Suffers from same
 			// issue as above, but direct API exposure is dangeorous since it is
 			// authenticated. Delegator can handle authentication
-			"5001/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.API}},
+			containerAPIPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Private, HostPort: n.Ports.API}},
 
 			// Gateway connections can be made via delegator, with access controlled
 			// by database
-			"8080/tcp": []nat.PortBinding{{HostIP: network.Private, HostPort: n.Ports.Gateway}},
+			containerGatewayPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Private, HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
