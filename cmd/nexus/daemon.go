@@ -75,7 +75,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	// initialize orchestrator
 	println("initializing orchestrator")
 	o, err := orchestrator.New(l, cfg.Address, cfg.IPFS.Ports, devMode,
-		c, dbm)
+		c, models.NewHostedIPFSNetworkManager(dbm.DB))
 	if err != nil {
 		fatal(err.Error())
 	}

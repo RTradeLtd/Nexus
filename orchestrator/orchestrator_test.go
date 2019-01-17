@@ -45,7 +45,7 @@ func TestNew(t *testing.T) {
 				t.Fatalf("failed to reach database: %s\n", err.Error())
 			}
 
-			_, err = New(l, "", config.Ports{}, true, client, dbm)
+			_, err = New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -61,7 +61,7 @@ func TestOrchestrator_Run(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reach database: %s\n", err.Error())
 	}
-	o, err := New(l, "", config.Ports{}, true, client, dbm)
+	o, err := New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
 	if err != nil {
 		t.Error(err)
 		return

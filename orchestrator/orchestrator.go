@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/RTradeLtd/Nexus/temporal"
 
-	"github.com/RTradeLtd/database"
-	"github.com/RTradeLtd/database/models"
+	"go.uber.org/zap"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
@@ -23,7 +22,7 @@ type Orchestrator struct {
 	Registry *registry.NodeRegistry
 
 	l  *zap.SugaredLogger
-	nm *models.IPFSNetworkManager
+	nm temporal.PrivateNetworks
 
 	client  ipfs.NodeClient
 	address string
@@ -31,7 +30,7 @@ type Orchestrator struct {
 
 // New instantiates and bootstraps a new Orchestrator
 func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool,
-	c ipfs.NodeClient, dbm *database.Manager) (*Orchestrator, error) {
+	c ipfs.NodeClient, networks temporal.PrivateNetworks) (*Orchestrator, error) {
 	var l = logger.Named("orchestrator")
 	if address == "" {
 		l.Warn("host address not set")
@@ -53,7 +52,7 @@ func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool
 		Registry: reg,
 
 		l:       l,
-		nm:      models.NewHostedIPFSNetworkManager(dbm.DB),
+		nm:      networks,
 		client:  c,
 		address: address,
 	}, nil
