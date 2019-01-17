@@ -38,11 +38,14 @@ func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool
 	}
 
 	// bootstrap registry
-	l.Info("bootstrapping existing nodes")
+	l.Info("checking for existing nodes")
 	nodes, err := c.Nodes(context.Background())
 	if err != nil {
 		l.Errorw("failed to fetch nodes", "error", err)
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
+	}
+	if len(nodes) > 0 {
+		l.Infow("bootstrapping with found nodes", "nodes", nodes)
 	}
 	reg := registry.New(l, ports, nodes...)
 
