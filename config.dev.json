@@ -20,7 +20,7 @@
   "api": {
     "host": "127.0.0.1",
     "port": "9111",
-    "jwt_key": "suchStrongKeyMuchProtectVerySafe",
+    "key": "DO_NOT_LEAVE_ME_AS_DEFAULT",
     "tls": {
       "cert": "",
       "key": ""
@@ -29,7 +29,7 @@
   "delegator": {
     "host": "127.0.0.1",
     "port": "8080",
-    "jwt_key": "",
+    "jwt_key": "suchStrongKeyMuchProtectVerySafe",
     "tls": {
       "cert": "",
       "key": ""

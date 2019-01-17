@@ -45,7 +45,7 @@ type Ports struct {
 type API struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
-	Key  string `json:"jwt_key"`
+	Key  string `json:"key"`
 	TLS  `json:"tls"`
 }
 
@@ -100,14 +100,10 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 		c.API.Port = "9111"
 	}
 	if c.API.Key == "" {
-		if dev {
-			c.API.Key = "suchStrongKeyMuchProtectVerySafe"
-		} else {
-			c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
-		}
+		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
 	}
 
-	// Proxy settings
+	// Proxy (delegator) settings
 	if c.Delegator.Host == "" {
 		c.Delegator.Host = "127.0.0.1"
 	}
@@ -116,6 +112,13 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 			c.Delegator.Port = "8080"
 		} else {
 			c.Delegator.Port = "80"
+		}
+	}
+	if c.Delegator.JWTKey == "" {
+		if dev {
+			c.Delegator.JWTKey = "suchStrongKeyMuchProtectVerySafe"
+		} else {
+			c.Delegator.JWTKey = "DO_NOT_LEAVE_ME_AS_DEFAULT"
 		}
 	}
 
