@@ -7,62 +7,72 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	ipfs_orchestrator "github.com/RTradeLtd/grpc/ipfs-orchestrator"
+	"github.com/RTradeLtd/grpc/nexus"
 )
 
 // Ping is useful for checking client-server connection
-func (d *Daemon) Ping(c context.Context,
-	req *ipfs_orchestrator.Empty) (*ipfs_orchestrator.Empty, error) {
-	return &ipfs_orchestrator.Empty{}, nil
+func (d *Daemon) Ping(
+	c context.Context,
+	req *nexus.Empty,
+) (*nexus.Empty, error) {
+	return &nexus.Empty{}, nil
 }
 
 // StartNetwork brings a node for the requested network online
-func (d *Daemon) StartNetwork(ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.StartNetworkResponse, error) {
+func (d *Daemon) StartNetwork(
+	ctx context.Context,
+	req *nexus.NetworkRequest,
+) (*nexus.StartNetworkResponse, error) {
 
 	n, err := d.o.NetworkUp(ctx, req.GetNetwork())
 	if err != nil {
 		return nil, err
 	}
 
-	return &ipfs_orchestrator.StartNetworkResponse{
+	return &nexus.StartNetworkResponse{
 		SwarmKey: n.SwarmKey,
 	}, nil
 }
 
 // UpdateNetwork updates the configuration of the given network
-func (d *Daemon) UpdateNetwork(ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {
+func (d *Daemon) UpdateNetwork(
+	ctx context.Context,
+	req *nexus.NetworkRequest,
+) (*nexus.Empty, error) {
 
-	return &ipfs_orchestrator.Empty{}, d.o.NetworkUpdate(ctx, req.GetNetwork())
+	return &nexus.Empty{}, d.o.NetworkUpdate(ctx, req.GetNetwork())
 }
 
 // StopNetwork brings a node for the requested network offline
-func (d *Daemon) StopNetwork(ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {
+func (d *Daemon) StopNetwork(
+	ctx context.Context,
+	req *nexus.NetworkRequest,
+) (*nexus.Empty, error) {
 
-	return &ipfs_orchestrator.Empty{}, d.o.NetworkDown(ctx, req.GetNetwork())
+	return &nexus.Empty{}, d.o.NetworkDown(ctx, req.GetNetwork())
 }
 
 // RemoveNetwork removes assets for requested node
-func (d *Daemon) RemoveNetwork(ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest) (*ipfs_orchestrator.Empty, error) {
+func (d *Daemon) RemoveNetwork(
+	ctx context.Context,
+	req *nexus.NetworkRequest,
+) (*nexus.Empty, error) {
 
-	return &ipfs_orchestrator.Empty{}, d.o.NetworkRemove(ctx, req.GetNetwork())
+	return &nexus.Empty{}, d.o.NetworkRemove(ctx, req.GetNetwork())
 }
 
 // NetworkStats retrieves stats about the requested node
 func (d *Daemon) NetworkStats(
 	ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest,
-) (*ipfs_orchestrator.NetworkStatusReponse, error) {
+	req *nexus.NetworkRequest,
+) (*nexus.NetworkStatusReponse, error) {
 
 	s, err := d.o.NetworkStatus(ctx, req.Network)
 	if err != nil {
 		return nil, grpc.Errorf(codes.Internal, err.Error())
 	}
 
-	return &ipfs_orchestrator.NetworkStatusReponse{
+	return &nexus.NetworkStatusReponse{
 		Network:   req.Network,
 		Uptime:    int64(s.Uptime),
 		DiskUsage: s.DiskUsage,
@@ -73,8 +83,8 @@ func (d *Daemon) NetworkStats(
 // network node
 func (d *Daemon) NetworkDiagnostics(
 	ctx context.Context,
-	req *ipfs_orchestrator.NetworkRequest,
-) (*ipfs_orchestrator.NetworkDiagnosticsResponse, error) {
+	req *nexus.NetworkRequest,
+) (*nexus.NetworkDiagnosticsResponse, error) {
 
 	s, err := d.o.NetworkDiagnostics(ctx, req.Network)
 	if err != nil {
@@ -89,7 +99,7 @@ func (d *Daemon) NetworkDiagnostics(
 		return nil, grpc.Errorf(codes.Internal, err.Error())
 	}
 
-	return &ipfs_orchestrator.NetworkDiagnosticsResponse{
+	return &nexus.NetworkDiagnosticsResponse{
 		NodeInfo: nb,
 		Stats:    sb,
 	}, nil
