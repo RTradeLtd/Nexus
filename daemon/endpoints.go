@@ -23,14 +23,14 @@ func (d *Daemon) StartNetwork(
 	ctx context.Context,
 	req *nexus.NetworkRequest,
 ) (*nexus.StartNetworkResponse, error) {
-
 	n, err := d.o.NetworkUp(ctx, req.GetNetwork())
 	if err != nil {
 		return nil, err
 	}
 
 	return &nexus.StartNetworkResponse{
-		SwarmKey: n.SwarmKey,
+		SwarmPort: n.SwarmPort,
+		SwarmKey:  n.SwarmKey,
 	}, nil
 }
 
@@ -73,9 +73,10 @@ func (d *Daemon) NetworkStats(
 	}
 
 	return &nexus.NetworkStatusReponse{
-		Network:   req.Network,
+		Network:   s.NetworkDetails.NetworkID,
 		Uptime:    int64(s.Uptime),
 		DiskUsage: s.DiskUsage,
+		SwarmPort: s.NetworkDetails.SwarmPort,
 	}, nil
 }
 
