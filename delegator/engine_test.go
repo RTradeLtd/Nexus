@@ -2,11 +2,15 @@ package delegator
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/RTradeLtd/database/models"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
@@ -111,6 +115,93 @@ func TestEngine_NetworkContext(t *testing.T) {
 				return
 			})).ServeHTTP(rec, req)
 			if rec.Code != tt.wantCode {
+				t.Errorf("expected status '%d', found '%d'", tt.wantCode, rec.Code)
+			}
+		})
+	}
+}
+
+func TestEngine_Redirect(t *testing.T) {
+	var l, _ = log.NewLogger("", true)
+	type fields struct {
+		node       *ipfs.NodeInfo
+		network    *models.HostedIPFSPrivateNetwork
+		networkErr error
+	}
+	type args struct {
+		token string
+		route map[contextKey]string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantCode int
+	}{
+		{"no network", fields{nil, nil, nil}, args{"", nil}, http.StatusUnprocessableEntity},
+		{"no feature", fields{&ipfs.NodeInfo{}, nil, nil}, args{"", nil}, http.StatusBadRequest},
+		{"bad feature",
+			fields{&ipfs.NodeInfo{}, nil, nil},
+			args{"", map[contextKey]string{keyFeature: "bobheadxi"}},
+			http.StatusBadRequest},
+		{"OK: swarm",
+			fields{&ipfs.NodeInfo{Ports: ipfs.NodePorts{Swarm: "5000"}}, nil, nil},
+			args{"", map[contextKey]string{keyFeature: "swarm"}},
+			http.StatusBadGateway}, // badgateway because proxy points to nothing
+		{"api + bad token",
+			fields{&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}}, nil, nil},
+			args{"asdf", map[contextKey]string{keyFeature: "api"}},
+			http.StatusUnauthorized},
+		{"api + good token + no database entry",
+			fields{&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}}, nil, errors.New("oh")},
+			args{validToken, map[contextKey]string{keyFeature: "api"}},
+			http.StatusNotFound},
+		{"api + good token + no authorization",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
+				&models.HostedIPFSPrivateNetwork{},
+				nil},
+			args{validToken, map[contextKey]string{keyFeature: "api"}},
+			http.StatusForbidden},
+		{"OK: api + good token + authorization",
+			fields{
+				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
+				&models.HostedIPFSPrivateNetwork{
+					Users: []string{"testuser"},
+				},
+				nil},
+			args{validToken, map[contextKey]string{keyFeature: "api"}},
+			http.StatusBadGateway}, // badgateway because proxy points to nothing
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var networks = &mock.FakePrivateNetworks{}
+			var e = New(l, "test", time.Second, defaultTestKey,
+				registry.New(l, config.New().Ports), networks)
+
+			var route = chi.NewRouteContext()
+			if tt.args.route != nil {
+				for key, val := range tt.args.route {
+					route.URLParams.Add(string(key), val)
+				}
+			}
+
+			networks.GetNetworkByNameReturns(tt.fields.network, tt.fields.networkErr)
+
+			var (
+				req = httptest.NewRequest("GET", "/", nil).
+					WithContext(
+						context.WithValue(
+							context.WithValue(
+								context.Background(),
+								keyNetwork, tt.fields.node),
+							chi.RouteCtxKey, route))
+				rec = httptest.NewRecorder()
+			)
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tt.args.token))
+			e.Redirect(rec, req)
+			if rec.Code != tt.wantCode {
+				t.Logf("received '%v'", rec.Result().Status)
 				t.Errorf("expected status '%d', found '%d'", tt.wantCode, rec.Code)
 			}
 		})

@@ -144,7 +144,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	// retrieve network
 	n, ok := r.Context().Value(keyNetwork).(*ipfs.NodeInfo)
 	if !ok || n == nil {
-		http.Error(w, http.StatusText(422), 422)
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
 
