@@ -20,7 +20,8 @@ $> go get -u github.com/RTradeLtd/Nexus/cmd/nexus
 ```
 
 Releases are also be available from the
-[Releases](https://github.com/RTradeLtd/Nexus/releases) page.
+[Releases](https://github.com/RTradeLtd/Nexus/releases) page. To start up the
+Nexus daemon using the default configuration, run:
 
 ```bash
 $> nexus init
@@ -58,19 +59,6 @@ $> make test
 
 You can remove leftover assets using `make clean`.
 
-### ctl
-
-An experimental, lightweight controller for the gRPC API is available via the
-`nexus ctl` command, which exposes a client via the [ctl](https://github.com/bobheadxi/ctl)
-library.
-
-```bash
-$> nexus ctl help
-$> nexus -dev ctl StartNetwork Network=test-network
-$> nexus -dev ctl NetworkStats Network=test-network
-$> nexus -dev ctl StopNetwork Network=test-network
-```
-
 ### Running Locally
 
 A few make commands make it easy to simulate a full orchestrator environment on your machine:
@@ -86,4 +74,17 @@ Then, you can set up and start a network node:
 ```bash
 $> make new-network   # create network entry in database
 $> make start-network # spin up network node
+```
+
+### ctl
+
+An experimental, lightweight controller for the gRPC API is available via the
+`nexus ctl` command, which exposes a client via the [ctl](https://github.com/bobheadxi/ctl)
+library.
+
+```bash
+$> nexus ctl help
+$> nexus -dev ctl StartNetwork Network=test-network
+$> nexus -dev ctl NetworkStats Network=test-network
+$> nexus -dev ctl StopNetwork Network=test-network
 ```
