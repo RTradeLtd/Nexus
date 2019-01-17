@@ -29,7 +29,7 @@ ipfs version
 if [ -e "$repo/config" ]; then
   echo "found IPFS fs-repo at $repo"
 else
-  ipfs init
+  ipfs init --profile server
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
