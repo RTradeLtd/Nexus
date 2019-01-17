@@ -70,8 +70,9 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 		return errors.New(ErrNetworkExists)
 	}
 
-	// assign ports to this node
-	if node.Ports.Swarm != "" && node.Ports.Gateway != "" && node.Ports.API != "" {
+	// assign ports to this node - do not assign new ones if ports are already
+	// provided in node.Ports
+	if node.Ports.Swarm == "" || node.Ports.Gateway == "" || node.Ports.API == "" {
 		var err error
 		var swarm, api, gateway string
 		if swarm, err = r.swarmPorts.AssignPort(); err != nil {
