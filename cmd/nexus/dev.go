@@ -28,7 +28,7 @@ func initTestNetwork(configPath, networkName string) {
 
 	var nm = models.NewHostedIPFSNetworkManager(dbm.DB)
 	if _, err := nm.CreateHostedPrivateNetwork(networkName, "", nil, models.NetworkAccessOptions{
-		Users:         []string{"test_user"},
+		Users:         []string{"testuser"},
 		PublicGateway: true,
 	}); err != nil {
 		fatal(err.Error())
