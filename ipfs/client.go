@@ -67,9 +67,13 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 			ignored++
 			continue
 		}
-		if isStopped(container.Status) {
+		l = l.With("node", n)
+		if isStopped(container.State) {
 			if err := restartNode(n); err != nil {
-				l.Warnw("node container failed to restart", "error", err)
+				l.Warnw("node container failed to restart - removing", "error", err)
+				if err := c.RemoveNode(ctx, n.NetworkID); err != nil {
+					l.Warn("failed to remove node", "error", err, "node", n)
+				}
 				failed++
 				continue
 			}
@@ -81,8 +85,8 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 	// report activity
 	c.l.Infow("all nodes checked",
 		"found", len(ctrs),
+		"valid", len(nodes),
 		"ignored", ignored,
-		"registered", len(nodes),
 		"restarts", restarts,
 		"failed_restarts", failed)
 
