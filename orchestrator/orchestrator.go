@@ -135,13 +135,13 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	// update network in database
 	n.SwarmKey = string(opts.SwarmKey)
 	n.Activated = time.Now()
-	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
+	if err := o.nm.SaveNetwork(n); err != nil {
 		l.Errorw("failed to update database - removing node",
 			"error", err,
 			"entry", n)
 		o.Registry.Deregister(newNode.NetworkID)
 		o.client.RemoveNode(ctx, newNode.NetworkID)
-		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
+		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to update network '%s': %s", network, err)
 	}
 
 	l.Infow("network up process completed",
