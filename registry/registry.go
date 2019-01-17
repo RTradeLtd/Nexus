@@ -71,18 +71,20 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 	}
 
 	// assign ports to this node
-	var err error
-	var swarm, api, gateway string
-	if swarm, err = r.swarmPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
+	if node.Ports.Swarm != "" && node.Ports.Gateway != "" && node.Ports.API != "" {
+		var err error
+		var swarm, api, gateway string
+		if swarm, err = r.swarmPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		if api, err = r.apiPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		if gateway, err = r.gatewayPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 	}
-	if api, err = r.apiPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
-	}
-	if gateway, err = r.gatewayPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
-	}
-	node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 
 	r.nodes[node.NetworkID] = node
 
