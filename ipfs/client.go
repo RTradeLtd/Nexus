@@ -70,9 +70,9 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 		l = l.With("node", n)
 		if isStopped(container.State) {
 			if err := restartNode(n); err != nil {
-				l.Warnw("node container failed to restart - removing", "error", err)
-				if err := c.RemoveNode(ctx, n.NetworkID); err != nil {
-					l.Warn("failed to remove node", "error", err, "node", n)
+				l.Errorw("node container failed to restart - removing", "error", err)
+				if err := c.StopNode(ctx, &n); err != nil {
+					l.Warn("failed to stop node", "error", err)
 				}
 				failed++
 				continue
