@@ -249,8 +249,8 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	// update network in database to indicate it is no longer active
 	var t time.Time
 	if err := o.nm.UpdateNetworkByName(network, map[string]interface{}{
-		"activated": t,
-		"api_url":   "",
+		"activated":  t,
+		"swarm_addr": "",
 	}); err != nil {
 		l.Errorw("failed to update database entry for network",
 			"err", err)
