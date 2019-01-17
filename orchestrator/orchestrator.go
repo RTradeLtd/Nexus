@@ -133,6 +133,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 
 	// update network in database
 	n.SwarmKey = string(opts.SwarmKey)
+	n.SwarmAddr = fmt.Sprintf("%s:%s", o.address, newNode.Ports.Swarm)
 	n.Activated = time.Now()
 	if err := o.nm.SaveNetwork(n); err != nil {
 		l.Errorw("failed to update database - removing node",
