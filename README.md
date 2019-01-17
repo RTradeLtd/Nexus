@@ -12,6 +12,7 @@ and fine-grained access control for IPFS nodes running within Docker containers.
 [![Build Status](https://travis-ci.com/RTradeLtd/Nexus.svg?branch=master)](https://travis-ci.com/RTradeLtd/Nexus)
 [![codecov](https://codecov.io/gh/RTradeLtd/Nexus/branch/master/graph/badge.svg)](https://codecov.io/gh/RTradeLtd/Nexus)
 [![Go Report Card](https://goreportcard.com/badge/github.com/RTradeLtd/Nexus)](https://goreportcard.com/report/github.com/RTradeLtd/Nexus)
+[![Latest Release](https://img.shields.io/github/release/RTradeLtd/Nexus.svg?colorB=red)](https://github.com/RTradeLtd/Nexus/releases)
 
 ## Installation and Usage
 
