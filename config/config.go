@@ -45,7 +45,7 @@ type Ports struct {
 type API struct {
 	Host string `json:"host"`
 	Port string `json:"port"`
-	Key  string `json:"key"`
+	Key  string `json:"jwt_key"`
 	TLS  `json:"tls"`
 }
 
@@ -100,7 +100,11 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 		c.API.Port = "9111"
 	}
 	if c.API.Key == "" {
-		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+		if dev {
+			c.API.Key = "suchStrongKeyMuchProtectVerySafe"
+		} else {
+			c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+		}
 	}
 
 	// Proxy settings
