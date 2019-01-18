@@ -7,15 +7,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/RTradeLtd/Nexus/log"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"go.uber.org/zap"
+
+	"github.com/RTradeLtd/Nexus/log"
+	"github.com/RTradeLtd/Nexus/network"
 )
 
 // Client is the primary implementation of the NodeClient interface. Instantiate
@@ -58,13 +61,21 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 		failed   = 0
 	)
 	for _, container := range ctrs {
+		var l = c.l.With("container.id", container.ID, "container.name", container.Names[0])
 		n, err := newNode(container.ID, container.Names[0], container.Labels)
 		if err != nil {
+			l.Debugw("container ignored", "reason", err)
 			ignored++
 			continue
 		}
-		if isStopped(container.Status) {
+		n.updateFromContainerDetails(&container)
+		l = l.With("node", n)
+		if isStopped(container.State) {
 			if err := restartNode(n); err != nil {
+				l.Errorw("node container failed to restart - removing", "error", err)
+				if err := c.StopNode(ctx, &n); err != nil {
+					l.Warn("failed to stop node", "error", err)
+				}
 				failed++
 				continue
 			}
@@ -75,8 +86,9 @@ func (c *Client) Nodes(ctx context.Context) ([]*NodeInfo, error) {
 
 	// report activity
 	c.l.Infow("all nodes checked",
+		"found", len(ctrs),
+		"valid", len(nodes),
 		"ignored", ignored,
-		"found", len(nodes),
 		"restarts", restarts,
 		"failed_restarts", failed)
 
@@ -111,12 +123,22 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 	// set up basic configuration
 	var (
 		ports = nat.PortMap{
-			// public ports
-			"4001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.Swarm}},
-			"5001/tcp": []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: n.Ports.API}},
+			// TODO: make this private - blocked by lack of multiaddr support for /http
+			// paths, which means delegator can't work with go-ipfs swarm.
+			// See https://github.com/multiformats/multiaddr/issues/63
+			containerSwarmPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Public, HostPort: n.Ports.Swarm}},
 
-			// private ports
-			"8080/tcp": []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: n.Ports.Gateway}},
+			// API server connections can be made via delegator. Suffers from same
+			// issue as above, but direct API exposure is dangeorous since it is
+			// authenticated. Delegator can handle authentication
+			containerAPIPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Private, HostPort: n.Ports.API}},
+
+			// Gateway connections can be made via delegator, with access controlled
+			// by database
+			containerGatewayPort + "/tcp": []nat.PortBinding{
+				{HostIP: network.Private, HostPort: n.Ports.Gateway}},
 		}
 		volumes = []string{
 			c.getDataDir(n.NetworkID) + ":/data/ipfs",
@@ -157,7 +179,7 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	var start = time.Now()
 	l = l.With("container.name", n.ContainerName)
-	l.Infow("creating network container",
+	l.Debugw("creating network container",
 		"container.config", containerConfig,
 		"container.host_config", containerHostConfig)
 	resp, err := c.d.ContainerCreate(ctx, containerConfig, containerHostConfig, nil, n.ContainerName)
@@ -199,7 +221,7 @@ func (c *Client) CreateNode(ctx context.Context, n *NodeInfo, opts NodeOpts) err
 
 	// bootstrap peers if required
 	if len(n.BootstrapPeers) > 0 {
-		l.Infow("bootstrapping network node with provided peers")
+		l.Debugw("bootstrapping network node with provided peers")
 		if err := c.bootstrapNode(ctx, n.DockerID, n.BootstrapPeers...); err != nil {
 			l.Warnw("failed to bootstrap node - stopping container",
 				"error", err, "start.duration", time.Since(start))
@@ -233,7 +255,7 @@ func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 
 	// update Docker-managed configuration
 	var res = containerResources(n)
-	l.Infow("updaing docker-based configuration",
+	l.Debugw("updating docker-based configuration",
 		"container.resources", containerResources(n))
 	resp, err = c.d.ContainerUpdate(ctx, n.DockerID, container.UpdateConfig{Resources: res})
 	if err != nil {
@@ -247,7 +269,7 @@ func (c *Client) UpdateNode(ctx context.Context, n *NodeInfo) error {
 	}
 
 	// update IPFS configuration - currently requires restart, see function docs
-	l.Infow("updating IPFS node configuration",
+	l.Debugw("updating IPFS node configuration",
 		"node.disk", n.Resources.DiskGB)
 	if err = c.updateIPFSConfig(ctx, n); err != nil {
 		l.Errorw("failed to update IPFS daemon configuration",
@@ -311,7 +333,7 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 		l     = c.l.With("network_id", network, "data_dir", dir)
 	)
 
-	l.Info("removing node assets")
+	l.Debug("removing node assets")
 	if err := os.RemoveAll(dir); err != nil {
 		l.Warnw("error encountered removing node directories",
 			"error", err,
@@ -326,6 +348,8 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 
 // NodeStats provides details about a node container
 type NodeStats struct {
+	PeerID    string
+	PeerKey   string
 	Uptime    time.Duration
 	DiskUsage int64
 	Stats     interface{}
@@ -334,44 +358,61 @@ type NodeStats struct {
 // NodeStats retrieves statistics about the provided node
 func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
 	var start = time.Now()
+	var l = c.l.With("node", n)
 
 	// retrieve details from stats API
 	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to get container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	defer s.Body.Close()
 	b, err := ioutil.ReadAll(s.Body)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	var stats rawContainerStats
 	if err = json.Unmarshal(b, &stats); err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 
 	// retrieve details from container inspection
 	info, err := c.d.ContainerInspect(ctx, n.DockerID)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to inspect container", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	created, err := time.Parse(time.RFC3339, info.Created)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container detail", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 
 	// check disk usage
 	usage, err := dirSize(n.DataDir)
 	if err != nil {
-		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
+		l.Errorw("failed to calculate disk usage", "error", err)
+		return NodeStats{}, errors.New("failed to calculate disk usage")
 	}
 
-	c.l.Infow("retrieved node container data",
+	// get peer ID
+	var cfgPath = filepath.Join(n.DataDir, "config")
+	peer, err := getConfig(cfgPath)
+	if err != nil {
+		l.Errorw("failed to read node configuration", "error", err, "path", cfgPath)
+		return NodeStats{}, fmt.Errorf("failed to get network node configuration")
+	}
+
+	c.l.Debugw("retrieved node container data",
 		"network_id", n.NetworkID,
 		"docker_id", n.DockerID,
 		"stat.duration", time.Since(start))
 
 	return NodeStats{
+		PeerID:    peer.Identity.PeerID,
+		PeerKey:   peer.Identity.PrivKey,
 		Uptime:    time.Since(created),
 		Stats:     stats,
 		DiskUsage: usage,

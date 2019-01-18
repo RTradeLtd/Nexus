@@ -6,6 +6,12 @@ import (
 	"github.com/docker/docker/api/types/container"
 )
 
+const (
+	containerSwarmPort   = "4001"
+	containerAPIPort     = "5001"
+	containerGatewayPort = "8080"
+)
+
 // containerResources generates Docker resource constraints for a container,
 // based on documentation:
 // https://docs.docker.com/config/containers/resource_constraints/

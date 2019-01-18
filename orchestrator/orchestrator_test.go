@@ -19,7 +19,6 @@ import (
 
 func TestNew(t *testing.T) {
 	type args struct {
-		pgOpts tcfg.Database
 	}
 	tests := []struct {
 		name          string
@@ -27,9 +26,8 @@ func TestNew(t *testing.T) {
 		wantClientErr bool
 		wantErr       bool
 	}{
-		{"node client err", args{dbDefaults}, true, true},
-		{"invalid db options", args{tcfg.Database{}}, false, true},
-		{"all good", args{dbDefaults}, false, false},
+		{"node client err", args{}, true, true},
+		{"all good", args{}, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -42,7 +40,12 @@ func TestNew(t *testing.T) {
 				client.NodesReturns([]*ipfs.NodeInfo{}, nil)
 			}
 
-			_, err := New(l, "", client, config.Ports{}, tt.args.pgOpts, true)
+			dbm, err := newTestDB()
+			if err != nil {
+				t.Fatalf("failed to reach database: %s\n", err.Error())
+			}
+
+			_, err = New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -54,8 +57,11 @@ func TestNew(t *testing.T) {
 func TestOrchestrator_Run(t *testing.T) {
 	l, _ := log.NewTestLogger()
 	client := &mock.FakeNodeClient{}
-
-	o, err := New(l, "", client, config.Ports{}, dbDefaults, true)
+	dbm, err := newTestDB()
+	if err != nil {
+		t.Fatalf("failed to reach database: %s\n", err.Error())
+	}
+	o, err := New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
 	if err != nil {
 		t.Error(err)
 		return
@@ -112,11 +118,11 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				nm:      nm,
-				client:  client,
-				reg:     registry.New(l, tt.fields.regPorts),
-				address: "127.0.0.1",
+				Registry: registry.New(l, tt.fields.regPorts),
+				l:        l,
+				nm:       nm,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -177,11 +183,11 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				nm:      nm,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				nm:       nm,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -219,10 +225,10 @@ func TestOrchestrator_NetworkRemove(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -230,47 +236,6 @@ func TestOrchestrator_NetworkRemove(t *testing.T) {
 			}
 
 			if err := o.NetworkRemove(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
-				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestOrchestrator_NetworkStatus(t *testing.T) {
-	type fields struct {
-		node ipfs.NodeInfo
-	}
-	type args struct {
-		network string
-	}
-	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		createErr bool
-		wantErr   bool
-	}{
-		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
-		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
-		{"client fail", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, true},
-		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l, _ := log.NewTestLogger()
-			client := &mock.FakeNodeClient{}
-			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
-			}
-
-			if tt.createErr {
-				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
-			}
-
-			if _, err := o.NetworkStatus(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -327,11 +292,11 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 			l, _ := log.NewTestLogger()
 			client := &mock.FakeNodeClient{}
 			o := &Orchestrator{
-				l:       l,
-				client:  client,
-				nm:      nm,
-				reg:     registry.New(l, config.New().Ports, &tt.fields.node),
-				address: "127.0.0.1",
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				nm:       nm,
+				address:  "127.0.0.1",
 			}
 
 			if tt.createErr {
@@ -340,6 +305,88 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 
 			if err := o.NetworkUpdate(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
 				t.Errorf("Orchestrator.NetworkUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkStatus(t *testing.T) {
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"client fail", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, true},
+		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
+			}
+
+			if _, err := o.NetworkStatus(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkStatus() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOrchestrator_NetworkDiagnostics(t *testing.T) {
+	type fields struct {
+		node ipfs.NodeInfo
+	}
+	type args struct {
+		network string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		createErr bool
+		wantErr   bool
+	}{
+		{"invalid network name", fields{ipfs.NodeInfo{}}, args{""}, false, true},
+		{"unable to find node", fields{ipfs.NodeInfo{}}, args{"asdf"}, false, true},
+		{"client fail should still return", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, true, false},
+		{"client succeed", fields{ipfs.NodeInfo{NetworkID: "asdf"}}, args{"asdf"}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l, _ := log.NewTestLogger()
+			client := &mock.FakeNodeClient{}
+			o := &Orchestrator{
+				Registry: registry.New(l, config.New().Ports, &tt.fields.node),
+				l:        l,
+				client:   client,
+				address:  "127.0.0.1",
+			}
+
+			if tt.createErr {
+				client.NodeStatsReturns(ipfs.NodeStats{}, errors.New("oh no"))
+			}
+
+			if _, err := o.NetworkDiagnostics(context.Background(), tt.args.network); (err != nil) != tt.wantErr {
+				t.Errorf("Orchestrator.NetworkDiagnostics() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

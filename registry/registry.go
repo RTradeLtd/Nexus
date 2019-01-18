@@ -49,9 +49,11 @@ func New(logger *zap.SugaredLogger, ports config.Ports, nodes ...*ipfs.NodeInfo)
 		l:     logger.Named("registry"),
 		nodes: m,
 
-		swarmPorts:   network.NewRegistry(logger, "0.0.0.0", ports.Swarm),
-		apiPorts:     network.NewRegistry(logger, "0.0.0.0", ports.API),
-		gatewayPorts: network.NewRegistry(logger, "127.0.0.1", ports.Gateway),
+		// See documentation regarding public/private-ness of IPFS ports in package
+		// ipfs
+		swarmPorts:   network.NewRegistry(logger, network.Public, ports.Swarm),
+		apiPorts:     network.NewRegistry(logger, network.Private, ports.API),
+		gatewayPorts: network.NewRegistry(logger, network.Private, ports.Gateway),
 	}
 }
 
@@ -68,19 +70,22 @@ func (r *NodeRegistry) Register(node *ipfs.NodeInfo) error {
 		return errors.New(ErrNetworkExists)
 	}
 
-	// assign ports to this node
-	var err error
-	var swarm, api, gateway string
-	if swarm, err = r.swarmPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
+	// assign ports to this node - do not assign new ones if ports are already
+	// provided in node.Ports
+	if node.Ports.Swarm == "" || node.Ports.Gateway == "" || node.Ports.API == "" {
+		var err error
+		var swarm, api, gateway string
+		if swarm, err = r.swarmPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		if api, err = r.apiPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		if gateway, err = r.gatewayPorts.AssignPort(); err != nil {
+			return fmt.Errorf("failed to register node: %s", err.Error())
+		}
+		node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 	}
-	if api, err = r.apiPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
-	}
-	if gateway, err = r.gatewayPorts.AssignPort(); err != nil {
-		return fmt.Errorf("failed to register node: %s", err.Error())
-	}
-	node.Ports = ipfs.NodePorts{Swarm: swarm, API: api, Gateway: gateway}
 
 	r.nodes[node.NetworkID] = node
 

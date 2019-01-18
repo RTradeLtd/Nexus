@@ -1,11 +1,9 @@
 package config
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	tcfg "github.com/RTradeLtd/config"
 )
@@ -23,6 +21,7 @@ type IPFSOrchestratorConfig struct {
 
 	IPFS          `json:"ipfs"`
 	API           `json:"api"`
+	Delegator     `json:"delegator"`
 	tcfg.Database `json:"postgres"`
 }
 
@@ -50,7 +49,15 @@ type API struct {
 	TLS  `json:"tls"`
 }
 
-// TLS declares HTTPS configuration for the daemon's gRPC API
+// Delegator declares configuration for the orchestrator proxy
+type Delegator struct {
+	Host   string `json:"host"`
+	Port   string `json:"port"`
+	JWTKey string `json:"jwt_key"`
+	TLS    `json:"tls"`
+}
+
+// TLS declares HTTPS configuration
 type TLS struct {
 	CertPath string `json:"cert"`
 	KeyPath  string `json:"key"`
@@ -59,7 +66,7 @@ type TLS struct {
 // New creates a new, default configuration
 func New() IPFSOrchestratorConfig {
 	var cfg IPFSOrchestratorConfig
-	cfg.setDefaults()
+	cfg.SetDefaults(false)
 	return cfg
 }
 
@@ -77,48 +84,77 @@ func LoadConfig(configPath string) (IPFSOrchestratorConfig, error) {
 		return cfg, fmt.Errorf("could not read config: %s", err.Error())
 	}
 
-	cfg.setDefaults()
+	cfg.SetDefaults(false)
 
 	return cfg, nil
 }
 
-// GenerateConfig writes an empty orchestrator config template to given filepath
-func GenerateConfig(configPath string) error {
-	template := &IPFSOrchestratorConfig{}
-	template.setDefaults()
-	b, err := json.Marshal(template)
-	if err != nil {
-		return err
-	}
-
-	var pretty bytes.Buffer
-	if err = json.Indent(&pretty, b, "", "  "); err != nil {
-		return err
-	}
-	return ioutil.WriteFile(configPath, append(pretty.Bytes(), '\n'), os.ModePerm)
-}
-
-func (c *IPFSOrchestratorConfig) setDefaults() {
-	if c.IPFS.Version == "" {
-		c.IPFS.Version = DefaultIPFSVersion
-	}
-	if c.IPFS.DataDirectory == "" {
-		c.IPFS.DataDirectory = "/"
-	}
-	if c.IPFS.ModePerm == "" {
-		c.IPFS.ModePerm = "0700"
-	}
+// SetDefaults initializes certain blank values with defaults, with special
+// presets for dev
+func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
+	// API settings
 	if c.API.Host == "" {
 		c.API.Host = "127.0.0.1"
 	}
 	if c.API.Port == "" {
 		c.API.Port = "9111"
 	}
+	if c.API.Key == "" {
+		c.API.Key = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+	}
+
+	// Proxy (delegator) settings
+	if c.Delegator.Host == "" {
+		c.Delegator.Host = "127.0.0.1"
+	}
+	if c.Delegator.Port == "" {
+		if dev {
+			c.Delegator.Port = "8080"
+		} else {
+			c.Delegator.Port = "80"
+		}
+	}
+	if c.Delegator.JWTKey == "" {
+		if dev {
+			c.Delegator.JWTKey = "suchStrongKeyMuchProtectVerySafe"
+		} else {
+			c.Delegator.JWTKey = "DO_NOT_LEAVE_ME_AS_DEFAULT"
+		}
+	}
+
+	// Database settings
 	if c.Database.URL == "" {
 		c.Database.URL = "127.0.0.1"
 	}
 	if c.Database.Port == "" {
-		c.Database.Port = "5432"
+		if dev {
+			c.Database.Port = "5433"
+		} else {
+			c.Database.Port = "5432"
+		}
+	}
+	if dev {
+		if c.Database.Username == "" {
+			c.Database.Username = "postgres"
+		}
+		if c.Database.Password == "" {
+			c.Database.Password = "password123"
+		}
+	}
+
+	// IPFS settings
+	if c.IPFS.Version == "" {
+		c.IPFS.Version = DefaultIPFSVersion
+	}
+	if c.IPFS.DataDirectory == "" {
+		if dev {
+			c.IPFS.DataDirectory = "tmp"
+		} else {
+			c.IPFS.DataDirectory = "/"
+		}
+	}
+	if c.IPFS.ModePerm == "" {
+		c.IPFS.ModePerm = "0700"
 	}
 	if c.IPFS.Ports.Swarm == nil {
 		c.IPFS.Ports.Swarm = []string{"4001-5000"}

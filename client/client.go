@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/RTradeLtd/grpc/dialer"
-	ipfs_orchestrator "github.com/RTradeLtd/grpc/ipfs-orchestrator"
+	"github.com/RTradeLtd/grpc/nexus"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -15,7 +15,7 @@ import (
 // IPFSOrchestratorClient is a lighweight container for the orchestrator's
 // gRPC API client
 type IPFSOrchestratorClient struct {
-	ipfs_orchestrator.ServiceClient
+	nexus.ServiceClient
 	grpc *grpc.ClientConn
 }
 
@@ -48,7 +48,7 @@ func New(opts config.API, devMode bool) (*IPFSOrchestratorClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to core service: %s", err.Error())
 	}
-	c.ServiceClient = ipfs_orchestrator.NewServiceClient(c.grpc)
+	c.ServiceClient = nexus.NewServiceClient(c.grpc)
 	return c, nil
 }
 

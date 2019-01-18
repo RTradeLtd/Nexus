@@ -8,8 +8,8 @@ import (
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/orchestrator"
-	ipfs_orchestrator "github.com/RTradeLtd/grpc/ipfs-orchestrator"
 	"github.com/RTradeLtd/grpc/middleware"
+	"github.com/RTradeLtd/grpc/nexus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -85,7 +85,7 @@ func (d *Daemon) Run(ctx context.Context, cfg config.API) error {
 
 	// initialize server
 	server := grpc.NewServer(serverOpts...)
-	ipfs_orchestrator.RegisterServiceServer(server, d)
+	nexus.RegisterServiceServer(server, d)
 
 	// interrupt server gracefully if context is cancelled
 	go func() {

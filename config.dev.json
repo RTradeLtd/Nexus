@@ -3,7 +3,7 @@
   "log_path": "",
   "ipfs": {
     "version": "v0.4.18",
-    "data_dir": "/",
+    "data_dir": "tmp",
     "perm_mode": "0700",
     "ports": {
       "swarm": [
@@ -28,8 +28,8 @@
   },
   "delegator": {
     "host": "127.0.0.1",
-    "port": "80",
-    "jwt_key": "DO_NOT_LEAVE_ME_AS_DEFAULT",
+    "port": "8080",
+    "jwt_key": "suchStrongKeyMuchProtectVerySafe",
     "tls": {
       "cert": "",
       "key": ""
@@ -38,8 +38,8 @@
   "postgres": {
     "name": "",
     "url": "127.0.0.1",
-    "port": "5432",
-    "username": "",
-    "password": ""
+    "port": "5433",
+    "username": "postgres",
+    "password": "password123"
   }
 }

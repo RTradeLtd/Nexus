@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/RTradeLtd/Nexus/temporal"
 
-	tcfg "github.com/RTradeLtd/config"
-	"github.com/RTradeLtd/database"
-	"github.com/RTradeLtd/database/models"
+	"go.uber.org/zap"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
@@ -21,53 +19,41 @@ import (
 // Orchestrator contains most primary application logic and manages node
 // availability
 type Orchestrator struct {
+	Registry *registry.NodeRegistry
+
 	l  *zap.SugaredLogger
-	nm *models.IPFSNetworkManager
+	nm temporal.PrivateNetworks
 
 	client  ipfs.NodeClient
-	reg     *registry.NodeRegistry
 	address string
 }
 
 // New instantiates and bootstraps a new Orchestrator
-func New(logger *zap.SugaredLogger, address string, c ipfs.NodeClient,
-	ports config.Ports, pg tcfg.Database, dev bool) (*Orchestrator, error) {
+func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool,
+	c ipfs.NodeClient, networks temporal.PrivateNetworks) (*Orchestrator, error) {
 	var l = logger.Named("orchestrator")
 	if address == "" {
 		l.Warn("host address not set")
 	}
 
 	// bootstrap registry
-	l.Info("bootstrapping existing nodes")
+	l.Info("checking for existing nodes")
 	nodes, err := c.Nodes(context.Background())
 	if err != nil {
+		l.Errorw("failed to fetch nodes", "error", err)
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
+	}
+	if len(nodes) > 0 {
+		l.Infow("bootstrapping with found nodes", "nodes", nodes)
 	}
 	reg := registry.New(l, ports, nodes...)
 
-	// set up database connection
-	l.Infow("intializing database connection",
-		"db.host", pg.URL,
-		"db.port", pg.Port,
-		"db.name", pg.Name,
-		"db.with_ssl", !dev,
-		"db.with_migrations", dev)
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
-		Database: pg,
-	}, database.Options{
-		SSLModeDisable: dev,
-		RunMigrations:  dev,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to database: %s", err.Error())
-	}
-	l.Info("successfully connected to database")
-
 	return &Orchestrator{
+		Registry: reg,
+
 		l:       l,
-		nm:      models.NewHostedIPFSNetworkManager(dbm.DB),
+		nm:      networks,
 		client:  c,
-		reg:     reg,
 		address: address,
 	}, nil
 }
@@ -82,13 +68,7 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 			o.l.Info("releasing orchestrator resources")
 
 			// close registry
-			o.reg.Close()
-
-			// close database
-			if err := o.nm.DB.Close(); err != nil {
-				o.l.Warnw("error occurred closing database connection",
-					"error", err)
-			}
+			o.Registry.Close()
 		}
 	}()
 	return nil
@@ -96,8 +76,10 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 
 // NetworkDetails provides information about an instantiated network
 type NetworkDetails struct {
-	API      string
-	SwarmKey string
+	NetworkID string
+	PeerID    string
+	SwarmPort string
+	SwarmKey  string
 }
 
 // NetworkUp intializes a node for given network
@@ -133,7 +115,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 
 	// register node for network
 	newNode := getNodeFromDatabaseEntry(jobID, n)
-	if err := o.reg.Register(newNode); err != nil {
+	if err := o.Registry.Register(newNode); err != nil {
 		l.Errorw("no available ports",
 			"error", err)
 		return NetworkDetails{}, fmt.Errorf("failed to allocate resources for network '%s': %s", network, err)
@@ -143,29 +125,42 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	l = l.With("node", newNode)
 	l.Info("network registered, creating node")
 	if err := o.client.CreateNode(ctx, newNode, opts); err != nil {
-		l.Errorw("unable to create node",
+		l.Errorw("unable to create node - deregistering",
 			"error", err)
+		o.Registry.Deregister(newNode.NetworkID)
 		return NetworkDetails{}, fmt.Errorf("failed to instantiate node for network '%s': %s", network, err)
 	}
 	l.Info("node created")
 
+	s, err := o.client.NodeStats(ctx, newNode)
+	if err != nil {
+		l.Errorw("failed to get node stats after node started up successfully", "error", err)
+		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to get stats about network '%s': %s",
+			network, err)
+	}
+
 	// update network in database
-	n.APIURL = o.address + ":" + newNode.Ports.API
+	n.PeerKey = s.PeerKey
 	n.SwarmKey = string(opts.SwarmKey)
+	n.SwarmAddr = fmt.Sprintf("%s:%s", o.address, newNode.Ports.Swarm)
 	n.Activated = time.Now()
-	if check := o.nm.DB.Save(n); check != nil && check.Error != nil {
-		l.Errorw("failed to update database",
+	if err := o.nm.SaveNetwork(n); err != nil {
+		l.Errorw("failed to update database - removing node",
 			"error", err,
 			"entry", n)
-		return NetworkDetails{}, fmt.Errorf("failed to update network '%s': %s", network, check.Error)
+		o.Registry.Deregister(newNode.NetworkID)
+		o.client.RemoveNode(ctx, newNode.NetworkID)
+		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to update network '%s': %s", network, err)
 	}
 
 	l.Infow("network up process completed",
 		"network_up.duration", time.Since(start))
 
 	return NetworkDetails{
-		API:      n.APIURL,
-		SwarmKey: n.SwarmKey,
+		NetworkID: network,
+		PeerID:    s.PeerID,
+		SwarmPort: newNode.Ports.Swarm,
+		SwarmKey:  n.SwarmKey,
 	}, nil
 }
 
@@ -176,7 +171,7 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 	}
 
 	// check node exists
-	node, err := o.reg.Get(network)
+	node, err := o.Registry.Get(network)
 	if err != nil {
 		return fmt.Errorf("failed to find node for network '%s': %s", network, err.Error())
 	}
@@ -215,8 +210,8 @@ func (o *Orchestrator) NetworkUpdate(ctx context.Context, network string) error 
 
 	// update registry
 	l.Info("updating registry")
-	o.reg.Deregister(network)
-	if err := o.reg.Register(new); err != nil {
+	o.Registry.Deregister(network)
+	if err := o.Registry.Register(new); err != nil {
 		l.Errorw("failed to register updated network", "error", err)
 		return fmt.Errorf("error updating registry: %s", err.Error())
 	}
@@ -240,7 +235,7 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	l.Info("network up process started")
 
 	// retrieve node from registry
-	node, err := o.reg.Get(network)
+	node, err := o.Registry.Get(network)
 	if err != nil {
 		l.Info("could not find node in registry")
 		return fmt.Errorf("failed to get node for network %s from registry: %s", network, err.Error())
@@ -256,7 +251,7 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	l.Info("node stopped")
 
 	// deregister node
-	if err := o.reg.Deregister(network); err != nil {
+	if err := o.Registry.Deregister(network); err != nil {
 		l.Errorw("error occurred while deregistering node",
 			"error", err)
 	}
@@ -264,8 +259,8 @@ func (o *Orchestrator) NetworkDown(ctx context.Context, network string) error {
 	// update network in database to indicate it is no longer active
 	var t time.Time
 	if err := o.nm.UpdateNetworkByName(network, map[string]interface{}{
-		"activated": t,
-		"api_url":   "",
+		"activated":  t,
+		"swarm_addr": "",
 	}); err != nil {
 		l.Errorw("failed to update database entry for network",
 			"err", err)
@@ -284,25 +279,24 @@ func (o *Orchestrator) NetworkRemove(ctx context.Context, network string) error 
 		return errors.New("invalid network name provided")
 	}
 
-	if _, err := o.reg.Get(network); err == nil {
+	if _, err := o.Registry.Get(network); err == nil {
 		return errors.New("network is still online and in registry - must be offline for removal")
 	}
 
 	return o.client.RemoveNode(ctx, network)
 }
 
-// NetworkStatus denotes details about requested network
+// NetworkStatus denotes high-level details about requested network, intended
+// for consumer use
 type NetworkStatus struct {
-	Network   string
-	API       string
+	NetworkDetails
 	Uptime    time.Duration
 	DiskUsage int64
-	Stats     interface{}
 }
 
 // NetworkStatus retrieves the status of the node for the given status
 func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (NetworkStatus, error) {
-	n, err := o.reg.Get(network)
+	n, err := o.Registry.Get(network)
 	if err != nil {
 		return NetworkStatus{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
 	}
@@ -316,10 +310,41 @@ func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (Netwo
 	}
 
 	return NetworkStatus{
-		Network:   network,
-		API:       o.address + ":" + n.Ports.API,
+		NetworkDetails: NetworkDetails{
+			NetworkID: network,
+			PeerID:    n.NetworkID,
+			SwarmPort: n.Ports.Swarm,
+			SwarmKey:  "<OMITTED>",
+		},
 		Uptime:    stats.Uptime,
 		DiskUsage: stats.DiskUsage,
-		Stats:     stats.Stats,
+	}, nil
+}
+
+// NetworkDiagnostics describe detailed statistics and information about a node
+type NetworkDiagnostics struct {
+	ipfs.NodeInfo
+	ipfs.NodeStats
+}
+
+// NetworkDiagnostics retrieves detailed statistics and information about a node
+func (o *Orchestrator) NetworkDiagnostics(ctx context.Context, network string) (NetworkDiagnostics, error) {
+	o.l.Info("diagnostics requested for network", "network.id", network)
+	n, err := o.Registry.Get(network)
+	if err != nil {
+		return NetworkDiagnostics{}, fmt.Errorf("failed to retrieve network details: %s", err.Error())
+	}
+
+	// attempt to retrieve live network stats, return what's possible
+	stats, err := o.client.NodeStats(ctx, &n)
+	if err != nil {
+		o.l.Errorw("error occurred while attempting to acess registered node",
+			"error", err,
+			"node", n)
+	}
+
+	return NetworkDiagnostics{
+		NodeInfo:  n,
+		NodeStats: stats,
 	}, nil
 }

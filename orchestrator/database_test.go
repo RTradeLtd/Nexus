@@ -7,6 +7,7 @@ import (
 	"github.com/RTradeLtd/Nexus/ipfs"
 
 	tcfg "github.com/RTradeLtd/config"
+	"github.com/RTradeLtd/database"
 	"github.com/RTradeLtd/database/models"
 )
 
@@ -16,6 +17,15 @@ var dbDefaults = tcfg.Database{
 	Port:     "5433",
 	Username: "postgres",
 	Password: "password123",
+}
+
+func newTestDB() (*database.Manager, error) {
+	return database.Initialize(&tcfg.TemporalConfig{
+		Database: dbDefaults,
+	}, database.Options{
+		SSLModeDisable: true,
+		RunMigrations:  true,
+	})
 }
 
 func Test_getOptionsFromDatabaseEntry(t *testing.T) {

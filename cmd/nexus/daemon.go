@@ -5,9 +5,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	tcfg "github.com/RTradeLtd/config"
+	"github.com/RTradeLtd/database"
+	"github.com/RTradeLtd/database/models"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/daemon"
+	"github.com/RTradeLtd/Nexus/delegator"
 	"github.com/RTradeLtd/Nexus/ipfs"
 	"github.com/RTradeLtd/Nexus/log"
 	"github.com/RTradeLtd/Nexus/orchestrator"
@@ -41,30 +47,76 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		fatal(err.Error())
 	}
 
+	// set up database connection
+	l.Infow("intializing database connection",
+		"db.host", cfg.Database.URL,
+		"db.port", cfg.Database.Port,
+		"db.name", cfg.Database.Name,
+		"db.with_ssl", !devMode,
+		"db.with_migrations", devMode)
+	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+		Database: cfg.Database,
+	}, database.Options{
+		SSLModeDisable: devMode,
+		RunMigrations:  devMode,
+	})
+	if err != nil {
+		l.Errorw("failed to connect to database", "error", err)
+		fatalf("unable to connect to database: %s", err.Error())
+	}
+	l.Info("successfully connected to database")
+	defer func() {
+		if err := dbm.DB.Close(); err != nil {
+			l.Warnw("error occurred closing database connection",
+				"error", err)
+		}
+	}()
+
 	// initialize orchestrator
 	println("initializing orchestrator")
-	o, err := orchestrator.New(l, cfg.Address, c, cfg.IPFS.Ports, cfg.Database, devMode)
+	o, err := orchestrator.New(l, cfg.Address, cfg.IPFS.Ports, devMode,
+		c, models.NewHostedIPFSNetworkManager(dbm.DB))
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	// initialize daemon
 	println("initializing daemon")
-	d := daemon.New(l, o)
+	dm := daemon.New(l, o)
 
-	// handle graceful shutdown
+	// initialize delegator
+	println("initializing delegator")
+	dl := delegator.New(l, Version, 1*time.Minute, []byte(cfg.Delegator.JWTKey),
+		o.Registry, models.NewHostedIPFSNetworkManager(dbm.DB))
+
+	// catch interrupts
 	ctx, cancel := context.WithCancel(context.Background())
-	signals := make(chan os.Signal)
+	var signals = make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-signals
 		cancel()
 	}()
 
-	// serve endpoints
-	println("spinning up server")
-	if err := d.Run(ctx, cfg.API); err != nil {
-		println(err.Error())
-	}
-	println("server shut down")
+	// serve gRPC endpoints
+	println("spinning up gRPC server...")
+	go func() {
+		if err := dm.Run(ctx, cfg.API); err != nil {
+			println(err.Error())
+		}
+		cancel()
+	}()
+
+	// serve delegator
+	println("spinning up delegator...")
+	go func() {
+		if err := dl.Run(ctx, cfg.Delegator); err != nil {
+			println(err.Error())
+		}
+		cancel()
+	}()
+
+	// block
+	<-ctx.Done()
+	println("orchestrator shut down")
 }

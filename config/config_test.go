@@ -17,7 +17,7 @@ func TestLoadConfig(t *testing.T) {
 	}{
 		{"invalid path", args{""}, IPFSOrchestratorConfig{}, true},
 		{"invalid file", args{"./config.go"}, IPFSOrchestratorConfig{}, true},
-		{"valid dev config", args{"../config.example.json"}, New(), false},
+		{"valid example config", args{"../config.example.json"}, New(), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -30,11 +30,5 @@ func TestLoadConfig(t *testing.T) {
 				t.Errorf("LoadConfig() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestGenerateConfig(t *testing.T) {
-	if err := GenerateConfig("../config.json"); err != nil {
-		t.Error(err.Error())
 	}
 }

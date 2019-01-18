@@ -1,13 +1,18 @@
-# 🦑 Nexus: IPFS Network Node Orchestrator
+# 🦑 Nexus
 
-Nexus is the IPFS private network node orchestration and registry service for
-[Temporal](https://github.com/RTradeLtd/Temporal), an easy-to-use interface into
-distributed and decentralized storage technologies.
+> IPFS Network Node Orchestrator
+
+Nexus is the [IPFS](https://github.com/ipfs/go-ipfs) private network node
+orchestration and registry service for [Temporal](https://github.com/RTradeLtd/Temporal),
+an easy-to-use interface into distributed and decentralized storage technologies.
+Nexus handles on-demand deployment, resource management, metadata persistence,
+and fine-grained access control for IPFS nodes running within Docker containers.
 
 [![GoDoc](https://godoc.org/github.com/RTradeLtd/Nexus?status.svg)](https://godoc.org/github.com/RTradeLtd/Nexus)
 [![Build Status](https://travis-ci.com/RTradeLtd/Nexus.svg?branch=master)](https://travis-ci.com/RTradeLtd/Nexus)
 [![codecov](https://codecov.io/gh/RTradeLtd/Nexus/branch/master/graph/badge.svg)](https://codecov.io/gh/RTradeLtd/Nexus)
 [![Go Report Card](https://goreportcard.com/badge/github.com/RTradeLtd/Nexus)](https://goreportcard.com/report/github.com/RTradeLtd/Nexus)
+[![Latest Release](https://img.shields.io/github/release/RTradeLtd/Nexus.svg?colorB=red)](https://github.com/RTradeLtd/Nexus/releases)
 
 ## Installation and Usage
 
@@ -16,7 +21,8 @@ $> go get -u github.com/RTradeLtd/Nexus/cmd/nexus
 ```
 
 Releases are also be available from the
-[Releases](https://github.com/RTradeLtd/Nexus/releases) page.
+[Releases](https://github.com/RTradeLtd/Nexus/releases) page. To start up the
+Nexus daemon using the default configuration, run:
 
 ```bash
 $> nexus init
@@ -53,6 +59,23 @@ $> make test
 ```
 
 You can remove leftover assets using `make clean`.
+
+### Running Locally
+
+A few make commands make it easy to simulate a full orchestrator environment on your machine:
+
+```bash
+$> make dev-config # make sure dev configuration is up to date
+$> make testenv    # initialize test environment
+$> make daemon     # start up daemon with dev configuration
+```
+
+Then, you can set up and start a network node:
+
+```bash
+$> make new-network   # create network entry in database
+$> make start-network # spin up network node
+```
 
 ### ctl
 

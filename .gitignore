@@ -1,3 +1,6 @@
+# editors
+.vscode
+
 # dependencies
 vendor
 
@@ -11,3 +14,4 @@ vendor
 # test
 tmp
 test
+temp.txt

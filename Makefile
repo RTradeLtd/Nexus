@@ -14,10 +14,6 @@ build:
 install: deps
 	go install -ldflags "-X main.Version=$(VERSION)" ./cmd/nexus
 
-.PHONY: config
-config: build
-	./nexus -config ./config.example.json init
-
 # Install dependencies
 .PHONY: deps
 deps:
@@ -56,7 +52,47 @@ gen:
 	fileb0x b0x.yml
 	counterfeiter -o ./ipfs/mock/ipfs.mock.go \
 		./ipfs/ipfs.go NodeClient
+	counterfeiter -o ./temporal/mock/networks.mock.go \
+		./temporal/database.go PrivateNetworks
 
 .PHONY: release
 release:
 	bash .scripts/release.sh
+
+#####################
+# DEVELOPMENT UTILS #
+#####################
+
+NETWORK=test_network
+TESTFLAGS=-dev -config ./config.dev.json
+
+.PHONY: example-config
+example-config: build
+	./nexus -config ./config.example.json init
+
+.PHONY: dev-config
+dev-config: build
+	./nexus $(TESTFLAGS) init
+
+.PHONY: config
+config: example-config dev-config
+
+.PHONY: daemon
+daemon: build
+	./nexus $(TESTFLAGS) daemon
+
+.PHONY: new-network
+new-network: build
+	./nexus $(TESTFLAGS) dev network $(NETWORK)
+
+.PHONY: start-network
+start-network: build
+	./nexus $(TESTFLAGS) ctl --pretty StartNetwork Network=$(NETWORK)
+
+.PHONY: stat-network
+stat-network:
+	./nexus $(TESTFLAGS) ctl --pretty NetworkStats Network=$(NETWORK)
+
+.PHONY: diag-network
+diag-network:
+	./nexus $(TESTFLAGS) ctl NetworkDiagnostics Network=$(NETWORK)

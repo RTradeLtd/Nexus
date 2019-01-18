@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/docker/docker/api/types"
 )
 
 const (
@@ -135,5 +137,30 @@ func (n *NodeInfo) labels(peers []string, dataDir string) map[string]string {
 		keyResourcesCPUs:   strconv.Itoa(n.Resources.CPUs),
 		keyResourcesDisk:   strconv.Itoa(n.Resources.DiskGB),
 		keyResourcesMemory: strconv.Itoa(n.Resources.MemoryGB),
+	}
+}
+
+func (n *NodeInfo) updateFromContainerDetails(c *types.Container) {
+	if c == nil {
+		return
+	}
+
+	// check container ID
+	n.DockerID = c.ID
+
+	// check ports
+	if len(c.Ports) > 0 {
+		for _, p := range c.Ports {
+			var public = strconv.Itoa(int(p.PublicPort))
+			var private = strconv.Itoa(int(p.PrivatePort))
+			switch private {
+			case containerSwarmPort:
+				n.Ports.Swarm = public
+			case containerAPIPort:
+				n.Ports.API = public
+			case containerGatewayPort:
+				n.Ports.Gateway = public
+			}
+		}
 	}
 }
