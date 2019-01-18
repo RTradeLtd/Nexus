@@ -357,42 +357,51 @@ type NodeStats struct {
 // NodeStats retrieves statistics about the provided node
 func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) {
 	var start = time.Now()
+	var l = c.l.With("node", n)
 
 	// retrieve details from stats API
 	s, err := c.d.ContainerStats(ctx, n.DockerID, false)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to get container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	defer s.Body.Close()
 	b, err := ioutil.ReadAll(s.Body)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	var stats rawContainerStats
 	if err = json.Unmarshal(b, &stats); err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container stats", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 
 	// retrieve details from container inspection
 	info, err := c.d.ContainerInspect(ctx, n.DockerID)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to inspect container", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 	created, err := time.Parse(time.RFC3339, info.Created)
 	if err != nil {
-		return NodeStats{}, err
+		l.Errorw("failed to read container detail", "error", err)
+		return NodeStats{}, errors.New("failed to get node stats")
 	}
 
 	// check disk usage
 	usage, err := dirSize(n.DataDir)
 	if err != nil {
-		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
+		l.Errorw("failed to calculate disk usage", "error", err)
+		return NodeStats{}, errors.New("failed to calculate disk usage")
 	}
 
 	// get peer ID
-	peer, err := getConfig(filepath.Join(n.DataDir, "config"))
+	var cfgPath = filepath.Join(n.DataDir, "config")
+	peer, err := getConfig(cfgPath)
 	if err != nil {
-		return NodeStats{}, fmt.Errorf("failed to get node configuration: %s", err.Error())
+		l.Errorw("failed to read node configuration", "error", err, "path", cfgPath)
+		return NodeStats{}, fmt.Errorf("failed to get network node configuration")
 	}
 
 	c.l.Debugw("retrieved node container data",
