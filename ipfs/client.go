@@ -349,6 +349,7 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 // NodeStats provides details about a node container
 type NodeStats struct {
 	PeerID    string
+	PeerKey   string
 	Uptime    time.Duration
 	DiskUsage int64
 	Stats     interface{}
@@ -411,6 +412,7 @@ func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) 
 
 	return NodeStats{
 		PeerID:    peer.Identity.PeerID,
+		PeerKey:   peer.Identity.PrivKey,
 		Uptime:    time.Since(created),
 		Stats:     stats,
 		DiskUsage: usage,
