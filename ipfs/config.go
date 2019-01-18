@@ -17,6 +17,7 @@ type GoIPFSConfig struct {
 }
 
 func getConfig(path string) (*GoIPFSConfig, error) {
+	/* #nosec */
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open IPFS configuration at '%s': %s", path, err.Error())
