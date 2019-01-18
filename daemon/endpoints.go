@@ -25,10 +25,11 @@ func (d *Daemon) StartNetwork(
 ) (*nexus.StartNetworkResponse, error) {
 	n, err := d.o.NetworkUp(ctx, req.GetNetwork())
 	if err != nil {
-		return nil, err
+		return nil, grpc.Errorf(codes.Internal, err.Error())
 	}
 
 	return &nexus.StartNetworkResponse{
+		PeerId:    n.PeerID,
 		SwarmPort: n.SwarmPort,
 		SwarmKey:  n.SwarmKey,
 	}, nil
@@ -74,6 +75,7 @@ func (d *Daemon) NetworkStats(
 
 	return &nexus.NetworkStatusReponse{
 		Network:   s.NetworkDetails.NetworkID,
+		PeerId:    s.NetworkDetails.PeerID,
 		Uptime:    int64(s.Uptime),
 		DiskUsage: s.DiskUsage,
 		SwarmPort: s.NetworkDetails.SwarmPort,
