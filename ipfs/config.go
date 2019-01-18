@@ -11,6 +11,7 @@ import (
 // GoIPFSConfig is a subset of go-ipfs's configuration structure
 type GoIPFSConfig struct {
 	Identity struct {
+		PeerID  string
 		PrivKey string
 	}
 }

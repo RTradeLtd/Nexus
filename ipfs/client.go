@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -347,6 +348,7 @@ func (c *Client) RemoveNode(ctx context.Context, network string) error {
 
 // NodeStats provides details about a node container
 type NodeStats struct {
+	PeerID    string
 	Uptime    time.Duration
 	DiskUsage int64
 	Stats     interface{}
@@ -387,12 +389,19 @@ func (c *Client) NodeStats(ctx context.Context, n *NodeInfo) (NodeStats, error) 
 		return NodeStats{}, fmt.Errorf("failed to calculate disk usage: %s", err.Error())
 	}
 
+	// get peer ID
+	peer, err := getConfig(filepath.Join(n.DataDir, "config"))
+	if err != nil {
+		return NodeStats{}, fmt.Errorf("failed to get node configuration: %s", err.Error())
+	}
+
 	c.l.Debugw("retrieved node container data",
 		"network_id", n.NetworkID,
 		"docker_id", n.DockerID,
 		"stat.duration", time.Since(start))
 
 	return NodeStats{
+		PeerID:    peer.Identity.PeerID,
 		Uptime:    time.Since(created),
 		Stats:     stats,
 		DiskUsage: usage,
