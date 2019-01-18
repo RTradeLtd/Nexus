@@ -14,7 +14,21 @@ var (
 
 	// validToken is a token generated using Temporal's gin-jwt configuration,
 	// signed using defaultTestKey (the same used in RTradeLtd/testenv), generated
-	// for user 'testuser'
+	// for user 'testuser'.
+	//
+	// You can use this for testing to try out the Delegator's access control for
+	// an IPFS node API:
+	//
+	//    $ make testenv
+	//    $ make testenv
+	//    $ make daemon
+	//    $ make new-network
+	//    $ make start-network
+	//    $ export TOKEN=<validToken>
+	//    $ curl --header "Authorization: Bearer $TOKEN" 127.0.0.1:8080/network/test_network/api/v0/repo/stat
+	//
+	// This should give you a response. Without a header or with a different
+	// token, an error will be returned.
 	validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NDc3Nzg2MzcsImlkIjoidGVzdHVzZXIiLCJvcmlnX2lhdCI6MTU0NzY5MjIzN30.2oqQCym2mcyFl8mjOHoGNtK41SJLwX0xbWScDruDECQ"
 )
 
