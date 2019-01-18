@@ -77,6 +77,7 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 // NetworkDetails provides information about an instantiated network
 type NetworkDetails struct {
 	NetworkID string
+	PeerID    string
 	SwarmPort string
 	SwarmKey  string
 }
@@ -131,7 +132,15 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	}
 	l.Info("node created")
 
+	s, err := o.client.NodeStats(ctx, newNode)
+	if err != nil {
+		l.Errorw("failed to get node stats after node started up successfully", "error", err)
+		return NetworkDetails{NetworkID: network}, fmt.Errorf("failed to get stats about network '%s': %s",
+			network, err)
+	}
+
 	// update network in database
+	n.PeerKey = s.PeerKey
 	n.SwarmKey = string(opts.SwarmKey)
 	n.SwarmAddr = fmt.Sprintf("%s:%s", o.address, newNode.Ports.Swarm)
 	n.Activated = time.Now()
@@ -149,6 +158,7 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 
 	return NetworkDetails{
 		NetworkID: network,
+		PeerID:    s.PeerID,
 		SwarmPort: newNode.Ports.Swarm,
 		SwarmKey:  n.SwarmKey,
 	}, nil
@@ -302,6 +312,7 @@ func (o *Orchestrator) NetworkStatus(ctx context.Context, network string) (Netwo
 	return NetworkStatus{
 		NetworkDetails: NetworkDetails{
 			NetworkID: network,
+			PeerID:    n.NetworkID,
 			SwarmPort: n.Ports.Swarm,
 			SwarmKey:  "<OMITTED>",
 		},
