@@ -213,6 +213,7 @@ func TestEngine_Redirect(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
 			var e = New(l, "test", time.Second, defaultTestKey,
 				registry.New(l, config.New().Ports), networks)
+			e.timeFunc = getZeroTime
 
 			var route = chi.NewRouteContext()
 			if tt.args.route != nil {

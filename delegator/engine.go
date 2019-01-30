@@ -33,6 +33,7 @@ type Engine struct {
 
 	timeout   time.Duration
 	keyLookup jwt.Keyfunc
+	timeFunc  func() time.Time
 	version   string
 }
 
@@ -47,11 +48,10 @@ func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []b
 
 		networks: networks,
 
-		timeout: timeout,
-		version: version,
-		keyLookup: func(t *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		},
+		timeout:   timeout,
+		version:   version,
+		keyLookup: func(t *jwt.Token) (interface{}, error) { return jwtKey, nil },
+		timeFunc:  time.Now,
 	}
 }
 

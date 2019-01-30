@@ -35,6 +35,8 @@ var (
 
 func getTestKey(*jwt.Token) (interface{}, error) { return defaultTestKey, nil }
 
+func getZeroTime() time.Time { return time.Time{} }
+
 func Test_getUserFromJWT(t *testing.T) {
 	type args struct {
 		r         *http.Request
@@ -82,7 +84,7 @@ func Test_getUserFromJWT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.args.timeFunc == nil {
-				tt.args.timeFunc = func() time.Time { return time.Time{} }
+				tt.args.timeFunc = getZeroTime
 			}
 			gotUser, err := getUserFromJWT(tt.args.r, tt.args.keyLookup, tt.args.timeFunc)
 			if (err != nil) != tt.wantErr {
