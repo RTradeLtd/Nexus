@@ -181,7 +181,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		port = n.Ports.Swarm
 	case "api":
 		// IPFS network API access requires an authorized user
-		user, err := getUserFromJWT(r, e.keyLookup, time.Now)
+		user, err := getUserFromJWT(r, e.keyLookup, e.timeFunc)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
