@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -11,11 +12,13 @@ import (
 var (
 	errNoAuth      = errors.New("no authentication provided")
 	errInvalidAuth = errors.New("invalid authentication provided")
+	errExpiredAuth = errors.New("authentication is expired")
 )
 
 func getUserFromJWT(
 	r *http.Request,
 	keyLookup jwt.Keyfunc,
+	timeFunc func() time.Time,
 ) (user string, err error) {
 	// Collect the token from the header.
 	bearerString := r.Header.Get("Authorization")
@@ -43,6 +46,11 @@ func getUserFromJWT(
 	// Retrieve ID
 	if user, ok = claims["id"].(string); !ok || user == "" {
 		return "", errInvalidAuth
+	}
+
+	// Check expiry
+	if int64(claims["exp"].(float64)) < timeFunc().Unix() {
+		return "", errExpiredAuth
 	}
 
 	return
