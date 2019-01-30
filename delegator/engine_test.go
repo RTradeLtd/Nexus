@@ -58,7 +58,7 @@ func TestEngine_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, "test", time.Minute, []byte("hello"), nil, networks)
+			var e = New(l, EngineOpts{"test", true, time.Minute, []byte("hello")}, nil, networks)
 			var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := e.Run(ctx, tt.args.opts); (err != nil) != tt.wantErr {
@@ -88,7 +88,7 @@ func TestEngine_NetworkContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, "test", time.Second, []byte("hello"),
+			var e = New(l, EngineOpts{"test", true, time.Second, []byte("hello")},
 				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
 					NetworkID: tt.args.nodeName,
 				}), networks)
@@ -211,9 +211,8 @@ func TestEngine_Redirect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, "test", time.Second, defaultTestKey,
+			var e = New(l, EngineOpts{"test", true, time.Second, defaultTestKey},
 				registry.New(l, config.New().Ports), networks)
-			e.timeFunc = getZeroTime
 
 			var route = chi.NewRouteContext()
 			if tt.args.route != nil {
@@ -247,7 +246,7 @@ func TestEngine_Redirect(t *testing.T) {
 func TestEngine_Status(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	var networks = &mock.FakePrivateNetworks{}
-	var e = New(l, "test", time.Second, []byte("hello"), registry.New(l, config.New().Ports), networks)
+	var e = New(l, EngineOpts{"test", true, time.Second, []byte("hello")}, registry.New(l, config.New().Ports), networks)
 	var req = httptest.NewRequest("GET", "/", nil)
 	var rec = httptest.NewRecorder()
 	e.Status(rec, req)

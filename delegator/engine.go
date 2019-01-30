@@ -37,9 +37,27 @@ type Engine struct {
 	version   string
 }
 
+// EngineOpts denotes options for the delegator engine
+type EngineOpts struct {
+	Version string
+	DevMode bool
+
+	RequestTimeout time.Duration
+	JWTKey         []byte
+}
+
 // New instantiates a new delegator engine
-func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []byte,
+func New(l *zap.SugaredLogger, opts EngineOpts,
 	reg *registry.NodeRegistry, networks temporal.PrivateNetworks) *Engine {
+
+	var timeFunc = time.Now
+	if opts.DevMode {
+		timeFunc = func() time.Time { return time.Time{} }
+	}
+
+	if opts.RequestTimeout == 0 {
+		opts.RequestTimeout = 30 * time.Second
+	}
 
 	return &Engine{
 		l:     l.Named("delegator"),
@@ -48,10 +66,10 @@ func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []b
 
 		networks: networks,
 
-		timeout:   timeout,
-		version:   version,
-		keyLookup: func(t *jwt.Token) (interface{}, error) { return jwtKey, nil },
-		timeFunc:  time.Now,
+		timeout:   opts.RequestTimeout,
+		version:   opts.Version,
+		keyLookup: func(t *jwt.Token) (interface{}, error) { return opts.JWTKey, nil },
+		timeFunc:  timeFunc,
 	}
 }
 

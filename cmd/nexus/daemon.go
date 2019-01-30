@@ -86,8 +86,12 @@ func runDaemon(configPath string, devMode bool, args []string) {
 
 	// initialize delegator
 	println("initializing delegator")
-	dl := delegator.New(l, Version, 1*time.Minute, []byte(cfg.Delegator.JWTKey),
-		o.Registry, models.NewHostedIPFSNetworkManager(dbm.DB))
+	dl := delegator.New(l, delegator.EngineOpts{
+		Version:        Version,
+		DevMode:        devMode,
+		RequestTimeout: 30 * time.Second,
+		JWTKey:         []byte(cfg.Delegator.JWTKey),
+	}, o.Registry, models.NewHostedIPFSNetworkManager(dbm.DB))
 
 	// catch interrupts
 	ctx, cancel := context.WithCancel(context.Background())
