@@ -20,6 +20,8 @@ func getUserFromJWT(
 	keyLookup jwt.Keyfunc,
 	timeFunc func() time.Time,
 ) (user string, err error) {
+	jwt.TimeFunc = timeFunc
+
 	// Collect the token from the header.
 	bearerString := r.Header.Get("Authorization")
 
@@ -36,7 +38,7 @@ func getUserFromJWT(
 		return "", errInvalidAuth
 	}
 
-	// Verify the claims
+	// Verify the claims - this checks expiry as well
 	var claims jwt.MapClaims
 	var ok bool
 	if claims, ok = token.Claims.(jwt.MapClaims); !ok || !token.Valid {
@@ -46,11 +48,6 @@ func getUserFromJWT(
 	// Retrieve ID
 	if user, ok = claims["id"].(string); !ok || user == "" {
 		return "", errInvalidAuth
-	}
-
-	// Check expiry
-	if int64(claims["exp"].(float64)) < timeFunc().Unix() {
-		return "", errExpiredAuth
 	}
 
 	return
