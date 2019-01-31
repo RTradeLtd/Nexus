@@ -33,12 +33,31 @@ type Engine struct {
 
 	timeout   time.Duration
 	keyLookup jwt.Keyfunc
+	timeFunc  func() time.Time
 	version   string
 }
 
+// EngineOpts denotes options for the delegator engine
+type EngineOpts struct {
+	Version string
+	DevMode bool
+
+	RequestTimeout time.Duration
+	JWTKey         []byte
+}
+
 // New instantiates a new delegator engine
-func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []byte,
+func New(l *zap.SugaredLogger, opts EngineOpts,
 	reg *registry.NodeRegistry, networks temporal.PrivateNetworks) *Engine {
+
+	var timeFunc = time.Now
+	if opts.DevMode {
+		timeFunc = func() time.Time { return time.Time{} }
+	}
+
+	if opts.RequestTimeout == 0 {
+		opts.RequestTimeout = 30 * time.Second
+	}
 
 	return &Engine{
 		l:     l.Named("delegator"),
@@ -47,11 +66,10 @@ func New(l *zap.SugaredLogger, version string, timeout time.Duration, jwtKey []b
 
 		networks: networks,
 
-		timeout: timeout,
-		version: version,
-		keyLookup: func(t *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		},
+		timeout:   opts.RequestTimeout,
+		version:   opts.Version,
+		keyLookup: func(t *jwt.Token) (interface{}, error) { return opts.JWTKey, nil },
+		timeFunc:  timeFunc,
 	}
 }
 
@@ -163,7 +181,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		port = n.Ports.Swarm
 	case "api":
 		// IPFS network API access requires an authorized user
-		user, err := getUserFromJWT(r, e.keyLookup)
+		user, err := getUserFromJWT(r, e.keyLookup, e.timeFunc)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return

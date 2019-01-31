@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -34,10 +35,13 @@ var (
 
 func getTestKey(*jwt.Token) (interface{}, error) { return defaultTestKey, nil }
 
+func getZeroTime() time.Time { return time.Time{} }
+
 func Test_getUserFromJWT(t *testing.T) {
 	type args struct {
 		r         *http.Request
 		keyLookup jwt.Keyfunc
+		timeFunc  func() time.Time
 	}
 	tests := []struct {
 		name     string
@@ -46,33 +50,43 @@ func Test_getUserFromJWT(t *testing.T) {
 		wantErr  bool
 	}{
 		{"no header",
-			args{httptest.NewRequest("", "/", nil), getTestKey},
+			args{httptest.NewRequest("", "/", nil), getTestKey, nil},
 			"", true},
 		{"invalid header",
 			args{func() *http.Request {
 				var r = httptest.NewRequest("", "/", nil)
 				r.Header.Set("Authorization", "asdf")
 				return r
-			}(), getTestKey},
+			}(), getTestKey, nil},
 			"", true},
 		{"invalid token",
 			args{func() *http.Request {
 				var r = httptest.NewRequest("", "/", nil)
 				r.Header.Set("Authorization", "Bearer asdf")
 				return r
-			}(), getTestKey},
+			}(), getTestKey, nil},
+			"", true},
+		{"token expired",
+			args{func() *http.Request {
+				var r = httptest.NewRequest("", "/", nil)
+				r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", validToken))
+				return r
+			}(), getTestKey, time.Now},
 			"", true},
 		{"valid token, should return correct user",
 			args{func() *http.Request {
 				var r = httptest.NewRequest("", "/", nil)
 				r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", validToken))
 				return r
-			}(), getTestKey},
+			}(), getTestKey, nil},
 			"testuser", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotUser, err := getUserFromJWT(tt.args.r, tt.args.keyLookup)
+			if tt.args.timeFunc == nil {
+				tt.args.timeFunc = getZeroTime
+			}
+			gotUser, err := getUserFromJWT(tt.args.r, tt.args.keyLookup, tt.args.timeFunc)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getUserFromJWT() error = %v, wantErr %v", err, tt.wantErr)
 				return
