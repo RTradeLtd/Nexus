@@ -6,7 +6,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/RTradeLtd/config v2.0.3+incompatible
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
-	github.com/RTradeLtd/database v2.0.3+incompatible
+	github.com/RTradeLtd/database v2.0.4-0.20190302041551-2a79c9dce449+incompatible
 	github.com/RTradeLtd/gorm v1.9.2 // indirect
 	github.com/RTradeLtd/grpc v2.0.0+incompatible
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae // indirect

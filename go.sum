@@ -8,6 +8,8 @@ github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1 h1:O7h7S3BVpIxuu60Qm
 github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1/go.mod h1:9CTUuVY4izdvD0cTBrzGYULrS/If22uGQWkkAwfEAEA=
 github.com/RTradeLtd/database v2.0.3+incompatible h1:g+BnaiS1MnUxiB1IXa99Y5/ntLd25Xlm3LtOAloElo0=
 github.com/RTradeLtd/database v2.0.3+incompatible/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
+github.com/RTradeLtd/database v2.0.4-0.20190302041551-2a79c9dce449+incompatible h1:JQxToonNzOv4c43Xb7gi6ymuPlSc+b0EJke/6CGrmq0=
+github.com/RTradeLtd/database v2.0.4-0.20190302041551-2a79c9dce449+incompatible/go.mod h1:LJxu9aB7DphTM74tWtRq0t30iPTkscnxuM683GuMEYY=
 github.com/RTradeLtd/gorm v1.9.2 h1:pbk8/C7k2h6fwYXXVGjrceJ0zTri7vAQY0QcOICT4tI=
 github.com/RTradeLtd/gorm v1.9.2/go.mod h1:FaVJ0C0yhoQGrKSsMaTl1p05GfuV+63S+P18+H9ETAg=
 github.com/RTradeLtd/grpc v2.0.0+incompatible h1:4/I8CityZtNusVw0/zVS2vNwgKd/hex3UJORgYP4fpI=

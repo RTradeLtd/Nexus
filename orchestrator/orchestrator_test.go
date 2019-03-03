@@ -45,7 +45,7 @@ func TestNew(t *testing.T) {
 				t.Fatalf("failed to reach database: %s\n", err.Error())
 			}
 
-			_, err = New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
+			_, err = New(l, "", config.Ports{}, true, client, models.NewHostedNetworkManager(dbm.DB))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -61,7 +61,7 @@ func TestOrchestrator_Run(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reach database: %s\n", err.Error())
 	}
-	o, err := New(l, "", config.Ports{}, true, client, models.NewHostedIPFSNetworkManager(dbm.DB))
+	o, err := New(l, "", config.Ports{}, true, client, models.NewHostedNetworkManager(dbm.DB))
 	if err != nil {
 		t.Error(err)
 		return
@@ -76,7 +76,7 @@ func TestOrchestrator_Run(t *testing.T) {
 
 func TestOrchestrator_NetworkUp(t *testing.T) {
 	// pre-test database setup
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+	dbm, err := database.New(&tcfg.TemporalConfig{
 		Database: dbDefaults,
 	}, database.Options{
 		RunMigrations:  true,
@@ -85,8 +85,8 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect to dev database: %s", err.Error())
 	}
-	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
-	testNetwork := &models.HostedIPFSPrivateNetwork{
+	nm := models.NewHostedNetworkManager(dbm.DB)
+	testNetwork := &models.HostedNetwork{
 		Name: "test-network-1",
 	}
 	if check := nm.DB.Create(testNetwork); check.Error != nil {
@@ -138,7 +138,7 @@ func TestOrchestrator_NetworkUp(t *testing.T) {
 
 func TestOrchestrator_NetworkDown(t *testing.T) {
 	// pre-test database setup
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+	dbm, err := database.New(&tcfg.TemporalConfig{
 		Database: dbDefaults,
 	}, database.Options{
 		RunMigrations:  true,
@@ -147,8 +147,8 @@ func TestOrchestrator_NetworkDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect to dev database: %s", err.Error())
 	}
-	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
-	testNetwork := &models.HostedIPFSPrivateNetwork{
+	nm := models.NewHostedNetworkManager(dbm.DB)
+	testNetwork := &models.HostedNetwork{
 		Name: "test-network-1",
 	}
 	if check := nm.DB.Create(testNetwork); check.Error != nil {
@@ -244,7 +244,7 @@ func TestOrchestrator_NetworkRemove(t *testing.T) {
 
 func TestOrchestrator_NetworkUpdate(t *testing.T) {
 	// pre-test database setup
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+	dbm, err := database.New(&tcfg.TemporalConfig{
 		Database: dbDefaults,
 	}, database.Options{
 		RunMigrations:  true,
@@ -253,8 +253,8 @@ func TestOrchestrator_NetworkUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect to dev database: %s", err.Error())
 	}
-	nm := models.NewHostedIPFSNetworkManager(dbm.DB)
-	testNetwork := &models.HostedIPFSPrivateNetwork{
+	nm := models.NewHostedNetworkManager(dbm.DB)
+	testNetwork := &models.HostedNetwork{
 		Name: "test-network-2",
 	}
 	if check := nm.DB.Create(testNetwork); check.Error != nil {

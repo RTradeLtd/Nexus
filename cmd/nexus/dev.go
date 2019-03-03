@@ -16,7 +16,7 @@ func initTestNetwork(configPath, networkName string) {
 
 	println("setting up database entry for a test network")
 
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+	dbm, err := database.New(&tcfg.TemporalConfig{
 		Database: cfg.Database,
 	}, database.Options{
 		SSLModeDisable: true,
@@ -26,7 +26,7 @@ func initTestNetwork(configPath, networkName string) {
 		fatal(err.Error())
 	}
 
-	var nm = models.NewHostedIPFSNetworkManager(dbm.DB)
+	var nm = models.NewHostedNetworkManager(dbm.DB)
 	if _, err := nm.CreateHostedPrivateNetwork(networkName, "", nil, models.NetworkAccessOptions{
 		Users:         []string{"testuser"},
 		PublicGateway: true,

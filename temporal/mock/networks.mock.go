@@ -9,23 +9,36 @@ import (
 )
 
 type FakePrivateNetworks struct {
-	GetNetworkByNameStub        func(string) (*models.HostedIPFSPrivateNetwork, error)
+	GetNetworkByNameStub        func(string) (*models.HostedNetwork, error)
 	getNetworkByNameMutex       sync.RWMutex
 	getNetworkByNameArgsForCall []struct {
 		arg1 string
 	}
 	getNetworkByNameReturns struct {
-		result1 *models.HostedIPFSPrivateNetwork
+		result1 *models.HostedNetwork
 		result2 error
 	}
 	getNetworkByNameReturnsOnCall map[int]struct {
-		result1 *models.HostedIPFSPrivateNetwork
+		result1 *models.HostedNetwork
 		result2 error
 	}
-	SaveNetworkStub        func(*models.HostedIPFSPrivateNetwork) error
+	GetOfflineNetworksStub        func(bool) ([]*models.HostedNetwork, error)
+	getOfflineNetworksMutex       sync.RWMutex
+	getOfflineNetworksArgsForCall []struct {
+		arg1 bool
+	}
+	getOfflineNetworksReturns struct {
+		result1 []*models.HostedNetwork
+		result2 error
+	}
+	getOfflineNetworksReturnsOnCall map[int]struct {
+		result1 []*models.HostedNetwork
+		result2 error
+	}
+	SaveNetworkStub        func(*models.HostedNetwork) error
 	saveNetworkMutex       sync.RWMutex
 	saveNetworkArgsForCall []struct {
-		arg1 *models.HostedIPFSPrivateNetwork
+		arg1 *models.HostedNetwork
 	}
 	saveNetworkReturns struct {
 		result1 error
@@ -49,7 +62,7 @@ type FakePrivateNetworks struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePrivateNetworks) GetNetworkByName(arg1 string) (*models.HostedIPFSPrivateNetwork, error) {
+func (fake *FakePrivateNetworks) GetNetworkByName(arg1 string) (*models.HostedNetwork, error) {
 	fake.getNetworkByNameMutex.Lock()
 	ret, specificReturn := fake.getNetworkByNameReturnsOnCall[len(fake.getNetworkByNameArgsForCall)]
 	fake.getNetworkByNameArgsForCall = append(fake.getNetworkByNameArgsForCall, struct {
@@ -73,7 +86,7 @@ func (fake *FakePrivateNetworks) GetNetworkByNameCallCount() int {
 	return len(fake.getNetworkByNameArgsForCall)
 }
 
-func (fake *FakePrivateNetworks) GetNetworkByNameCalls(stub func(string) (*models.HostedIPFSPrivateNetwork, error)) {
+func (fake *FakePrivateNetworks) GetNetworkByNameCalls(stub func(string) (*models.HostedNetwork, error)) {
 	fake.getNetworkByNameMutex.Lock()
 	defer fake.getNetworkByNameMutex.Unlock()
 	fake.GetNetworkByNameStub = stub
@@ -86,37 +99,100 @@ func (fake *FakePrivateNetworks) GetNetworkByNameArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakePrivateNetworks) GetNetworkByNameReturns(result1 *models.HostedIPFSPrivateNetwork, result2 error) {
+func (fake *FakePrivateNetworks) GetNetworkByNameReturns(result1 *models.HostedNetwork, result2 error) {
 	fake.getNetworkByNameMutex.Lock()
 	defer fake.getNetworkByNameMutex.Unlock()
 	fake.GetNetworkByNameStub = nil
 	fake.getNetworkByNameReturns = struct {
-		result1 *models.HostedIPFSPrivateNetwork
+		result1 *models.HostedNetwork
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePrivateNetworks) GetNetworkByNameReturnsOnCall(i int, result1 *models.HostedIPFSPrivateNetwork, result2 error) {
+func (fake *FakePrivateNetworks) GetNetworkByNameReturnsOnCall(i int, result1 *models.HostedNetwork, result2 error) {
 	fake.getNetworkByNameMutex.Lock()
 	defer fake.getNetworkByNameMutex.Unlock()
 	fake.GetNetworkByNameStub = nil
 	if fake.getNetworkByNameReturnsOnCall == nil {
 		fake.getNetworkByNameReturnsOnCall = make(map[int]struct {
-			result1 *models.HostedIPFSPrivateNetwork
+			result1 *models.HostedNetwork
 			result2 error
 		})
 	}
 	fake.getNetworkByNameReturnsOnCall[i] = struct {
-		result1 *models.HostedIPFSPrivateNetwork
+		result1 *models.HostedNetwork
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePrivateNetworks) SaveNetwork(arg1 *models.HostedIPFSPrivateNetwork) error {
+func (fake *FakePrivateNetworks) GetOfflineNetworks(arg1 bool) ([]*models.HostedNetwork, error) {
+	fake.getOfflineNetworksMutex.Lock()
+	ret, specificReturn := fake.getOfflineNetworksReturnsOnCall[len(fake.getOfflineNetworksArgsForCall)]
+	fake.getOfflineNetworksArgsForCall = append(fake.getOfflineNetworksArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("GetOfflineNetworks", []interface{}{arg1})
+	fake.getOfflineNetworksMutex.Unlock()
+	if fake.GetOfflineNetworksStub != nil {
+		return fake.GetOfflineNetworksStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getOfflineNetworksReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePrivateNetworks) GetOfflineNetworksCallCount() int {
+	fake.getOfflineNetworksMutex.RLock()
+	defer fake.getOfflineNetworksMutex.RUnlock()
+	return len(fake.getOfflineNetworksArgsForCall)
+}
+
+func (fake *FakePrivateNetworks) GetOfflineNetworksCalls(stub func(bool) ([]*models.HostedNetwork, error)) {
+	fake.getOfflineNetworksMutex.Lock()
+	defer fake.getOfflineNetworksMutex.Unlock()
+	fake.GetOfflineNetworksStub = stub
+}
+
+func (fake *FakePrivateNetworks) GetOfflineNetworksArgsForCall(i int) bool {
+	fake.getOfflineNetworksMutex.RLock()
+	defer fake.getOfflineNetworksMutex.RUnlock()
+	argsForCall := fake.getOfflineNetworksArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePrivateNetworks) GetOfflineNetworksReturns(result1 []*models.HostedNetwork, result2 error) {
+	fake.getOfflineNetworksMutex.Lock()
+	defer fake.getOfflineNetworksMutex.Unlock()
+	fake.GetOfflineNetworksStub = nil
+	fake.getOfflineNetworksReturns = struct {
+		result1 []*models.HostedNetwork
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePrivateNetworks) GetOfflineNetworksReturnsOnCall(i int, result1 []*models.HostedNetwork, result2 error) {
+	fake.getOfflineNetworksMutex.Lock()
+	defer fake.getOfflineNetworksMutex.Unlock()
+	fake.GetOfflineNetworksStub = nil
+	if fake.getOfflineNetworksReturnsOnCall == nil {
+		fake.getOfflineNetworksReturnsOnCall = make(map[int]struct {
+			result1 []*models.HostedNetwork
+			result2 error
+		})
+	}
+	fake.getOfflineNetworksReturnsOnCall[i] = struct {
+		result1 []*models.HostedNetwork
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePrivateNetworks) SaveNetwork(arg1 *models.HostedNetwork) error {
 	fake.saveNetworkMutex.Lock()
 	ret, specificReturn := fake.saveNetworkReturnsOnCall[len(fake.saveNetworkArgsForCall)]
 	fake.saveNetworkArgsForCall = append(fake.saveNetworkArgsForCall, struct {
-		arg1 *models.HostedIPFSPrivateNetwork
+		arg1 *models.HostedNetwork
 	}{arg1})
 	fake.recordInvocation("SaveNetwork", []interface{}{arg1})
 	fake.saveNetworkMutex.Unlock()
@@ -136,13 +212,13 @@ func (fake *FakePrivateNetworks) SaveNetworkCallCount() int {
 	return len(fake.saveNetworkArgsForCall)
 }
 
-func (fake *FakePrivateNetworks) SaveNetworkCalls(stub func(*models.HostedIPFSPrivateNetwork) error) {
+func (fake *FakePrivateNetworks) SaveNetworkCalls(stub func(*models.HostedNetwork) error) {
 	fake.saveNetworkMutex.Lock()
 	defer fake.saveNetworkMutex.Unlock()
 	fake.SaveNetworkStub = stub
 }
 
-func (fake *FakePrivateNetworks) SaveNetworkArgsForCall(i int) *models.HostedIPFSPrivateNetwork {
+func (fake *FakePrivateNetworks) SaveNetworkArgsForCall(i int) *models.HostedNetwork {
 	fake.saveNetworkMutex.RLock()
 	defer fake.saveNetworkMutex.RUnlock()
 	argsForCall := fake.saveNetworkArgsForCall[i]
@@ -238,6 +314,8 @@ func (fake *FakePrivateNetworks) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.getNetworkByNameMutex.RLock()
 	defer fake.getNetworkByNameMutex.RUnlock()
+	fake.getOfflineNetworksMutex.RLock()
+	defer fake.getOfflineNetworksMutex.RUnlock()
 	fake.saveNetworkMutex.RLock()
 	defer fake.saveNetworkMutex.RUnlock()
 	fake.updateNetworkByNameMutex.RLock()
