@@ -44,18 +44,25 @@ func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}
 	if len(nodes) > 0 {
-		l.Infow("bootstrapping with found nodes", "nodes", nodes)
+		l.Infow("bootstrapping with discovered nodes", "nodes", nodes)
 	}
 	reg := registry.New(l, ports, nodes...)
 
-	return &Orchestrator{
+	// set up orchestrator
+	var o = &Orchestrator{
 		Registry: reg,
 
 		l:       l,
 		nm:      networks,
 		client:  c,
 		address: address,
-	}, nil
+	}
+
+	// reboot offline nodes
+	l.Info("checking for offline nodes that should be online")
+	go rebootOfflineNodes(o)
+
+	return o, nil
 }
 
 // Run initializes the orchestrator's background tasks. Cancelling the context
