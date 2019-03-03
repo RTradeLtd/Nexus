@@ -58,7 +58,7 @@ func TestEngine_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, time.Minute, []byte("hello")}, nil, networks)
+			var e = New(l, EngineOpts{"test", true, "domain.com", time.Minute, []byte("hello")}, nil, networks)
 			var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := e.Run(ctx, tt.args.opts); (err != nil) != tt.wantErr {
@@ -68,7 +68,7 @@ func TestEngine_Run(t *testing.T) {
 	}
 }
 
-func TestEngine_NetworkContext(t *testing.T) {
+func TestEngine_NetworkPathContext(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	type args struct {
 		nodeName string
@@ -88,7 +88,7 @@ func TestEngine_NetworkContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, time.Second, []byte("hello")},
+			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
 				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
 					NetworkID: tt.args.nodeName,
 				}), networks)
@@ -101,16 +101,131 @@ func TestEngine_NetworkContext(t *testing.T) {
 
 			// test handler
 			var rec = httptest.NewRecorder()
-			var n *ipfs.NodeInfo
-			e.NetworkContext(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var ok bool
+			e.NetworkPathContext(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				var ok bool
+
+				// check for node in context
+				var n *ipfs.NodeInfo
 				n, ok = r.Context().Value(keyNetwork).(*ipfs.NodeInfo)
 				if (!ok || n == nil) && tt.wantNode {
 					t.Errorf("expected ipfs node, found '%v'", r.Context().Value(keyNetwork))
 				}
 				if tt.wantNode && n.NetworkID != tt.args.nodeName {
 					t.Errorf("expected node named '%s', found '%s'", tt.args.nodeName, n.NetworkID)
+				}
+				return
+			})).ServeHTTP(rec, req)
+			if rec.Code != tt.wantCode {
+				t.Errorf("expected status '%d', found '%d'", tt.wantCode, rec.Code)
+			}
+		})
+	}
+}
+
+func TestEngine_FeaturePathContext(t *testing.T) {
+	var l, _ = log.NewLogger("", true)
+	type args struct {
+		key    contextKey
+		target string
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantFeature string
+		wantCode    int
+	}{
+		{"invalid feature", args{keyFeature, "bye"}, "", http.StatusBadRequest},
+		{"invalid key", args{keyNetwork, "hello"}, "", http.StatusBadRequest},
+		{"ok feature", args{keyFeature, "swarm"}, "swarm", http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var networks = &mock.FakePrivateNetworks{}
+			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
+				registry.New(l, config.New().Ports), networks)
+
+			// set up route context and request
+			var route = chi.NewRouteContext()
+			route.URLParams.Add(string(tt.args.key), tt.args.target)
+			var req = httptest.NewRequest("GET", "/", nil).
+				WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, route))
+
+			// test handler
+			var rec = httptest.NewRecorder()
+			var ok bool
+			e.FeaturePathContext(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+
+				// check for feature in context
+				var feature string
+				feature, ok = r.Context().Value(keyFeature).(string)
+				if (!ok) && tt.wantFeature != "" {
+					t.Errorf("expected feature, found '%v'", r.Context().Value(keyFeature))
+				}
+				if tt.wantFeature != "" && tt.wantFeature != feature {
+					t.Errorf("expected feature '%s', found '%s'", tt.wantFeature, feature)
+				}
+				return
+			})).ServeHTTP(rec, req)
+			if rec.Code != tt.wantCode {
+				t.Errorf("expected status '%d', found '%d'", tt.wantCode, rec.Code)
+			}
+		})
+	}
+}
+
+func TestEngine_NetworkSubdomainContext(t *testing.T) {
+	var l, _ = log.NewLogger("", true)
+	type args struct {
+		nodeName string
+		domain   string
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantNode    bool
+		wantFeature string
+		wantCode    int
+	}{
+		{"non existent node", args{"hello", "http://blah.api.bye/"}, false, "", http.StatusNotFound},
+		{"invalid feature", args{"hello", "http://hello.asdf.bye/"}, false, "", http.StatusBadRequest},
+		{"find node", args{"hello", "http://hello.api.asdf/"}, true, "api", http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var networks = &mock.FakePrivateNetworks{}
+			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
+				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
+					NetworkID: tt.args.nodeName,
+				}), networks)
+
+			// construct request
+			var req = httptest.NewRequest("GET", tt.args.domain, nil)
+
+			// test handler
+			var rec = httptest.NewRecorder()
+			var ok bool
+			e.NetworkAndFeatureSubdomainContext(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				// check for node in context
+				var n *ipfs.NodeInfo
+				n, ok = r.Context().Value(keyNetwork).(*ipfs.NodeInfo)
+				if (!ok || n == nil) && tt.wantNode {
+					t.Errorf("expected ipfs node, found '%v'", r.Context().Value(keyNetwork))
+				}
+				if tt.wantNode && n.NetworkID != tt.args.nodeName {
+					t.Errorf("expected node named '%s', found '%s'", tt.args.nodeName, n.NetworkID)
+				}
+
+				// check for feature in context
+				var feature string
+				feature, ok = r.Context().Value(keyFeature).(string)
+				if (!ok || n == nil) && tt.wantFeature != "" {
+					t.Errorf("expected feature, found '%v'", r.Context().Value(keyFeature))
+				}
+				if tt.wantFeature != "" && tt.wantFeature != feature {
+					t.Errorf("expected feature '%s', found '%s'", tt.wantFeature, feature)
 				}
 				return
 			})).ServeHTTP(rec, req)
@@ -211,26 +326,22 @@ func TestEngine_Redirect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, time.Second, defaultTestKey},
+			var e = New(l, EngineOpts{"test", true, "", time.Second, defaultTestKey},
 				registry.New(l, config.New().Ports), networks)
-
-			var route = chi.NewRouteContext()
-			if tt.args.route != nil {
-				for key, val := range tt.args.route {
-					route.URLParams.Add(string(key), val)
-				}
-			}
 
 			networks.GetNetworkByNameReturns(tt.fields.network, tt.fields.networkErr)
 
+			var ctx = context.WithValue(
+				context.Background(),
+				keyNetwork, tt.fields.node)
+			if tt.args.route != nil {
+				for key, val := range tt.args.route {
+					ctx = context.WithValue(ctx, key, val)
+				}
+			}
+
 			var (
-				req = httptest.NewRequest("GET", "/", nil).
-					WithContext(
-						context.WithValue(
-							context.WithValue(
-								context.Background(),
-								keyNetwork, tt.fields.node),
-							chi.RouteCtxKey, route))
+				req = httptest.NewRequest("GET", "/", nil).WithContext(ctx)
 				rec = httptest.NewRecorder()
 			)
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tt.args.token))
@@ -246,7 +357,10 @@ func TestEngine_Redirect(t *testing.T) {
 func TestEngine_Status(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	var networks = &mock.FakePrivateNetworks{}
-	var e = New(l, EngineOpts{"test", true, time.Second, []byte("hello")}, registry.New(l, config.New().Ports), networks)
+	var e = New(l,
+		EngineOpts{"test", true, "", time.Second, []byte("hello")},
+		registry.New(l, config.New().Ports),
+		networks)
 	var req = httptest.NewRequest("GET", "/", nil)
 	var rec = httptest.NewRecorder()
 	e.Status(rec, req)

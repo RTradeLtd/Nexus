@@ -30,3 +30,16 @@ func newProxy(feature string, target *url.URL, l *zap.SugaredLogger) *httputil.R
 		},
 	}
 }
+
+func validateFeature(feature string) bool {
+	switch feature {
+	case "api":
+		fallthrough
+	case "swarm":
+		fallthrough
+	case "gateway":
+		return true
+	default:
+		return false
+	}
+}

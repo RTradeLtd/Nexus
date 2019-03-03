@@ -10,6 +10,7 @@ require (
 	github.com/RTradeLtd/database v2.0.4-0.20190302041551-2a79c9dce449+incompatible
 	github.com/RTradeLtd/gorm v1.9.2 // indirect
 	github.com/RTradeLtd/grpc v2.0.0+incompatible
+	github.com/RTradeLtd/hostrouter v0.0.0-20190303073300-b9bb5dff8b5a
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190204142019-df6d76eb9289 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

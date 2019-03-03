@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -14,6 +15,9 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
+
+	// fork of github.com/go-chi/hostrouter with subdomain wildcard support
+	"github.com/RTradeLtd/hostrouter"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
@@ -35,12 +39,14 @@ type Engine struct {
 	keyLookup jwt.Keyfunc
 	timeFunc  func() time.Time
 	version   string
+	domain    string
 }
 
 // EngineOpts denotes options for the delegator engine
 type EngineOpts struct {
 	Version string
 	DevMode bool
+	Domain  string
 
 	RequestTimeout time.Duration
 	JWTKey         []byte
@@ -70,6 +76,7 @@ func New(l *zap.SugaredLogger, opts EngineOpts,
 		version:   opts.Version,
 		keyLookup: func(t *jwt.Token) (interface{}, error) { return opts.JWTKey, nil },
 		timeFunc:  timeFunc,
+		domain:    opts.Domain,
 	}
 }
 
@@ -91,15 +98,32 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 		middleware.Recoverer,
 	)
 
-	// register endpoints
+	// register regular HTTP endpoints
 	r.HandleFunc("/status", e.Status)
 	r.Route(fmt.Sprintf("/network/{%s}", keyNetwork), func(r chi.Router) {
-		r.Use(e.NetworkContext)
+		r.Use(e.NetworkPathContext)
 		r.HandleFunc("/status", e.NetworkStatus)
 		r.Route(fmt.Sprintf("/{%s}", keyFeature), func(r chi.Router) {
 			r.HandleFunc("/*", e.Redirect)
 		})
 	})
+
+	// handle subdomain-based routing
+	if e.domain != "" {
+		hr := hostrouter.New()
+		hr.Map("*.api."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+			r.Use(e.NetworkAndFeatureSubdomainContext)
+			r.HandleFunc("/*", e.Redirect)
+		}))
+		hr.Map("*.gateway."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+			r.Use(e.NetworkAndFeatureSubdomainContext)
+			r.HandleFunc("/*", e.Redirect)
+		}))
+		hr.Map("*.swarm."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+			r.Use(e.NetworkAndFeatureSubdomainContext)
+			r.HandleFunc("/*", e.Redirect)
+		}))
+	}
 
 	// set up server
 	var srv = &http.Server{
@@ -140,9 +164,9 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 	return nil
 }
 
-// NetworkContext creates a handler that injects relevant network context into
+// NetworkPathContext creates a handler that injects relevant network context into
 // all incoming requests through URL parameters
-func (e *Engine) NetworkContext(next http.Handler) http.Handler {
+func (e *Engine) NetworkPathContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var id = chi.URLParam(r, string(keyNetwork))
 		n, err := e.reg.Get(id)
@@ -157,6 +181,53 @@ func (e *Engine) NetworkContext(next http.Handler) http.Handler {
 	})
 }
 
+// FeaturePathContext creates a handler that injects relevant feature context into
+// all incoming requests through URL parameters
+func (e *Engine) FeaturePathContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var feature = chi.URLParam(r, string(keyFeature))
+		if !validateFeature(feature) {
+			http.Error(w, fmt.Sprintf("invalid feature '%s' requested", feature), http.StatusBadRequest)
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(
+			context.WithValue(r.Context(), keyFeature, feature),
+		))
+	})
+}
+
+// NetworkAndFeatureSubdomainContext creates a handler that injects relevant network context
+// into all incoming requests through what is in the subdomain
+func (e *Engine) NetworkAndFeatureSubdomainContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			parts   = strings.Split(r.Host, ".")
+			id      = parts[0]
+			feature = parts[1]
+		)
+
+		if !validateFeature(feature) {
+			http.Error(w, fmt.Sprintf("invalid feature '%s' requested", feature), http.StatusBadRequest)
+			return
+		}
+
+		n, err := e.reg.Get(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(
+			context.WithValue(
+				context.WithValue(r.Context(),
+					keyFeature,
+					feature),
+				keyNetwork,
+				&n),
+		))
+	})
+}
+
 // Redirect manages request redirects
 func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	// retrieve network
@@ -167,8 +238,8 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// retrieve requested feature
-	var feature string
-	if feature = chi.URLParam(r, string(keyFeature)); feature == "" {
+	feature, ok := r.Context().Value(keyFeature).(string)
+	if feature == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -177,7 +248,8 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	var port string
 	switch feature {
 	case "swarm":
-		// Swarm access is open to all by default
+		// Swarm access is open to all by default, since it handles authentication
+		// on its own
 		port = n.Ports.Swarm
 	case "api":
 		// IPFS network API access requires an authorized user
