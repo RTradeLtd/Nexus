@@ -103,6 +103,10 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 		return NetworkDetails{}, fmt.Errorf("no network with name '%s' found", network)
 	}
 	l = l.With("network.db_id", n.ID)
+	if n.Disabled == true {
+		l.Infow("network is disabled")
+		return NetworkDetails{}, fmt.Errorf("network '%s' is disabled", network)
+	}
 	l.Info("network retrieved from database")
 
 	// set options based on database entry
