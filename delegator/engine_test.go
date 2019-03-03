@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap/zaptest"
+
 	"github.com/RTradeLtd/database/models"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"
-	"github.com/RTradeLtd/Nexus/log"
 	"github.com/RTradeLtd/Nexus/registry"
 	"github.com/RTradeLtd/Nexus/temporal/mock"
 	"github.com/go-chi/chi"
@@ -26,7 +27,6 @@ func TestEngine_Run(t *testing.T) {
 		defer port.Close()
 	}
 
-	var l, _ = log.NewLogger("", true)
 	type args struct {
 		opts config.Delegator
 	}
@@ -57,8 +57,12 @@ func TestEngine_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, "domain.com", time.Minute, []byte("hello")}, nil, networks)
+			var (
+				networks = &mock.FakePrivateNetworks{}
+				l        = zaptest.NewLogger(t).Sugar()
+				e        = New(l, EngineOpts{"test", true, "domain.com", time.Minute, []byte("hello")}, nil, networks)
+			)
+
 			var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			if err := e.Run(ctx, tt.args.opts); (err != nil) != tt.wantErr {
@@ -69,7 +73,6 @@ func TestEngine_Run(t *testing.T) {
 }
 
 func TestEngine_NetworkPathContext(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
 	type args struct {
 		nodeName string
 		key      contextKey
@@ -87,11 +90,14 @@ func TestEngine_NetworkPathContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
-				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
-					NetworkID: tt.args.nodeName,
-				}), networks)
+			var (
+				networks = &mock.FakePrivateNetworks{}
+				l        = zaptest.NewLogger(t).Sugar()
+				e        = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
+					registry.New(l, config.New().Ports, &ipfs.NodeInfo{
+						NetworkID: tt.args.nodeName,
+					}), networks)
+			)
 
 			// set up route context and request
 			var route = chi.NewRouteContext()
@@ -124,7 +130,6 @@ func TestEngine_NetworkPathContext(t *testing.T) {
 }
 
 func TestEngine_FeaturePathContext(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
 	type args struct {
 		key    contextKey
 		target string
@@ -141,9 +146,12 @@ func TestEngine_FeaturePathContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
-				registry.New(l, config.New().Ports), networks)
+			var (
+				networks = &mock.FakePrivateNetworks{}
+				l        = zaptest.NewLogger(t).Sugar()
+				e        = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
+					registry.New(l, config.New().Ports), networks)
+			)
 
 			// set up route context and request
 			var route = chi.NewRouteContext()
@@ -176,7 +184,6 @@ func TestEngine_FeaturePathContext(t *testing.T) {
 }
 
 func TestEngine_NetworkSubdomainContext(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
 	type args struct {
 		nodeName string
 		domain   string
@@ -194,11 +201,14 @@ func TestEngine_NetworkSubdomainContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
-				registry.New(l, config.New().Ports, &ipfs.NodeInfo{
-					NetworkID: tt.args.nodeName,
-				}), networks)
+			var (
+				networks = &mock.FakePrivateNetworks{}
+				l        = zaptest.NewLogger(t).Sugar()
+				e        = New(l, EngineOpts{"test", true, "", time.Second, []byte("hello")},
+					registry.New(l, config.New().Ports, &ipfs.NodeInfo{
+						NetworkID: tt.args.nodeName,
+					}), networks)
+			)
 
 			// construct request
 			var req = httptest.NewRequest("GET", tt.args.domain, nil)
@@ -237,7 +247,6 @@ func TestEngine_NetworkSubdomainContext(t *testing.T) {
 }
 
 func TestEngine_Redirect(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
 	type fields struct {
 		node       *ipfs.NodeInfo
 		network    *models.HostedNetwork
@@ -325,9 +334,12 @@ func TestEngine_Redirect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var networks = &mock.FakePrivateNetworks{}
-			var e = New(l, EngineOpts{"test", true, "", time.Second, defaultTestKey},
-				registry.New(l, config.New().Ports), networks)
+			var (
+				networks = &mock.FakePrivateNetworks{}
+				l        = zaptest.NewLogger(t).Sugar()
+				e        = New(l, EngineOpts{"test", true, "", time.Second, defaultTestKey},
+					registry.New(l, config.New().Ports), networks)
+			)
 
 			networks.GetNetworkByNameReturns(tt.fields.network, tt.fields.networkErr)
 
@@ -355,14 +367,18 @@ func TestEngine_Redirect(t *testing.T) {
 }
 
 func TestEngine_Status(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
-	var networks = &mock.FakePrivateNetworks{}
-	var e = New(l,
-		EngineOpts{"test", true, "", time.Second, []byte("hello")},
-		registry.New(l, config.New().Ports),
-		networks)
-	var req = httptest.NewRequest("GET", "/", nil)
-	var rec = httptest.NewRecorder()
+	var (
+		networks = &mock.FakePrivateNetworks{}
+		l        = zaptest.NewLogger(t).Sugar()
+		e        = New(l,
+			EngineOpts{"test", true, "", time.Second, []byte("hello")},
+			registry.New(l, config.New().Ports),
+			networks)
+	)
+	var (
+		req = httptest.NewRequest("GET", "/", nil)
+		rec = httptest.NewRecorder()
+	)
 	e.Status(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status '%d', found '%d'", http.StatusOK, rec.Code)

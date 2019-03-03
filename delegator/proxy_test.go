@@ -9,11 +9,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/RTradeLtd/Nexus/log"
+	"go.uber.org/zap/zaptest"
 )
 
 func Test_newProxy(t *testing.T) {
-	var l, _ = log.NewLogger("", true)
 	var testBytes = []byte("{\"hello\":\"world\"}")
 	type args struct {
 		feature string
@@ -45,6 +44,7 @@ func Test_newProxy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var l = zaptest.NewLogger(t).Sugar()
 			var got = newProxy(tt.args.feature, tt.args.target, l)
 
 			// test proxy Director
