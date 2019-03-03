@@ -44,18 +44,25 @@ func New(logger *zap.SugaredLogger, address string, ports config.Ports, dev bool
 		return nil, fmt.Errorf("unable to fetch nodes: %s", err.Error())
 	}
 	if len(nodes) > 0 {
-		l.Infow("bootstrapping with found nodes", "nodes", nodes)
+		l.Infow("bootstrapping with discovered nodes", "nodes", nodes)
 	}
 	reg := registry.New(l, ports, nodes...)
 
-	return &Orchestrator{
+	// set up orchestrator
+	var o = &Orchestrator{
 		Registry: reg,
 
 		l:       l,
 		nm:      networks,
 		client:  c,
 		address: address,
-	}, nil
+	}
+
+	// reboot offline nodes
+	l.Info("checking for offline nodes that should be online")
+	go rebootOfflineNodes(o)
+
+	return o, nil
 }
 
 // Run initializes the orchestrator's background tasks. Cancelling the context
@@ -103,6 +110,10 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 		return NetworkDetails{}, fmt.Errorf("no network with name '%s' found", network)
 	}
 	l = l.With("network.db_id", n.ID)
+	if n.Disabled == true {
+		l.Infow("network is disabled")
+		return NetworkDetails{}, fmt.Errorf("network '%s' is disabled", network)
+	}
 	l.Info("network retrieved from database")
 
 	// set options based on database entry
@@ -143,7 +154,8 @@ func (o *Orchestrator) NetworkUp(ctx context.Context, network string) (NetworkDe
 	n.PeerKey = s.PeerKey
 	n.SwarmKey = string(opts.SwarmKey)
 	n.SwarmAddr = fmt.Sprintf("%s:%s", o.address, newNode.Ports.Swarm)
-	n.Activated = time.Now()
+	var now = time.Now()
+	n.Activated = &now
 	if err := o.nm.SaveNetwork(n); err != nil {
 		l.Errorw("failed to update database - removing node",
 			"error", err,

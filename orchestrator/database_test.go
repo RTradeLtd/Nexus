@@ -20,7 +20,7 @@ var dbDefaults = tcfg.Database{
 }
 
 func newTestDB() (*database.Manager, error) {
-	return database.Initialize(&tcfg.TemporalConfig{
+	return database.New(&tcfg.TemporalConfig{
 		Database: dbDefaults,
 	}, database.Options{
 		SSLModeDisable: true,
@@ -30,7 +30,7 @@ func newTestDB() (*database.Manager, error) {
 
 func Test_getOptionsFromDatabaseEntry(t *testing.T) {
 	type args struct {
-		network *models.HostedIPFSPrivateNetwork
+		network *models.HostedNetwork
 	}
 	tests := []struct {
 		name    string
@@ -39,12 +39,12 @@ func Test_getOptionsFromDatabaseEntry(t *testing.T) {
 		wantErr bool
 	}{
 		{"invalid network", args{nil}, ipfs.NodeOpts{}, true},
-		{"with swarm key", args{&models.HostedIPFSPrivateNetwork{
+		{"with swarm key", args{&models.HostedNetwork{
 			SwarmKey: "helloworld",
 		}}, ipfs.NodeOpts{
 			SwarmKey: []byte("helloworld"),
 		}, false},
-		{"without swarm key", args{&models.HostedIPFSPrivateNetwork{}}, ipfs.NodeOpts{
+		{"without swarm key", args{&models.HostedNetwork{}}, ipfs.NodeOpts{
 			SwarmKey: []byte("generated"),
 		}, false},
 	}

@@ -125,7 +125,7 @@ func TestEngine_Redirect(t *testing.T) {
 	var l, _ = log.NewLogger("", true)
 	type fields struct {
 		node       *ipfs.NodeInfo
-		network    *models.HostedIPFSPrivateNetwork
+		network    *models.HostedNetwork
 		networkErr error
 	}
 	type args struct {
@@ -159,14 +159,14 @@ func TestEngine_Redirect(t *testing.T) {
 		{"api + good token + no authorization",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
-				&models.HostedIPFSPrivateNetwork{},
+				&models.HostedNetwork{},
 				nil},
 			args{validToken, map[contextKey]string{keyFeature: "api"}},
 			http.StatusForbidden},
 		{"api + good token + disallowed origin",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
-				&models.HostedIPFSPrivateNetwork{
+				&models.HostedNetwork{
 					Users:            []string{"testuser"},
 					APIAllowedOrigin: "https://www.google.com",
 				},
@@ -176,7 +176,7 @@ func TestEngine_Redirect(t *testing.T) {
 		{"OK: api + good token + authorization",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{API: "5000"}},
-				&models.HostedIPFSPrivateNetwork{
+				&models.HostedNetwork{
 					Users: []string{"testuser"},
 				},
 				nil},
@@ -192,7 +192,7 @@ func TestEngine_Redirect(t *testing.T) {
 		{"gateway + good token + not public",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{Gateway: "5000"}},
-				&models.HostedIPFSPrivateNetwork{
+				&models.HostedNetwork{
 					GatewayPublic: false,
 				},
 				nil},
@@ -201,7 +201,7 @@ func TestEngine_Redirect(t *testing.T) {
 		{"OK: gateway + good token + public",
 			fields{
 				&ipfs.NodeInfo{Ports: ipfs.NodePorts{Gateway: "5000"}},
-				&models.HostedIPFSPrivateNetwork{
+				&models.HostedNetwork{
 					GatewayPublic: true,
 				},
 				nil},

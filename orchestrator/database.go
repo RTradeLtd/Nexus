@@ -7,7 +7,7 @@ import (
 	"github.com/RTradeLtd/database/models"
 )
 
-func getNodeFromDatabaseEntry(jobID string, network *models.HostedIPFSPrivateNetwork) *ipfs.NodeInfo {
+func getNodeFromDatabaseEntry(jobID string, network *models.HostedNetwork) *ipfs.NodeInfo {
 	return &ipfs.NodeInfo{
 		NetworkID: network.Name,
 		JobID:     jobID,
@@ -20,7 +20,7 @@ func getNodeFromDatabaseEntry(jobID string, network *models.HostedIPFSPrivateNet
 	}
 }
 
-func getOptionsFromDatabaseEntry(network *models.HostedIPFSPrivateNetwork) (ipfs.NodeOpts, error) {
+func getOptionsFromDatabaseEntry(network *models.HostedNetwork) (ipfs.NodeOpts, error) {
 	opts := ipfs.NodeOpts{}
 	if network == nil {
 		return opts, errors.New("invalid network entry")

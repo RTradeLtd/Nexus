@@ -54,7 +54,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		"db.name", cfg.Database.Name,
 		"db.with_ssl", !devMode,
 		"db.with_migrations", devMode)
-	dbm, err := database.Initialize(&tcfg.TemporalConfig{
+	dbm, err := database.New(&tcfg.TemporalConfig{
 		Database: cfg.Database,
 	}, database.Options{
 		SSLModeDisable: devMode,
@@ -75,7 +75,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 	// initialize orchestrator
 	println("initializing orchestrator")
 	o, err := orchestrator.New(l, cfg.Address, cfg.IPFS.Ports, devMode,
-		c, models.NewHostedIPFSNetworkManager(dbm.DB))
+		c, models.NewHostedNetworkManager(dbm.DB))
 	if err != nil {
 		fatal(err.Error())
 	}
@@ -91,7 +91,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		DevMode:        devMode,
 		RequestTimeout: 30 * time.Second,
 		JWTKey:         []byte(cfg.Delegator.JWTKey),
-	}, o.Registry, models.NewHostedIPFSNetworkManager(dbm.DB))
+	}, o.Registry, models.NewHostedNetworkManager(dbm.DB))
 
 	// catch interrupts
 	ctx, cancel := context.WithCancel(context.Background())
