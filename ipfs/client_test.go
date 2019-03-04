@@ -22,7 +22,7 @@ func Test_client_getDataDir(t *testing.T) {
 }
 
 func Test_client_NodeOperations(t *testing.T) {
-	c, err := newTestClient()
+	c, err := newTestClient(t)
 	if err != nil {
 		t.Error(err)
 		return
@@ -124,7 +124,7 @@ func Test_client_NodeOperations(t *testing.T) {
 			// get node stats
 			s, err := c.NodeStats(ctx, tt.args.n)
 			if err != nil {
-				t.Error(err.Error())
+				t.Error("could not get stats:", err.Error())
 				return
 			}
 			t.Logf("received stats: %v", s)
@@ -141,7 +141,7 @@ func Test_client_NodeOperations(t *testing.T) {
 }
 
 func Test_client_UpdateNode(t *testing.T) {
-	c, err := newTestClient()
+	c, err := newTestClient(t)
 	if err != nil {
 		t.Error(err)
 		return

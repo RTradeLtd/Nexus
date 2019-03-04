@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"go.uber.org/zap/zaptest"
+
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/log"
 	docker "github.com/docker/docker/client"
 )
 
-func newTestClient() (NodeClient, error) {
+func newTestClient(t *testing.T) (NodeClient, error) {
 	ipfsImage := "ipfs/go-ipfs:" + config.DefaultIPFSVersion
 	d, err := docker.NewEnvClient()
 	if err != nil {
@@ -18,7 +20,7 @@ func newTestClient() (NodeClient, error) {
 	}
 	d.NegotiateAPIVersion(context.Background())
 
-	l, _ := log.NewLogger("", true)
+	var l = zaptest.NewLogger(t).Sugar()
 	return &Client{l, d, ipfsImage, "./tmp", 0755}, nil
 }
 
