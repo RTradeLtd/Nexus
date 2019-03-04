@@ -9,7 +9,7 @@ import (
 )
 
 // DefaultIPFSVersion declares the current default version of go-ipfs to use
-const DefaultIPFSVersion = "v0.4.19"
+const DefaultIPFSVersion = "v0.4.18"
 
 // IPFSOrchestratorConfig configures the orchestration daemon
 type IPFSOrchestratorConfig struct {
