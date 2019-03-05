@@ -110,6 +110,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 
 	// handle subdomain-based routing
 	if e.domain != "" {
+		e.l.Infow("domain configured - registering subdomain routes", "domain", e.domain)
 		hr := hostrouter.New()
 		hr.Map("*.api."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
@@ -123,6 +124,8 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
+	} else {
+		e.l.Infow("no domain configured - subdomain routes not registered")
 	}
 
 	// set up server
