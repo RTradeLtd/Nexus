@@ -40,6 +40,7 @@ type Engine struct {
 	timeFunc  func() time.Time
 	version   string
 	domain    string
+	direct    bool
 }
 
 // EngineOpts denotes options for the delegator engine
@@ -100,17 +101,13 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 
 	// register regular HTTP endpoints
 	r.HandleFunc("/status", e.Status)
-	r.Route(fmt.Sprintf("/network/{%s}", keyNetwork), func(r chi.Router) {
-		r.Use(e.NetworkPathContext)
-		r.HandleFunc("/status", e.NetworkStatus)
-		r.Route(fmt.Sprintf("/{%s}", keyFeature), func(r chi.Router) {
-			r.HandleFunc("/*", e.Redirect)
-		})
-	})
 
-	// handle subdomain-based routing
+	// set up network endpoints
 	if e.domain != "" {
 		e.l.Infow("domain configured - registering subdomain routes", "domain", e.domain)
+		e.direct = true
+
+		// handle subdomain-based routing
 		hr := hostrouter.New()
 		hr.Map("*.api."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
@@ -124,8 +121,22 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
+		hr.Map("*.status."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+			r.Use(e.NetworkAndFeatureSubdomainContext)
+			r.HandleFunc("/*", e.NetworkStatus)
+		}))
 	} else {
 		e.l.Infow("no domain configured - subdomain routes not registered")
+		e.direct = false
+
+		// use legacy path-based network features
+		r.Route(fmt.Sprintf("/network/{%s}", keyNetwork), func(r chi.Router) {
+			r.Use(e.NetworkPathContext)
+			r.HandleFunc("/status", e.NetworkStatus)
+			r.Route(fmt.Sprintf("/{%s}", keyFeature), func(r chi.Router) {
+				r.HandleFunc("/*", e.Redirect)
+			})
+		})
 	}
 
 	// set up server
@@ -326,7 +337,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	// set up forwarder, retrieving from cache if available, otherwise set up new
 	var proxy *httputil.ReverseProxy
 	if proxy = e.cache.Get(fmt.Sprintf("%s-%s", n.NetworkID, feature)); proxy == nil {
-		proxy = newProxy(feature, url, e.l)
+		proxy = newProxy(feature, url, e.l, e.direct)
 		e.cache.Cache(fmt.Sprintf("%s-%s", n.NetworkID, feature), proxy)
 	}
 
