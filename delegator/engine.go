@@ -101,7 +101,6 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 
 	// register regular HTTP endpoints
 	r.HandleFunc("/status", e.Status)
-
 	// set up network endpoints
 	if e.domain != "" {
 		e.l.Infow("domain configured - registering subdomain routes", "domain", e.domain)
@@ -114,6 +113,7 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 			r.HandleFunc("/*", e.Redirect)
 		}))
 		hr.Map("*.gateway."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+			e.l.Info("handling gateway route")
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
