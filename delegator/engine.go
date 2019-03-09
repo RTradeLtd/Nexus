@@ -108,20 +108,20 @@ func (e *Engine) Run(ctx context.Context, opts config.Delegator) error {
 
 		// handle subdomain-based routing
 		hr := hostrouter.New()
-		hr.Map("*.api."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+		hr.Map("*.api."+e.domain, r.Route("/", func(r chi.Router) {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
-		hr.Map("*.gateway."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+		hr.Map("*.gateway."+e.domain, r.Route("/", func(r chi.Router) {
 			e.l.Info("handling gateway route")
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
-		hr.Map("*.swarm."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+		hr.Map("*.swarm."+e.domain, r.Route("/", func(r chi.Router) {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.Redirect)
 		}))
-		hr.Map("*.status."+e.domain, chi.NewRouter().Route("/", func(r chi.Router) {
+		hr.Map("*.status."+e.domain, r.Route("/", func(r chi.Router) {
 			r.Use(e.NetworkAndFeatureSubdomainContext)
 			r.HandleFunc("/*", e.NetworkStatus)
 		}))
