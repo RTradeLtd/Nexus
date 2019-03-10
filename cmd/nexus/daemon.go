@@ -90,6 +90,7 @@ func runDaemon(configPath string, devMode bool, args []string) {
 		Version:        Version,
 		DevMode:        devMode,
 		RequestTimeout: 30 * time.Second,
+		Domain:         cfg.Delegator.Domain,
 		JWTKey:         []byte(cfg.Delegator.JWTKey),
 	}, o.Registry, models.NewHostedNetworkManager(dbm.DB))
 

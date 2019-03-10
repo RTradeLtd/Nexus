@@ -27,6 +27,7 @@
     }
   },
   "delegator": {
+    "domain:": "nexus.temporal.cloud",
     "host": "127.0.0.1",
     "port": "80",
     "jwt_key": "DO_NOT_LEAVE_ME_AS_DEFAULT",

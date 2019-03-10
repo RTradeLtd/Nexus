@@ -51,6 +51,7 @@ type API struct {
 
 // Delegator declares configuration for the orchestrator proxy
 type Delegator struct {
+	Domain string `json:"domain:"`
 	Host   string `json:"host"`
 	Port   string `json:"port"`
 	JWTKey string `json:"jwt_key"`
@@ -120,6 +121,9 @@ func (c *IPFSOrchestratorConfig) SetDefaults(dev bool) {
 		} else {
 			c.Delegator.JWTKey = "DO_NOT_LEAVE_ME_AS_DEFAULT"
 		}
+	}
+	if c.Delegator.Domain == "" && !dev {
+		c.Delegator.Domain = "nexus.temporal.cloud"
 	}
 
 	// Database settings
