@@ -6,9 +6,9 @@ import (
 
 	"github.com/RTradeLtd/Nexus/ipfs"
 
-	tcfg "github.com/RTradeLtd/config"
-	"github.com/RTradeLtd/database"
-	"github.com/RTradeLtd/database/models"
+	tcfg "github.com/RTradeLtd/config/v2"
+	"github.com/RTradeLtd/database/v2"
+	"github.com/RTradeLtd/database/v2/models"
 )
 
 var dbDefaults = tcfg.Database{

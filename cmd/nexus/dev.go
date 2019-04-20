@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/RTradeLtd/Nexus/config"
-	tcfg "github.com/RTradeLtd/config"
-	"github.com/RTradeLtd/database"
-	"github.com/RTradeLtd/database/models"
+	tcfg "github.com/RTradeLtd/config/v2"
+	"github.com/RTradeLtd/database/v2"
+	"github.com/RTradeLtd/database/v2/models"
 )
 
 func initTestNetwork(configPath, networkName string) {

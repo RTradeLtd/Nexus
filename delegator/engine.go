@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bobheadxi/res"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
 	// fork of github.com/go-chi/hostrouter with subdomain wildcard support
@@ -186,7 +186,7 @@ func (e *Engine) NetworkPathContext(next http.Handler) http.Handler {
 		var id = chi.URLParam(r, string(keyNetwork))
 		n, err := e.reg.Get(id)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			res.R(w, r, res.ErrNotFound(err.Error()))
 			return
 		}
 
@@ -202,7 +202,7 @@ func (e *Engine) FeaturePathContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var feature = chi.URLParam(r, string(keyFeature))
 		if !validateFeature(feature) {
-			http.Error(w, fmt.Sprintf("invalid feature '%s' requested", feature), http.StatusBadRequest)
+			res.R(w, r, res.ErrBadRequest(fmt.Sprintf("invalid feature '%s' requested", feature)))
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(
@@ -222,13 +222,13 @@ func (e *Engine) NetworkAndFeatureSubdomainContext(next http.Handler) http.Handl
 		)
 
 		if !validateFeature(feature) {
-			http.Error(w, fmt.Sprintf("invalid feature '%s' requested", feature), http.StatusBadRequest)
+			res.R(w, r, res.ErrBadRequest(fmt.Sprintf("invalid feature '%s' requested", feature)))
 			return
 		}
 
 		n, err := e.reg.Get(id)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			res.R(w, r, res.ErrNotFound(err.Error()))
 			return
 		}
 
@@ -248,14 +248,14 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	// retrieve network
 	n, ok := r.Context().Value(keyNetwork).(*ipfs.NodeInfo)
 	if !ok || n == nil {
-		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		res.R(w, r, res.Err(http.StatusText(422), 422))
 		return
 	}
 
 	// retrieve requested feature
 	feature, ok := r.Context().Value(keyFeature).(string)
 	if feature == "" {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		res.R(w, r, res.ErrBadRequest("no feature provided"))
 		return
 	}
 
@@ -270,7 +270,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 		// IPFS network API access requires an authorized user
 		user, err := getUserFromJWT(r, e.keyLookup, e.timeFunc)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			res.R(w, r, res.ErrUnauthorized(err.Error()))
 			return
 		}
 		entry, err := e.networks.GetNetworkByName(n.NetworkID)
@@ -285,7 +285,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !found {
-			http.Error(w, "user not authorized", http.StatusForbidden)
+			res.R(w, r, res.ErrForbidden("user not authorized"))
 			return
 		}
 		// set access rules
@@ -304,15 +304,15 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 	case "gateway":
 		// Gateway is only open if configured as such
 		if entry, err := e.networks.GetNetworkByName(n.NetworkID); err != nil {
-			http.Error(w, "failed to find network", http.StatusNotFound)
+			res.R(w, r, res.ErrNotFound("failed to find network"))
 			return
 		} else if !entry.GatewayPublic {
-			http.Error(w, "failed to find network gateway", http.StatusNotFound)
+			res.R(w, r, res.ErrNotFound("failed to find network gateway"))
 			return
 		}
 		port = n.Ports.Gateway
 	default:
-		http.Error(w, fmt.Sprintf("invalid feature '%s'", feature), http.StatusBadRequest)
+		res.R(w, r, res.ErrBadRequest(fmt.Sprintf("invalid feature '%s'", feature)))
 		return
 	}
 
@@ -331,7 +331,7 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	url, err := url.Parse(target)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		res.R(w, r, res.ErrInternalServer("could not parse target", err))
 		return
 	}
 
@@ -348,22 +348,18 @@ func (e *Engine) Redirect(w http.ResponseWriter, r *http.Request) {
 
 // Status reports on proxy status
 func (e *Engine) Status(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	render.JSON(w, r, map[string]string{
-		"status":  "online",
-		"version": e.version,
-	})
+	res.R(w, r, res.MsgOK("Nexus proxy is online!",
+		"version", e.version))
 }
 
 // NetworkStatus reports on the status of a network
 func (e *Engine) NetworkStatus(w http.ResponseWriter, r *http.Request) {
-	if _, ok := r.Context().Value(keyNetwork).(*ipfs.NodeInfo); !ok {
-		http.Error(w, http.StatusText(422), 422)
+	n, ok := r.Context().Value(keyNetwork).(*ipfs.NodeInfo)
+	if !ok {
+		res.R(w, r, res.Err(http.StatusText(422), 422))
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	render.JSON(w, r, map[string]string{
-		"status": "registered",
-	})
+	res.R(w, r, res.MsgOK(fmt.Sprintf("found network %s", n.NetworkID),
+		"status", "registered"))
 }
