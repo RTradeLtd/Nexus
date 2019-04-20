@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/RTradeLtd/Nexus/temporal"
-	"github.com/RTradeLtd/database/models"
+	"github.com/RTradeLtd/database/v2/models"
 )
 
 type FakePrivateNetworks struct {

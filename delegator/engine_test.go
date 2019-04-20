@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap/zaptest"
 
-	"github.com/RTradeLtd/database/models"
+	"github.com/RTradeLtd/database/v2/models"
 
 	"github.com/RTradeLtd/Nexus/config"
 	"github.com/RTradeLtd/Nexus/ipfs"

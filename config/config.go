@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	tcfg "github.com/RTradeLtd/config"
+	tcfg "github.com/RTradeLtd/config/v2"
 )
 
 // DefaultIPFSVersion declares the current default version of go-ipfs to use

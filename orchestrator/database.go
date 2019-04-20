@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/RTradeLtd/Nexus/ipfs"
-	"github.com/RTradeLtd/database/models"
+	"github.com/RTradeLtd/database/v2/models"
 )
 
 func getNodeFromDatabaseEntry(jobID string, network *models.HostedNetwork) *ipfs.NodeInfo {

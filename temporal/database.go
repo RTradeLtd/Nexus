@@ -1,6 +1,6 @@
 package temporal
 
-import "github.com/RTradeLtd/database/models"
+import "github.com/RTradeLtd/database/v2/models"
 
 // PrivateNetworks is an interface to wrap the Temporal IPFSNetworkManager
 // database class
