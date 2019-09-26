@@ -27,6 +27,6 @@ require (
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	go.uber.org/zap v1.9.1
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
-	google.golang.org/grpc v1.19.0
+	google.golang.org/grpc v1.24.0
 	gotest.tools v2.2.0+incompatible // indirect
 )
