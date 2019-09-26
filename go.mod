@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
-	github.com/RTradeLtd/config/v2 v2.1.1
+	github.com/RTradeLtd/config/v2 v2.1.5
 	github.com/RTradeLtd/ctl v0.0.0-20181106024051-2febb33f6fd1
 	github.com/RTradeLtd/database/v2 v2.2.1
 	github.com/RTradeLtd/grpc v2.0.0+incompatible
